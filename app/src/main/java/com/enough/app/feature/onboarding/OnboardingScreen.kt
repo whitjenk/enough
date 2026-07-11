@@ -1,0 +1,538 @@
+package com.enough.app.feature.onboarding
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.enough.app.R
+import com.enough.app.data.model.ActivityGoalType
+import com.enough.app.di.AppViewModelProvider
+import com.enough.app.domain.risk.AgeBand
+import com.enough.app.domain.risk.RiskScore
+import com.enough.app.domain.risk.RiskScorer
+import com.enough.app.domain.risk.Sex
+import com.enough.app.health.HealthConnectAvailability
+import com.enough.app.ui.components.ChoiceList
+import com.enough.app.ui.components.ChoiceOption
+import com.enough.app.ui.components.LabeledSlider
+import com.enough.app.ui.components.SectionCard
+import com.enough.app.ui.theme.EnoughTheme
+import androidx.compose.ui.res.stringResource
+import kotlin.math.roundToInt
+
+/**
+ * Onboarding entry point: collects [OnboardingUiState], wires the Health Connect
+ * permission launcher, and navigates away once onboarding is persisted.
+ */
+@Composable
+fun OnboardingRoute(
+    onComplete: () -> Unit,
+    viewModel: OnboardingViewModel = viewModel(factory = AppViewModelProvider.Factory),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val permissionContract = remember { viewModel.permissionsRequestContract() }
+    val permissionLauncher = rememberLauncherForActivityResult(permissionContract) {
+        viewModel.onPermissionsResult()
+    }
+
+    androidx.compose.runtime.LaunchedEffect(uiState.isComplete) {
+        if (uiState.isComplete) onComplete()
+    }
+
+    OnboardingScreen(
+        uiState = uiState,
+        onGetStarted = viewModel::goToRiskTest,
+        onRiskFormChange = viewModel::onRiskFormChange,
+        onSubmitRiskTest = viewModel::submitRiskTest,
+        onRiskResultContinue = viewModel::goToGoals,
+        onGoalsFormChange = viewModel::onGoalsFormChange,
+        onGoalsContinue = viewModel::goToHealthConnect,
+        onConnectHealth = { permissionLauncher.launch(viewModel.healthConnectPermissions) },
+        onFinish = viewModel::finishOnboarding,
+        onBack = viewModel::back,
+    )
+}
+
+/** Stateless onboarding UI, dispatched by step. */
+@Composable
+fun OnboardingScreen(
+    uiState: OnboardingUiState,
+    onGetStarted: () -> Unit,
+    onRiskFormChange: (RiskTestForm) -> Unit,
+    onSubmitRiskTest: () -> Unit,
+    onRiskResultContinue: () -> Unit,
+    onGoalsFormChange: (GoalsForm) -> Unit,
+    onGoalsContinue: () -> Unit,
+    onConnectHealth: () -> Unit,
+    onFinish: () -> Unit,
+    onBack: () -> Unit,
+) {
+    when (uiState.step) {
+        OnboardingStep.WELCOME -> WelcomeStep(onGetStarted)
+        OnboardingStep.RISK_TEST -> RiskTestStep(
+            form = uiState.riskForm,
+            onFormChange = onRiskFormChange,
+            onSubmit = onSubmitRiskTest,
+            onBack = onBack,
+        )
+        OnboardingStep.RISK_RESULT -> RiskResultStep(
+            score = uiState.riskScore,
+            onContinue = onRiskResultContinue,
+            onBack = onBack,
+        )
+        OnboardingStep.GOALS -> GoalsStep(
+            form = uiState.goalsForm,
+            startWeightLb = uiState.riskForm.weightLb ?: 0.0,
+            onFormChange = onGoalsFormChange,
+            onContinue = onGoalsContinue,
+            onBack = onBack,
+        )
+        OnboardingStep.HEALTH_CONNECT -> HealthConnectStep(
+            state = uiState.healthConnect,
+            isSaving = uiState.isSaving,
+            onConnect = onConnectHealth,
+            onFinish = onFinish,
+            onBack = onBack,
+        )
+    }
+}
+
+// --- Shared scaffold ---
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OnboardingScaffold(
+    title: String,
+    onBack: (() -> Unit)?,
+    primaryLabel: String,
+    primaryEnabled: Boolean,
+    onPrimary: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            Surface {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    Button(
+                        onClick = onPrimary,
+                        enabled = primaryEnabled,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(primaryLabel) }
+                }
+            }
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            content()
+        }
+    }
+}
+
+// --- Steps ---
+
+@Composable
+private fun WelcomeStep(onGetStarted: () -> Unit) {
+    OnboardingScaffold(
+        title = stringResource(R.string.onboarding_welcome_title),
+        onBack = null,
+        primaryLabel = stringResource(R.string.onboarding_get_started),
+        primaryEnabled = true,
+        onPrimary = onGetStarted,
+    ) {
+        Text(
+            text = stringResource(R.string.onboarding_welcome_body),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        HorizontalDivider()
+        Text(
+            text = stringResource(R.string.onboarding_welcome_disclaimer),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun RiskTestStep(
+    form: RiskTestForm,
+    onFormChange: (RiskTestForm) -> Unit,
+    onSubmit: () -> Unit,
+    onBack: () -> Unit,
+) {
+    OnboardingScaffold(
+        title = stringResource(R.string.onboarding_risk_title),
+        onBack = onBack,
+        primaryLabel = stringResource(R.string.onboarding_see_result),
+        primaryEnabled = form.isComplete,
+        onPrimary = onSubmit,
+    ) {
+        Text(
+            text = stringResource(R.string.onboarding_risk_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        SectionCard(stringResource(R.string.risk_q_age)) {
+            ChoiceList(
+                options = listOf(
+                    ChoiceOption(AgeBand.UNDER_40, stringResource(R.string.age_under_40)),
+                    ChoiceOption(AgeBand.AGE_40_49, stringResource(R.string.age_40_49)),
+                    ChoiceOption(AgeBand.AGE_50_59, stringResource(R.string.age_50_59)),
+                    ChoiceOption(AgeBand.AGE_60_PLUS, stringResource(R.string.age_60_plus)),
+                ),
+                selected = form.ageBand,
+                onSelect = { onFormChange(form.copy(ageBand = it)) },
+            )
+        }
+
+        SectionCard(stringResource(R.string.risk_q_sex)) {
+            Text(
+                text = stringResource(R.string.risk_q_sex_help),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ChoiceList(
+                options = listOf(
+                    ChoiceOption(Sex.FEMALE, stringResource(R.string.sex_female)),
+                    ChoiceOption(Sex.MALE, stringResource(R.string.sex_male)),
+                ),
+                selected = form.sex,
+                onSelect = { onFormChange(form.copy(sex = it)) },
+            )
+        }
+
+        if (form.sex == Sex.FEMALE) {
+            SectionCard(stringResource(R.string.risk_q_gestational)) {
+                YesNoChoice(
+                    selected = form.hadGestationalDiabetes,
+                    onSelect = { onFormChange(form.copy(hadGestationalDiabetes = it)) },
+                )
+            }
+        }
+
+        SectionCard(stringResource(R.string.risk_q_family)) {
+            YesNoChoice(
+                selected = form.familyHistoryDiabetes,
+                onSelect = { onFormChange(form.copy(familyHistoryDiabetes = it)) },
+            )
+        }
+
+        SectionCard(stringResource(R.string.risk_q_bp)) {
+            YesNoChoice(
+                selected = form.highBloodPressure,
+                onSelect = { onFormChange(form.copy(highBloodPressure = it)) },
+            )
+        }
+
+        SectionCard(stringResource(R.string.risk_q_active)) {
+            YesNoChoice(
+                selected = form.physicallyActive,
+                onSelect = { onFormChange(form.copy(physicallyActive = it)) },
+            )
+        }
+
+        SectionCard(stringResource(R.string.risk_q_height)) {
+            val totalInches = form.heightFeet * 12 + form.heightInches
+            LabeledSlider(
+                valueLabel = stringResource(
+                    R.string.height_value,
+                    form.heightFeet,
+                    form.heightInches,
+                ),
+                value = totalInches,
+                valueRange = 48..84,
+                step = 1,
+                onValueChange = { inches ->
+                    onFormChange(form.copy(heightFeet = inches / 12, heightInches = inches % 12))
+                },
+            )
+        }
+
+        SectionCard(stringResource(R.string.risk_q_weight)) {
+            OutlinedTextField(
+                value = form.weightLbText,
+                onValueChange = { onFormChange(form.copy(weightLbText = it.filter { c -> c.isDigit() || c == '.' })) },
+                label = { Text(stringResource(R.string.risk_weight_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.risk_asian_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun YesNoChoice(selected: Boolean, onSelect: (Boolean) -> Unit) {
+    ChoiceList(
+        options = listOf(
+            ChoiceOption(true, stringResource(R.string.option_yes)),
+            ChoiceOption(false, stringResource(R.string.option_no)),
+        ),
+        selected = selected,
+        onSelect = onSelect,
+    )
+}
+
+@Composable
+private fun RiskResultStep(
+    score: RiskScore?,
+    onContinue: () -> Unit,
+    onBack: () -> Unit,
+) {
+    OnboardingScaffold(
+        title = stringResource(R.string.risk_result_title),
+        onBack = onBack,
+        primaryLabel = stringResource(R.string.onboarding_set_goals),
+        primaryEnabled = score != null,
+        onPrimary = onContinue,
+    ) {
+        if (score != null) {
+            Text(
+                text = stringResource(R.string.risk_result_score, score.total, RiskScorer.MAX_SCORE),
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = if (score.isHighRisk) {
+                    stringResource(R.string.risk_result_higher)
+                } else {
+                    stringResource(R.string.risk_result_lower)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.risk_result_disclaimer),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GoalsStep(
+    form: GoalsForm,
+    startWeightLb: Double,
+    onFormChange: (GoalsForm) -> Unit,
+    onContinue: () -> Unit,
+    onBack: () -> Unit,
+) {
+    OnboardingScaffold(
+        title = stringResource(R.string.goals_title),
+        onBack = onBack,
+        primaryLabel = stringResource(R.string.action_continue),
+        primaryEnabled = form.isComplete,
+        onPrimary = onContinue,
+    ) {
+        val targetLb = (startWeightLb * (1.0 - form.weightLossPercent / 100.0)).roundToInt()
+        SectionCard(stringResource(R.string.goals_weight_header)) {
+            Text(
+                text = stringResource(
+                    R.string.goals_weight_desc,
+                    stringResource(R.string.weight_pounds, startWeightLb.roundToInt()),
+                    stringResource(R.string.weight_pounds, targetLb),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(12.dp))
+            LabeledSlider(
+                valueLabel = stringResource(R.string.goals_weight_percent_label, form.weightLossPercent),
+                value = form.weightLossPercent,
+                valueRange = 5..7,
+                step = 1,
+                onValueChange = { onFormChange(form.copy(weightLossPercent = it)) },
+            )
+        }
+
+        SectionCard(stringResource(R.string.goals_activity_header)) {
+            Text(
+                text = stringResource(R.string.goals_activity_desc),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            ChoiceList(
+                options = listOf(
+                    ChoiceOption(ActivityGoalType.MINUTES, stringResource(R.string.activity_type_minutes)),
+                    ChoiceOption(ActivityGoalType.STEPS, stringResource(R.string.activity_type_steps)),
+                    ChoiceOption(ActivityGoalType.CUSTOM, stringResource(R.string.activity_type_custom)),
+                ),
+                selected = form.activityGoalType,
+                onSelect = { onFormChange(form.copy(activityGoalType = it)) },
+            )
+            Spacer(Modifier.height(8.dp))
+            when (form.activityGoalType) {
+                ActivityGoalType.MINUTES -> LabeledSlider(
+                    valueLabel = stringResource(R.string.goals_activity_minutes_label, form.activityMinutes),
+                    value = form.activityMinutes,
+                    valueRange = 30..300,
+                    step = 15,
+                    onValueChange = { onFormChange(form.copy(activityMinutes = it)) },
+                )
+                ActivityGoalType.STEPS -> LabeledSlider(
+                    valueLabel = stringResource(R.string.goals_activity_steps_label, form.activitySteps),
+                    value = form.activitySteps,
+                    valueRange = 2_000..15_000,
+                    step = 500,
+                    onValueChange = { onFormChange(form.copy(activitySteps = it)) },
+                )
+                ActivityGoalType.CUSTOM -> OutlinedTextField(
+                    value = form.activityCustomLabel,
+                    onValueChange = { onFormChange(form.copy(activityCustomLabel = it)) },
+                    label = { Text(stringResource(R.string.goals_activity_custom_label)) },
+                    placeholder = { Text(stringResource(R.string.goals_activity_custom_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        SectionCard(stringResource(R.string.goals_fiber_header)) {
+            OutlinedTextField(
+                value = form.caloriesText,
+                onValueChange = { onFormChange(form.copy(caloriesText = it.filter { c -> c.isDigit() })) },
+                label = { Text(stringResource(R.string.goals_calories_label)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.goals_fiber_target, form.fiberTargetGrams),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(R.string.goals_fiber_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HealthConnectStep(
+    state: HealthConnectUiState,
+    isSaving: Boolean,
+    onConnect: () -> Unit,
+    onFinish: () -> Unit,
+    onBack: () -> Unit,
+) {
+    OnboardingScaffold(
+        title = stringResource(R.string.hc_title),
+        onBack = onBack,
+        primaryLabel = stringResource(R.string.onboarding_finish),
+        primaryEnabled = !isSaving,
+        onPrimary = onFinish,
+    ) {
+        Text(
+            text = stringResource(R.string.hc_desc),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        when (state.availability) {
+            HealthConnectAvailability.AVAILABLE -> {
+                if (state.permissionsGranted) {
+                    Text(
+                        text = stringResource(R.string.hc_connected),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    OutlinedButton(onClick = onConnect, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.hc_connect))
+                    }
+                }
+            }
+            HealthConnectAvailability.UPDATE_REQUIRED -> Text(
+                text = stringResource(R.string.hc_update_required),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            HealthConnectAvailability.NOT_SUPPORTED -> Text(
+                text = stringResource(R.string.hc_unavailable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+// --- Previews ---
+
+@Preview(showBackground = true)
+@Composable
+private fun WelcomePreview() {
+    EnoughTheme(dynamicColor = false) {
+        OnboardingScreen(
+            uiState = OnboardingUiState(step = OnboardingStep.WELCOME),
+            onGetStarted = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
+            onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
+            onConnectHealth = {}, onFinish = {}, onBack = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun GoalsPreview() {
+    EnoughTheme(dynamicColor = false) {
+        OnboardingScreen(
+            uiState = OnboardingUiState(
+                step = OnboardingStep.GOALS,
+                riskForm = RiskTestForm(weightLbText = "180"),
+            ),
+            onGetStarted = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
+            onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
+            onConnectHealth = {}, onFinish = {}, onBack = {},
+        )
+    }
+}

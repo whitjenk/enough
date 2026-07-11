@@ -2,6 +2,83 @@
 <resources>
     <string name="app_name">Enough</string>
 
-    <!-- Placeholder home copy for the initial scaffold; real screens replace this. -->
+    <!-- Home / placeholder -->
     <string name="home_greeting">One small thing today is enough.</string>
+
+    <!-- Shared -->
+    <string name="action_back">Back</string>
+    <string name="action_continue">Continue</string>
+    <string name="cd_back">Go back</string>
+    <string name="option_yes">Yes</string>
+    <string name="option_no">No</string>
+
+    <!-- Onboarding: welcome -->
+    <string name="onboarding_welcome_title">Welcome to Enough</string>
+    <string name="onboarding_welcome_body">One small, doable thing a day — starting with fiber. Everything stays on your phone. No account, nothing sold.</string>
+    <string name="onboarding_welcome_disclaimer">Enough isn\'t medical advice or a diagnosis. It\'s a supportive companion — talk with your doctor about your health.</string>
+    <string name="onboarding_get_started">Get started</string>
+
+    <!-- Onboarding: risk test -->
+    <string name="onboarding_risk_title">A quick risk check</string>
+    <string name="onboarding_risk_subtitle">Seven questions from the CDC/ADA Prediabetes Risk Test. No blood test, and nothing leaves your phone.</string>
+    <string name="risk_q_age">How old are you?</string>
+    <string name="age_under_40">Under 40</string>
+    <string name="age_40_49">40 to 49</string>
+    <string name="age_50_59">50 to 59</string>
+    <string name="age_60_plus">60 or older</string>
+    <string name="risk_q_sex">What is your sex?</string>
+    <string name="risk_q_sex_help">The risk test scores this as a biological risk factor.</string>
+    <string name="sex_male">Male</string>
+    <string name="sex_female">Female</string>
+    <string name="risk_q_gestational">Were you ever diagnosed with diabetes during pregnancy (gestational diabetes)?</string>
+    <string name="risk_q_family">Do you have a parent or sibling with diabetes?</string>
+    <string name="risk_q_bp">Have you ever been told you have high blood pressure?</string>
+    <string name="risk_q_active">Are you physically active?</string>
+    <string name="risk_q_height">Height</string>
+    <string name="risk_q_weight">Weight</string>
+    <string name="risk_weight_hint">Pounds</string>
+    <string name="risk_asian_note">If you\'re of Asian descent, diabetes risk can begin at a lower weight — worth keeping in mind.</string>
+    <string name="onboarding_see_result">See my result</string>
+    <string name="unit_feet">ft</string>
+    <string name="unit_inches">in</string>
+    <string name="height_value">%1$d ft %2$d in</string>
+
+    <!-- Onboarding: risk result -->
+    <string name="risk_result_title">Your result</string>
+    <string name="risk_result_score">%1$d out of %2$d</string>
+    <string name="risk_result_higher">This points to a higher chance of prediabetes. That\'s useful to know — and there\'s a lot you can do, starting small.</string>
+    <string name="risk_result_lower">Your score is on the lower side today. Building fiber and movement habits helps keep it that way.</string>
+    <string name="risk_result_disclaimer">This is a screening estimate, not a diagnosis. Your doctor can test to know for sure.</string>
+    <string name="onboarding_set_goals">Set my goals</string>
+
+    <!-- Onboarding: goals -->
+    <string name="goals_title">Your goals</string>
+    <string name="goals_weight_header">Weight</string>
+    <string name="goals_weight_desc">A 5 to 7%% shift is enough to matter. From about %1$s, that\'s around %2$s.</string>
+    <string name="goals_weight_percent_label">Aim for %1$d%% less</string>
+    <string name="weight_pounds">%1$d lb</string>
+    <string name="goals_activity_header">Weekly movement</string>
+    <string name="goals_activity_desc">Pick whatever fits your body and your life.</string>
+    <string name="activity_type_minutes">Minutes of movement</string>
+    <string name="activity_type_steps">Steps</string>
+    <string name="activity_type_custom">My own goal</string>
+    <string name="goals_activity_minutes_label">%1$d minutes per week</string>
+    <string name="goals_activity_steps_label">%1$d steps per day</string>
+    <string name="goals_activity_custom_label">Describe your goal</string>
+    <string name="goals_activity_custom_hint">e.g. stretch each morning, or a loop around the block</string>
+    <string name="goals_fiber_header">Daily fiber</string>
+    <string name="goals_calories_label">About how many calories do you eat a day?</string>
+    <string name="goals_calories_hint">Calories per day</string>
+    <string name="goals_fiber_target">Your fiber target: %1$dg a day</string>
+    <string name="goals_fiber_desc">That\'s 14g per 1,000 calories — the level linked with steadier blood sugar and better gut health.</string>
+
+    <!-- Onboarding: Health Connect -->
+    <string name="hc_title">Connect Health Connect</string>
+    <string name="hc_desc">If you\'d like, Enough can read your steps, sleep, and weight from Health Connect so you don\'t have to log them by hand. It only reads — nothing is written or shared.</string>
+    <string name="hc_connect">Connect</string>
+    <string name="hc_connected">Connected</string>
+    <string name="hc_skip">Not now</string>
+    <string name="hc_unavailable">Health Connect isn\'t available on this device. That\'s fine — you can log everything by hand.</string>
+    <string name="hc_update_required">Health Connect needs an update before it can connect. You can do that anytime and log by hand until then.</string>
+    <string name="onboarding_finish">Finish</string>
 </resources>

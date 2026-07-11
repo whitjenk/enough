@@ -16,10 +16,11 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 
 
 ## 3. Onboarding
-- [ ] Build the CDC/ADA Prediabetes Risk Test as a simple multi-question flow (7 questions, scoring per the published algorithm — see `SPEC.md` §0.5); store the result in `PrediabetesRiskResult`
-- [ ] Goal-setting screen: weight-loss goal (5-7% of current weight, computed from a weight entry), weekly activity goal — **must offer a non-step-based option** (minutes of any movement, or a custom self-described goal), and fiber target computed as 14g per 1,000 self-reported daily calories
-- [ ] Health Connect permission request + connection flow (steps, sleep, weight read access)
-- [ ] Manual test: complete onboarding start to finish on a real device, confirm all three goals and the risk score are actually persisted
+- [x] Build the CDC/ADA Prediabetes Risk Test as a simple multi-question flow (7 questions, scoring per the published algorithm — see `SPEC.md` §0.5); store the result in `PrediabetesRiskResult` <!-- RiskScorer (pure) reproduces the official scoring incl. the weight chart via floor(BMI×in²/703); verified against CDC chart rows; result persisted with source=CDC_ADA_RISK_TEST -->
+- [x] Goal-setting screen: weight-loss goal (5-7% of current weight, computed from a weight entry), weekly activity goal — **must offer a non-step-based option** (minutes of any movement, or a custom self-described goal), and fiber target computed as 14g per 1,000 self-reported daily calories <!-- GoalCalculator (pure): 5-7% clamp + 14g/1000kcal; activity goal type minutes/steps/custom-label; starting weight also written as a WeightEntry -->
+- [x] Health Connect permission request + connection flow (steps, sleep, weight read access) <!-- HealthConnectManager (availability + read permissions for Steps/Sleep/Weight), manifest permissions + rationale/usage intents, Compose permission launcher; app fully usable if HC unavailable/denied -->
+- [ ] Manual test: complete onboarding start to finish on a real device, confirm all three goals and the risk score are actually persisted <!-- NOT run: no device/emulator in this env. Substituted with JVM verification: pure logic tests (RiskScorer/GoalCalculator/UnitConversions/forms, 24 tests) + a Robolectric Compose render/interaction smoke test. Persistence wiring implemented (finishOnboarding writes risk result, UserGoal, WeightEntry, onboarding flag). Needs a device pass before ship. -->
+
 
 ## 4. Logging
 - [ ] Add-meal screen: text search against the local food list, adjustable serving size, save to `MealEntry` with a timestamp
