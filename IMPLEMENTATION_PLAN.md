@@ -45,9 +45,9 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 
 
 ## 7. Settings and data control
-- [ ] Health Connect sync toggle
-- [ ] "Delete my data" — must actually wipe all local tables, not just hide them
-- [ ] No account/login screen anywhere in the app — confirm by checking every screen in the nav graph
+- [x] Health Connect sync toggle <!-- Settings tab: Switch bound to UserPreferencesRepository.healthConnectSyncEnabled (DataStore); Today/HC reads already respect the flag. SettingsViewModel exposes a single UiState via StateFlow; screen stateless with @Preview -->
+- [x] "Delete my data" — must actually wipe all local tables, not just hide them <!-- AppContainer.wipeAllUserData(): database.clearAllTables() + preferences.clear(), then re-seed bundled food reference data and route back to onboarding. Confirm dialog before wipe. Verified by DatabaseWipeTest (Robolectric): inserts across all 7 tables, clearAllTables(), asserts every table empty -->
+- [x] No account/login screen anywhere in the app — confirm by checking every screen in the nav graph <!-- Nav graph = Today/Progress/Settings tabs + AddMeal/LogWeight/LogActivity + onboarding flow; none is a login/account screen. Codebase-wide grep for login/signin/account/auth/password/oauth/firebase/credential returns only unrelated "logInstants" logging matches. No sign-up path exists. -->
 
 ## 8. Ship prep
 - [ ] Privacy policy page (host free on GitHub Pages), linked from Settings and ready for the Play Console listing

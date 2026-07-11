@@ -3,6 +3,8 @@ package com.enough.app.di
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.enough.app.data.local.EnoughDatabase
 import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.ActivityRepository
@@ -58,6 +60,18 @@ class AppContainer(context: Context) {
 
     /** Seed the bundled food list on first launch; no-op once populated. */
     suspend fun seedIfNeeded() {
+        foodSeeder.seedIfEmpty(appContext, database.foodDao())
+    }
+
+    /**
+     * "Delete my data": actually wipe every local table and every preference —
+     * not hide them. The bundled food list is app reference data (not the user's
+     * data), so it is re-seeded afterward to keep the app usable. Clearing the
+     * onboarding flag routes the app back to onboarding automatically.
+     */
+    suspend fun wipeAllUserData() = withContext(Dispatchers.IO) {
+        database.clearAllTables()
+        userPreferencesRepository.clear()
         foodSeeder.seedIfEmpty(appContext, database.foodDao())
     }
 }

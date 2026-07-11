@@ -11,6 +11,7 @@ import com.enough.app.feature.logging.LogWeightViewModel
 import com.enough.app.feature.main.MainViewModel
 import com.enough.app.feature.onboarding.OnboardingViewModel
 import com.enough.app.feature.progress.ProgressViewModel
+import com.enough.app.feature.settings.SettingsViewModel
 import com.enough.app.feature.today.TodayViewModel
 
 /**
@@ -64,6 +65,13 @@ object AppViewModelProvider {
         }
         initializer {
             LogWeightViewModel(enoughApplication().container.weightRepository)
+        }
+        initializer {
+            val container = enoughApplication().container
+            SettingsViewModel(
+                userPreferencesRepository = container.userPreferencesRepository,
+                wipeAllUserData = container::wipeAllUserData,
+            )
         }
         initializer {
             val container = enoughApplication().container

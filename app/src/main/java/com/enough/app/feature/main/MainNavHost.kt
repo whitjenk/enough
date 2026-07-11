@@ -25,12 +25,14 @@ import com.enough.app.feature.logging.AddMealRoute
 import com.enough.app.feature.logging.LogActivityRoute
 import com.enough.app.feature.logging.LogWeightRoute
 import com.enough.app.feature.progress.ProgressRoute
+import com.enough.app.feature.settings.SettingsRoute
 import com.enough.app.feature.today.TodayRoute
 
 /** Route identifiers for the post-onboarding app. */
 object Routes {
     const val TODAY = "today"
     const val PROGRESS = "progress"
+    const val SETTINGS = "settings"
     const val ADD_MEAL = "add_meal"
     const val LOG_WEIGHT = "log_weight"
     const val LOG_ACTIVITY = "log_activity"
@@ -41,12 +43,14 @@ private data class TopLevelDestination(val route: String, val labelRes: Int)
 private val topLevelDestinations = listOf(
     TopLevelDestination(Routes.TODAY, R.string.nav_today),
     TopLevelDestination(Routes.PROGRESS, R.string.nav_progress),
+    TopLevelDestination(Routes.SETTINGS, R.string.nav_settings),
 )
 
 /**
- * The main navigation graph shown after onboarding. Today and Progress are
- * top-level tabs (bottom bar); logging screens push on top of Today and pop back
- * on save. Settings joins the tabs in a later task.
+ * The main navigation graph shown after onboarding. Today, Progress, and
+ * Settings are top-level tabs (bottom bar); logging screens push on top of Today
+ * and pop back on save. There is deliberately no account/login destination —
+ * the app is fully usable with no sign-up (see CLAUDE.md constraints).
  */
 @Composable
 fun MainNavHost(navController: NavHostController = rememberNavController()) {
@@ -77,6 +81,7 @@ fun MainNavHost(navController: NavHostController = rememberNavController()) {
                 )
             }
             composable(Routes.PROGRESS) { ProgressRoute() }
+            composable(Routes.SETTINGS) { SettingsRoute() }
             composable(Routes.ADD_MEAL) {
                 AddMealRoute(
                     onSaved = { navController.popBackStack() },

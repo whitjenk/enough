@@ -89,6 +89,21 @@
     <!-- Bottom navigation -->
     <string name="nav_today">Today</string>
     <string name="nav_progress">Progress</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_hc_sync_title">Sync with Health Connect</string>
+    <string name="settings_hc_sync_desc">Read steps, sleep, and weight from Health Connect. Turn off to log everything by hand.</string>
+    <string name="settings_privacy_title">Privacy</string>
+    <string name="settings_privacy_desc">Everything stays on your phone — no account, no server, nothing sold.</string>
+    <string name="settings_delete_title">Delete my data</string>
+    <string name="settings_delete_desc">Permanently remove everything you\'ve logged from this phone.</string>
+    <string name="settings_delete_button">Delete my data</string>
+    <string name="settings_delete_confirm_title">Delete everything?</string>
+    <string name="settings_delete_confirm_message">This erases all your logged meals, weight, activity, goals, and your risk result from this phone. It can\'t be undone.</string>
+    <string name="settings_delete_confirm">Delete</string>
+    <string name="settings_delete_cancel">Cancel</string>
 
     <!-- Progress -->
     <string name="progress_title">Progress</string>
