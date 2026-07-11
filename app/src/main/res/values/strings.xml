@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Enough</string>
+
+    <!-- Placeholder home copy for the initial scaffold; real screens replace this. -->
+    <string name="home_greeting">One small thing today is enough.</string>
+</resources>

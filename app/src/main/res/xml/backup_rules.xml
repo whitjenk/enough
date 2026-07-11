@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Local-first app: on-device Room DB and DataStore are the source of truth.
+   We deliberately exclude them from cloud backup so no user data leaves the
+   device via Auto Backup. See CLAUDE.md non-negotiable constraints.
+-->
+<full-backup-content>
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="file" path="datastore" />
+</full-backup-content>

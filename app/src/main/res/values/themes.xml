@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose-only app: this XML theme only styles the pre-Compose window
+         (background + no action bar). All in-app color/typography lives in the
+         Compose theme. DayNight is handled via values-night. -->
+    <style name="Theme.Enough" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

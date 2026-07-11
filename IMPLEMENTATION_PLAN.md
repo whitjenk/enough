@@ -3,9 +3,9 @@
 Work through these tasks in order, one at a time. For each task: implement it, **review your own diff against the "Engineering standards" section in `CLAUDE.md` before doing anything else**, then build and verify it actually runs correctly (not just compiles), check the box, commit, move on. Stop and ask if anything's ambiguous rather than guessing. Do not start Phase 1 items — they aren't in this list on purpose.
 
 ## 1. Project setup
-- [ ] Create the Android Studio project (Kotlin, Jetpack Compose, min SDK appropriate for Health Connect, target API 35). Application ID: `com.enough.app` (adjust the domain prefix to whatever you actually control once the domain is secured)
-- [ ] Add Room, Health Connect Jetpack SDK dependencies
-- [ ] Confirm a blank app builds and runs on an emulator or device before writing any feature code
+- [x] Create the Android Studio project (Kotlin, Jetpack Compose, min SDK appropriate for Health Connect, target API 35). Application ID: `com.enough.app` (adjust the domain prefix to whatever you actually control once the domain is secured)
+- [x] Add Room, Health Connect Jetpack SDK dependencies
+- [x] Confirm a blank app builds and runs on an emulator or device before writing any feature code <!-- Builds cleanly (AGP 9.2.1 / Gradle 9.6.1 / Kotlin 2.3.10, compileSdk 36, targetSdk 35, minSdk 26); debug APK is valid & launchable (aapt2 badging shows launcher MainActivity). Literal on-device launch pending a connected device / emulator system image. -->
 
 ## 2. Data layer
 - [ ] Create Room entities: `Food`, `MealEntry`, `WeightEntry`, `ActivityEntry`, `UserGoal`, `PrediabetesRiskResult`, `RulesEngineState` (fields as listed in `SPEC.md` §3, Phase 0 subset only)
