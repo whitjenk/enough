@@ -1,5 +1,8 @@
 package com.enough.app.data.model
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
 /** How a meal entry was created. Phase 0 supports fast text search and manual entry. */
 enum class MealSource { TEXT, MANUAL }
 
@@ -38,6 +41,35 @@ enum class NudgeType { NONE, FIBER_GAP }
  * "Other" is captured as free text on the goal, not as an enum value here.
  */
 enum class DietaryRestriction { VEGETARIAN, VEGAN, GLUTEN_FREE, DAIRY_FREE, NUT_ALLERGY }
+
+/**
+ * Explicit dietary properties of a bundled [com.enough.app.data.local.entity.Food],
+ * authored per-food in `foods.json` rather than inferred from the food's name.
+ *
+ * The first four are positive "safe for" attributes; [CONTAINS_NUTS] is the one
+ * presence flag, used for nut-allergy filtering. Storing these as data (instead
+ * of the old keyword classifier in [com.enough.app.domain.rules.DietaryFilter])
+ * means allergy safety no longer depends on a substring guess. Coherence is
+ * enforced by a unit test — e.g. anything [VEGAN] must also be [VEGETARIAN] and
+ * [DAIRY_FREE]. The `@SerialName`s are the tokens used in `foods.json`.
+ */
+@Serializable
+enum class DietaryTag {
+    @SerialName("vegetarian")
+    VEGETARIAN,
+
+    @SerialName("vegan")
+    VEGAN,
+
+    @SerialName("gluten_free")
+    GLUTEN_FREE,
+
+    @SerialName("dairy_free")
+    DAIRY_FREE,
+
+    @SerialName("contains_nuts")
+    CONTAINS_NUTS,
+}
 
 /**
  * How the person prefers uncertain fiber estimates handled (Settings, SPEC §7).

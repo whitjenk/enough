@@ -2,6 +2,7 @@ package com.enough.app.domain.rules
 
 import com.enough.app.data.local.entity.Food
 import com.enough.app.data.model.DietaryRestriction
+import com.enough.app.data.model.DietaryTag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,15 +10,27 @@ import org.junit.Test
 
 class NudgeGeneratorTest {
 
-    private fun food(name: String, fiber: Double) =
-        Food(id = name.hashCode().toLong(), name = name, servingLabel = "1 serving", carbsG = 20.0, fiberG = fiber, proteinG = 5.0)
+    private val plant = setOf(
+        DietaryTag.VEGETARIAN, DietaryTag.VEGAN, DietaryTag.GLUTEN_FREE, DietaryTag.DAIRY_FREE,
+    )
+
+    private fun food(name: String, fiber: Double, tags: Set<DietaryTag> = plant) =
+        Food(
+            id = name.hashCode().toLong(),
+            name = name,
+            servingLabel = "1 serving",
+            carbsG = 20.0,
+            fiberG = fiber,
+            proteinG = 5.0,
+            dietaryTags = tags,
+        )
 
     private val suggestions = listOf(
         food("Chia seeds", 9.8),
         food("Lentils", 7.8),
         food("Raspberries", 8.0),
         food("Pear", 5.5),
-        food("Almonds", 3.5),
+        food("Almonds", 3.5, plant + DietaryTag.CONTAINS_NUTS),
         food("Broccoli", 2.4),
     )
 
@@ -87,7 +100,11 @@ class NudgeGeneratorTest {
 
     @Test
     fun `all suggestions unsafe yields no nudge`() {
-        val meatOnly = listOf(food("Grilled chicken", 6.0), food("Beef jerky", 4.0))
+        val meatTags = setOf(DietaryTag.GLUTEN_FREE, DietaryTag.DAIRY_FREE)
+        val meatOnly = listOf(
+            food("Grilled chicken", 6.0, meatTags),
+            food("Beef jerky", 4.0, meatTags),
+        )
         val nudge = NudgeGenerator.generate(
             fiberSoFarG = 5.0,
             targetG = 28,

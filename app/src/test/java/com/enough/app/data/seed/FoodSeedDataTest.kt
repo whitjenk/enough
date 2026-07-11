@@ -1,6 +1,8 @@
 package com.enough.app.data.seed
 
+import com.enough.app.data.model.DietaryTag
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -51,6 +53,60 @@ class FoodSeedDataTest {
     fun `food names are unique`() {
         val names = foods.map { it.name }
         assertEquals(names.size, names.toSet().size)
+    }
+
+    @Test
+    fun `every food's dietary tags are internally coherent`() {
+        foods.forEach { food ->
+            val tags = food.dietaryTags
+            if (DietaryTag.VEGAN in tags) {
+                assertTrue(
+                    "${food.name}: vegan must also be vegetarian",
+                    DietaryTag.VEGETARIAN in tags,
+                )
+                assertTrue(
+                    "${food.name}: vegan must also be dairy-free",
+                    DietaryTag.DAIRY_FREE in tags,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `the tag vocabulary is exercised — no tag is dead data`() {
+        DietaryTag.values().forEach { tag ->
+            assertTrue(
+                "no seeded food carries $tag",
+                foods.any { tag in it.dietaryTags },
+            )
+        }
+    }
+
+    @Test
+    fun `spot-check known foods carry the expected tags`() {
+        val lentils = foods.single { it.name == "Lentils" }
+        assertEquals(
+            setOf(
+                DietaryTag.VEGETARIAN, DietaryTag.VEGAN,
+                DietaryTag.GLUTEN_FREE, DietaryTag.DAIRY_FREE,
+            ),
+            lentils.dietaryTags,
+        )
+
+        // Meat is neither vegetarian nor vegan, but is gluten- and dairy-free.
+        val chicken = foods.single { it.name == "Chicken breast" }
+        assertFalse(DietaryTag.VEGETARIAN in chicken.dietaryTags)
+        assertTrue(DietaryTag.GLUTEN_FREE in chicken.dietaryTags)
+
+        // A wheat food is vegan but not gluten-free.
+        val bread = foods.single { it.name == "Whole wheat bread" }
+        assertTrue(DietaryTag.VEGAN in bread.dietaryTags)
+        assertFalse(DietaryTag.GLUTEN_FREE in bread.dietaryTags)
+
+        // Tree nuts are flagged; seeds deliberately are not (they're safe for
+        // most tree-nut/peanut allergies and are valuable fiber suggestions).
+        assertTrue(DietaryTag.CONTAINS_NUTS in foods.single { it.name == "Almonds" }.dietaryTags)
+        assertFalse(DietaryTag.CONTAINS_NUTS in foods.single { it.name == "Chia seeds" }.dietaryTags)
     }
 
     private companion object {

@@ -35,7 +35,7 @@ import com.enough.app.data.local.entity.WeightEntry
         PrediabetesRiskResult::class,
         RulesEngineState::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -90,6 +90,21 @@ abstract class EnoughDatabase : RoomDatabase() {
                 )
                 db.execSQL("DROP TABLE `user_goal`")
                 db.execSQL("ALTER TABLE `user_goal_new` RENAME TO `user_goal`")
+            }
+        }
+
+        /**
+         * v2 -> v3: adds explicit dietary tags to `food` (SPEC §5 follow-up), so
+         * suggestion filtering reads real per-food data instead of guessing from
+         * the name. A plain additive column keeps existing rows and — crucially —
+         * the user's logged meals, which cascade-delete from `food` (so we must
+         * not drop/rebuild the food table). Rows seeded before v3 keep an empty
+         * tag set; a fresh install or a "delete my data" re-seed loads the fully
+         * tagged list from `foods.json`.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `food` ADD COLUMN `dietaryTags` TEXT NOT NULL DEFAULT ''")
             }
         }
     }
