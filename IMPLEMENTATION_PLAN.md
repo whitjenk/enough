@@ -50,7 +50,7 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 - [x] No account/login screen anywhere in the app — confirm by checking every screen in the nav graph <!-- Nav graph = Today/Progress/Settings tabs + AddMeal/LogWeight/LogActivity + onboarding flow; none is a login/account screen. Codebase-wide grep for login/signin/account/auth/password/oauth/firebase/credential returns only unrelated "logInstants" logging matches. No sign-up path exists. -->
 
 ## 8. Ship prep
-- [ ] Privacy policy page (host free on GitHub Pages), linked from Settings and ready for the Play Console listing
+- [x] Privacy policy page (host free on GitHub Pages), linked from Settings and ready for the Play Console listing <!-- Self-contained policy at docs/index.html (GitHub Pages from main /docs -> https://whitjenk.github.io/enough/); reflects the real architecture (no account/server/analytics, on-device only, HC read-only + revocable, "Delete my data"/uninstall wipe) with the SPEC §8 medical disclaimer. Linked from Settings > Privacy via LocalUriHandler. TWO human steps before Play submission: (1) enable GitHub Pages on main /docs, (2) replace the placeholder you@example.com contact in docs/index.html with a real address. -->
 - [ ] Play Store listing assets: icon, screenshots, short/long description (using the language guardrails in `SPEC.md` §8 — no "CDC-recognized," no A1c claims)
 - [ ] Create Play Console account, prepare signed AAB, start closed testing with 12 real testers
 - [ ] Personally talk to at least 3-4 of the closed testers about what they logged and what they ignored — this is real user research, not a formality

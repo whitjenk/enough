@@ -97,6 +97,8 @@
     <string name="settings_hc_sync_desc">Read steps, sleep, and weight from Health Connect. Turn off to log everything by hand.</string>
     <string name="settings_privacy_title">Privacy</string>
     <string name="settings_privacy_desc">Everything stays on your phone — no account, no server, nothing sold.</string>
+    <string name="settings_privacy_policy_link">Read the full privacy policy</string>
+    <string name="privacy_policy_url" translatable="false">https://whitjenk.github.io/enough/</string>
     <string name="settings_delete_title">Delete my data</string>
     <string name="settings_delete_desc">Permanently remove everything you\'ve logged from this phone.</string>
     <string name="settings_delete_button">Delete my data</string>

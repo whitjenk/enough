@@ -2,6 +2,7 @@ package com.enough.app.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,10 +44,13 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
+    val privacyPolicyUrl = stringResource(R.string.privacy_policy_url)
     SettingsScreen(
         uiState = uiState,
         onToggleSync = viewModel::setHealthConnectSyncEnabled,
         onDeleteData = viewModel::deleteAllData,
+        onOpenPrivacyPolicy = { uriHandler.openUri(privacyPolicyUrl) },
     )
 }
 
@@ -55,6 +60,7 @@ fun SettingsScreen(
     uiState: SettingsUiState,
     onToggleSync: (Boolean) -> Unit,
     onDeleteData: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -70,7 +76,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             SyncCard(enabled = uiState.healthConnectSyncEnabled, onToggle = onToggleSync)
-            PrivacyCard()
+            PrivacyCard(onOpenPrivacyPolicy = onOpenPrivacyPolicy)
             DeleteCard(onDeleteClick = { showDeleteDialog = true })
         }
     }
@@ -117,15 +123,18 @@ private fun SyncCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun PrivacyCard() {
+private fun PrivacyCard(onOpenPrivacyPolicy: () -> Unit) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.settings_privacy_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.settings_privacy_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            TextButton(onClick = onOpenPrivacyPolicy, contentPadding = PaddingValues(0.dp)) {
+                Text(stringResource(R.string.settings_privacy_policy_link))
+            }
         }
     }
 }
@@ -159,6 +168,7 @@ private fun SettingsPreview() {
             uiState = SettingsUiState(healthConnectSyncEnabled = true),
             onToggleSync = {},
             onDeleteData = {},
+            onOpenPrivacyPolicy = {},
         )
     }
 }
