@@ -119,6 +119,13 @@
     <string name="settings_title">Settings</string>
     <string name="settings_hc_sync_title">Sync with Health Connect</string>
     <string name="settings_hc_sync_desc">Read steps, sleep, and weight from Health Connect. Turn off to log everything by hand.</string>
+    <string name="settings_calibration_title">Fiber estimate style</string>
+    <string name="settings_calibration_desc">When a food\'s fiber isn\'t exact, choose how estimates lean. It only shifts your daily total a little — there\'s no wrong pick.</string>
+    <string name="settings_calibration_low">Lean lower</string>
+    <string name="settings_calibration_balanced">Balanced</string>
+    <string name="settings_calibration_high">Lean higher</string>
+    <string name="settings_support_title">Going through a rough patch?</string>
+    <string name="settings_support_desc">Progress isn\'t a straight line, and missing a day doesn\'t undo what you\'ve built. One small thing, whenever you\'re ready, is enough. If things feel heavy — with your health or otherwise — it\'s okay to lean on your doctor or someone you trust.</string>
     <string name="settings_privacy_title">Privacy</string>
     <string name="settings_privacy_desc">Everything stays on your phone — no account, no server, nothing sold.</string>
     <string name="settings_privacy_policy_link">Read the full privacy policy</string>

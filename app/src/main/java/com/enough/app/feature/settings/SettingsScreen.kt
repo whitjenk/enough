@@ -36,7 +36,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
+import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.di.AppViewModelProvider
+import com.enough.app.ui.components.ChoiceList
+import com.enough.app.ui.components.ChoiceOption
 import com.enough.app.ui.theme.EnoughTheme
 
 @Composable
@@ -49,6 +52,7 @@ fun SettingsRoute(
     SettingsScreen(
         uiState = uiState,
         onToggleSync = viewModel::setHealthConnectSyncEnabled,
+        onSetCalibration = viewModel::setEstimateCalibration,
         onDeleteData = viewModel::deleteAllData,
         onOpenPrivacyPolicy = { uriHandler.openUri(privacyPolicyUrl) },
     )
@@ -59,6 +63,7 @@ fun SettingsRoute(
 fun SettingsScreen(
     uiState: SettingsUiState,
     onToggleSync: (Boolean) -> Unit,
+    onSetCalibration: (EstimateCalibration) -> Unit,
     onDeleteData: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
 ) {
@@ -76,6 +81,8 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             SyncCard(enabled = uiState.healthConnectSyncEnabled, onToggle = onToggleSync)
+            CalibrationCard(selected = uiState.estimateCalibration, onSelect = onSetCalibration)
+            SupportCard()
             PrivacyCard(onOpenPrivacyPolicy = onOpenPrivacyPolicy)
             DeleteCard(onDeleteClick = { showDeleteDialog = true })
         }
@@ -118,6 +125,43 @@ private fun SyncCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
             }
             Spacer(Modifier.width(16.dp))
             Switch(checked = enabled, onCheckedChange = onToggle)
+        }
+    }
+}
+
+@Composable
+private fun CalibrationCard(
+    selected: EstimateCalibration,
+    onSelect: (EstimateCalibration) -> Unit,
+) {
+    val options = listOf(
+        ChoiceOption(EstimateCalibration.LOW, stringResource(R.string.settings_calibration_low)),
+        ChoiceOption(EstimateCalibration.BALANCED, stringResource(R.string.settings_calibration_balanced)),
+        ChoiceOption(EstimateCalibration.HIGH, stringResource(R.string.settings_calibration_high)),
+    )
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.settings_calibration_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.settings_calibration_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ChoiceList(options = options, selected = selected, onSelect = onSelect)
+        }
+    }
+}
+
+@Composable
+private fun SupportCard() {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.settings_support_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.settings_support_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -167,6 +211,7 @@ private fun SettingsPreview() {
         SettingsScreen(
             uiState = SettingsUiState(healthConnectSyncEnabled = true),
             onToggleSync = {},
+            onSetCalibration = {},
             onDeleteData = {},
             onOpenPrivacyPolicy = {},
         )

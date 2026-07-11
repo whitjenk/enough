@@ -70,6 +70,7 @@ object AppViewModelProvider {
             val container = enoughApplication().container
             SettingsViewModel(
                 userPreferencesRepository = container.userPreferencesRepository,
+                goalRepository = container.goalRepository,
                 wipeAllUserData = container::wipeAllUserData,
             )
         }
