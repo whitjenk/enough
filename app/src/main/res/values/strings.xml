@@ -81,4 +81,53 @@
     <string name="hc_unavailable">Health Connect isn\'t available on this device. That\'s fine — you can log everything by hand.</string>
     <string name="hc_update_required">Health Connect needs an update before it can connect. You can do that anytime and log by hand until then.</string>
     <string name="onboarding_finish">Finish</string>
+
+    <!-- Actions -->
+    <string name="action_save">Save</string>
+    <string name="action_done">Done</string>
+
+    <!-- Today -->
+    <string name="today_title">Today</string>
+    <string name="today_fiber_headline">Fiber today</string>
+    <string name="today_fiber_progress">%1$dg of %2$dg</string>
+    <string name="today_fiber_no_target">Set up your goals to see your fiber target.</string>
+    <string name="today_meals_header">Meals</string>
+    <string name="today_no_meals">No meals logged yet today. Whenever you\'re ready.</string>
+    <string name="today_meal_secondary">%1$s · about %2$dg fiber</string>
+    <string name="today_servings_format">%1$s servings</string>
+    <string name="today_weight_header">Latest weight</string>
+    <string name="today_weight_value">%1$d lb</string>
+    <string name="today_weight_none">No weight logged yet.</string>
+    <string name="today_activity_header">Movement today</string>
+    <string name="today_activity_none">No movement logged yet today.</string>
+    <string name="today_add_meal">Add a meal</string>
+    <string name="today_log_weight">Log weight</string>
+    <string name="today_log_activity">Log movement</string>
+
+    <!-- Activity units (for display) -->
+    <string name="activity_value_minutes">%1$d min</string>
+    <string name="activity_value_steps">%1$d steps</string>
+    <string name="activity_value_custom">%1$d</string>
+
+    <!-- Add meal -->
+    <string name="add_meal_title">Add a meal</string>
+    <string name="add_meal_search_hint">Search foods</string>
+    <string name="add_meal_empty_prompt">Type to search the food list.</string>
+    <string name="add_meal_no_results">No matches yet — try another word.</string>
+    <string name="add_meal_nutrition_per_serving">%1$.1fg fiber · %2$.1fg carbs · %3$.1fg protein per %4$s</string>
+    <string name="add_meal_servings_label">Servings</string>
+    <string name="add_meal_selected_fiber">This adds about %1$.1fg of fiber.</string>
+    <string name="cd_clear_search">Clear search</string>
+
+    <!-- Log weight -->
+    <string name="log_weight_title">Log weight</string>
+    <string name="log_weight_hint">Weight in pounds</string>
+
+    <!-- Log activity -->
+    <string name="log_activity_title">Log movement</string>
+    <string name="log_activity_minutes_hint">Minutes of movement</string>
+    <string name="log_activity_steps_hint">Steps</string>
+    <string name="log_activity_custom_hint">How much?</string>
+    <string name="log_activity_note_hint">Add a note (optional)</string>
+    <string name="log_activity_custom_goal_reminder">Your goal: %1$s</string>
 </resources>

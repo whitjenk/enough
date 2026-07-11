@@ -5,7 +5,10 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.enough.app.data.local.EnoughDatabase
 import com.enough.app.data.preferences.UserPreferencesRepository
+import com.enough.app.data.repository.ActivityRepository
+import com.enough.app.data.repository.FoodRepository
 import com.enough.app.data.repository.GoalRepository
+import com.enough.app.data.repository.MealRepository
 import com.enough.app.data.repository.RiskResultRepository
 import com.enough.app.data.repository.WeightRepository
 import com.enough.app.data.seed.FoodSeeder
@@ -40,6 +43,12 @@ class AppContainer(context: Context) {
         RiskResultRepository(database.prediabetesRiskResultDao())
 
     val weightRepository: WeightRepository = WeightRepository(database.weightEntryDao())
+
+    val foodRepository: FoodRepository = FoodRepository(database.foodDao())
+
+    val mealRepository: MealRepository = MealRepository(database.mealEntryDao())
+
+    val activityRepository: ActivityRepository = ActivityRepository(database.activityEntryDao())
 
     val healthConnectManager: HealthConnectManager = HealthConnectManager(appContext)
 

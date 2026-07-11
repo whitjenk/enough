@@ -23,11 +23,12 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 
 
 ## 4. Logging
-- [ ] Add-meal screen: text search against the local food list, adjustable serving size, save to `MealEntry` with a timestamp
-- [ ] Manual weight-entry screen
-- [ ] Manual activity-entry screen (respects whichever goal type was chosen in onboarding)
-- [ ] Manual test: log a meal, a weight, and an activity entry; confirm all three show up correctly on the Today screen
-- [ ] **Review checkpoint:** re-check Compose hygiene (state hoisting, no unnecessary recomposition, `@Preview`s present) and accessibility (contentDescriptions) across the screens built in this section.
+- [x] Add-meal screen: text search against the local food list, adjustable serving size, save to `MealEntry` with a timestamp <!-- AddMealViewModel: debounced FoodRepository.search, serving multiplier, saves MealEntry(source=TEXT, now) -->
+- [x] Manual weight-entry screen <!-- LogWeightViewModel: pounds in, stored as kg WeightEntry -->
+- [x] Manual activity-entry screen (respects whichever goal type was chosen in onboarding) <!-- LogActivityViewModel reads UserGoal.activityGoalType -> ActivityUnit (minutes/steps/custom) with the custom goal label surfaced -->
+- [ ] Manual test: log a meal, a weight, and an activity entry; confirm all three show up correctly on the Today screen <!-- NOT run on device (no device/emulator). Wired end-to-end: nav graph Today <-> logging screens; TodayViewModel observes today's meals/weight/activity and computes fiber via MealNutrition. Verified via unit tests (MealNutrition, DayRange, logging UI-state) + Robolectric render test of Today. Needs a device pass before ship. -->
+- [x] **Review checkpoint:** re-check Compose hygiene (state hoisting, no unnecessary recomposition, `@Preview`s present) and accessibility (contentDescriptions) across the screens built in this section. <!-- All screens stateless (Route wrappers hoist state to ViewModels); @Preview added to Today/AddMeal/LogWeight/LogActivity; no icon-only controls (labelled text buttons/fields); fiber shown by number+label, not color -->
+
 
 ## 5. Rules engine (fiber only — no walk/food-order nudges yet)
 - [ ] Compute `fiberGapToday` from today's logged meals vs. the day's fiber target
