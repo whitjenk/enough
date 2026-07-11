@@ -26,6 +26,16 @@ interface ActivityEntryDao {
     @Query("SELECT * FROM activity_entry ORDER BY timestamp DESC")
     suspend fun getAll(): List<ActivityEntry>
 
+    @Query("SELECT MAX(timestamp) FROM activity_entry")
+    suspend fun latestTimestamp(): Long?
+
+    /** Total logged minutes-of-movement since [startInclusive] (MINUTES unit only). */
+    @Query(
+        "SELECT COALESCE(SUM(amount), 0) FROM activity_entry " +
+            "WHERE unit = 'MINUTES' AND timestamp >= :startInclusive",
+    )
+    suspend fun minutesLoggedSince(startInclusive: Long): Int
+
     @Query("DELETE FROM activity_entry")
     suspend fun deleteAll()
 }

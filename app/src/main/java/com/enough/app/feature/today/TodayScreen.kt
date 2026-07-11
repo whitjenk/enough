@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,9 @@ import com.enough.app.data.local.entity.ActivityEntry
 import com.enough.app.data.model.ActivityUnit
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
+import com.enough.app.domain.rules.Nudge
+import com.enough.app.ui.components.Mascot
+import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.roundToInt
 
 @Composable
@@ -69,6 +74,7 @@ fun TodayScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
+            item { NudgeCard(uiState.nudge) }
             item { FiberCard(uiState) }
             item {
                 LoggingActions(
@@ -90,6 +96,54 @@ fun TodayScreen(
             } else {
                 items(uiState.activities, key = { it.id }) { activity -> ActivityRow(activity) }
             }
+        }
+    }
+}
+
+@Composable
+private fun NudgeCard(nudge: Nudge) {
+    val message = when (nudge) {
+        is Nudge.FiberGap -> stringResource(
+            R.string.nudge_fiber_gap,
+            nudge.fiberSoFarG,
+            nudge.suggestionFood,
+            nudge.suggestionServingLabel,
+            nudge.suggestionFiberG,
+        )
+        is Nudge.OnTrack -> stringResource(R.string.nudge_on_track, nudge.fiberSoFarG, nudge.targetG)
+        Nudge.None -> null
+    } ?: return
+
+    // Reserve the success role for the goal-met moment. A gap is supportive, not
+    // a "you did it" — and never red/gray-as-failure — so it uses a neutral
+    // surface with the green mascot for warmth.
+    val onTrack = nudge is Nudge.OnTrack
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = if (onTrack) {
+            CardDefaults.cardColors(
+                containerColor = EnoughTheme.successColors.successContainer,
+                contentColor = EnoughTheme.successColors.onSuccessContainer,
+            )
+        } else {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            )
+        },
+    ) {
+        Row(
+            Modifier.padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Mascot(
+                color = EnoughTheme.successColors.success,
+                contentDescription = stringResource(R.string.cd_mascot),
+                pulsing = nudge is Nudge.FiberGap,
+            )
+            Text(text = message, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }

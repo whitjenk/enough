@@ -10,6 +10,7 @@ import com.enough.app.data.repository.FoodRepository
 import com.enough.app.data.repository.GoalRepository
 import com.enough.app.data.repository.MealRepository
 import com.enough.app.data.repository.RiskResultRepository
+import com.enough.app.data.repository.RulesEngineStateRepository
 import com.enough.app.data.repository.WeightRepository
 import com.enough.app.data.seed.FoodSeeder
 import com.enough.app.health.HealthConnectManager
@@ -49,6 +50,9 @@ class AppContainer(context: Context) {
     val mealRepository: MealRepository = MealRepository(database.mealEntryDao())
 
     val activityRepository: ActivityRepository = ActivityRepository(database.activityEntryDao())
+
+    val rulesEngineStateRepository: RulesEngineStateRepository =
+        RulesEngineStateRepository(database.rulesEngineStateDao())
 
     val healthConnectManager: HealthConnectManager = HealthConnectManager(appContext)
 

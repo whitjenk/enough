@@ -31,11 +31,12 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 
 
 ## 5. Rules engine (fiber only — no walk/food-order nudges yet)
-- [ ] Compute `fiberGapToday` from today's logged meals vs. the day's fiber target
-- [ ] Compute `daysSinceLastLog` and `weightTrendDirection` from logged history
-- [ ] Generate one plain-language nudge per day when there's a meaningful fiber gap (e.g. "you're at Xg today — [specific food swap] adds about Yg"), following the tone rules in `CLAUDE.md` (no shame, no streak language)
-- [ ] Unit test: given a synthetic day of logged meals, the fiber gap and nudge text are computed correctly
-- [ ] **Review checkpoint:** read every generated nudge string out loud — does any of it read as guilt-inducing, clinical, or like a lecture? Check against the language guardrails in `SPEC.md` §8 specifically, not just general tone.
+- [x] Compute `fiberGapToday` from today's logged meals vs. the day's fiber target <!-- RulesEngine.fiberGapG (pure); TodayViewModel feeds it from MealNutrition + UserGoal -->
+- [x] Compute `daysSinceLastLog` and `weightTrendDirection` from logged history <!-- RulesEngine.daysSinceLastLog (calendar days in zone) + weightTrend (deadband, DOWN never red); persisted in a RulesEngineState snapshot -->
+- [x] Generate one plain-language nudge per day when there's a meaningful fiber gap (e.g. "you're at Xg today — [specific food swap] adds about Yg"), following the tone rules in `CLAUDE.md` (no shame, no streak language) <!-- NudgeGenerator (pure) returns structured Nudge (None/OnTrack/FiberGap); picks a food sized to the gap; rendered on Today with the mascot (pulses on a new gap nudge). Copy lives in string resources. -->
+- [x] Unit test: given a synthetic day of logged meals, the fiber gap and nudge text are computed correctly <!-- RulesEngineTest + NudgeGeneratorTest (10 tests): gap, days-since, trend deadband, suggestion sizing, thresholds, no-goal/no-suggestion cases; Today render test asserts the nudge message renders -->
+- [x] **Review checkpoint:** read every generated nudge string out loud — does any of it read as guilt-inducing, clinical, or like a lecture? Check against the language guardrails in `SPEC.md` §8 specifically, not just general tone. <!-- Reviewed: neutral "you're at Xg", one small doable step, "small and doable"/"that's enough"; no shame/streak/clinical/cure claims. Fixed color semantics: success-green reserved for goal-met; gap nudge uses neutral surface (never red/gray-as-failure) with green mascot. -->
+
 
 ## 6. Today and Progress screens
 - [ ] Today screen: today's logged meals/weight/activity, today's fiber-gap nudge, synced Health Connect data

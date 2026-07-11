@@ -14,4 +14,6 @@ class MealRepository(private val dao: MealEntryDao) {
     suspend fun add(entry: MealEntry): Long = dao.insert(entry)
 
     suspend fun delete(entry: MealEntry) = dao.delete(entry)
+
+    suspend fun latestTimestampMillis(): Long? = dao.latestTimestamp()
 }

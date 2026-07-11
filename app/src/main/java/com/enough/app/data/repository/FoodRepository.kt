@@ -12,4 +12,7 @@ class FoodRepository(private val dao: FoodDao) {
     }
 
     suspend fun getById(id: Long): Food? = dao.getById(id)
+
+    /** Highest-fiber foods, used to source nudge suggestions. */
+    suspend fun topFiberFoods(limit: Int = 12): List<Food> = dao.topFiberFoods(limit)
 }

@@ -53,6 +53,13 @@ class TodayScreenRenderTest {
             fiberSoFarG = 6.2,
             latestWeight = WeightEntry(id = 1, weightKg = 82.0, timestamp = Instant.EPOCH),
             activities = listOf(ActivityEntry(id = 1, unit = ActivityUnit.MINUTES, amount = 20, note = null, timestamp = Instant.EPOCH)),
+            nudge = com.enough.app.domain.rules.Nudge.FiberGap(
+                fiberSoFarG = 6,
+                gapG = 22,
+                suggestionFood = "Lentils",
+                suggestionServingLabel = "1/2 cup cooked",
+                suggestionFiberG = 8,
+            ),
             isLoading = false,
         )
 
@@ -68,5 +75,7 @@ class TodayScreenRenderTest {
         // aren't composed here; their row logic is covered by unit tests.)
         composeRule.onNodeWithText("Fiber today").assertIsDisplayed()
         composeRule.onNodeWithText("6g of 28g").assertIsDisplayed()
+        // The daily fiber nudge card renders its supportive, specific message.
+        composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
     }
 }

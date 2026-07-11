@@ -11,4 +11,8 @@ class ActivityRepository(private val dao: ActivityEntryDao) {
         dao.observeBetween(range.startMillis, range.endMillis)
 
     suspend fun add(entry: ActivityEntry): Long = dao.insert(entry)
+
+    suspend fun latestTimestampMillis(): Long? = dao.latestTimestamp()
+
+    suspend fun minutesLoggedSince(startMillis: Long): Int = dao.minutesLoggedSince(startMillis)
 }

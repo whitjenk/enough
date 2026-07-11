@@ -23,6 +23,9 @@ interface WeightEntryDao {
     @Query("SELECT * FROM weight_entry ORDER BY timestamp ASC")
     suspend fun getAll(): List<WeightEntry>
 
+    @Query("SELECT MAX(timestamp) FROM weight_entry")
+    suspend fun latestTimestamp(): Long?
+
     @Query("DELETE FROM weight_entry")
     suspend fun deleteAll()
 }

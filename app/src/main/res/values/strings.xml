@@ -88,6 +88,11 @@
 
     <!-- Today -->
     <string name="today_title">Today</string>
+
+    <!-- Daily fiber nudge (supportive tone; never shame or streaks) -->
+    <string name="nudge_fiber_gap">You\'re at %1$dg of fiber today. A serving of %2$s (%3$s) adds about %4$dg — small and doable.</string>
+    <string name="nudge_on_track">You\'re at %1$dg of fiber today, right around your %2$dg goal. That\'s enough.</string>
+    <string name="cd_mascot">Enough</string>
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>
     <string name="today_fiber_no_target">Set up your goals to see your fiber target.</string>

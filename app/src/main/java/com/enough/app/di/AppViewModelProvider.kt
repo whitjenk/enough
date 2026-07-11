@@ -39,6 +39,8 @@ object AppViewModelProvider {
                 mealRepository = container.mealRepository,
                 weightRepository = container.weightRepository,
                 activityRepository = container.activityRepository,
+                foodRepository = container.foodRepository,
+                rulesEngineStateRepository = container.rulesEngineStateRepository,
             )
         }
         initializer {

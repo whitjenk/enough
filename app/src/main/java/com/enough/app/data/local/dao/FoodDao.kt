@@ -30,6 +30,10 @@ interface FoodDao {
     @Query("SELECT * FROM food ORDER BY name COLLATE NOCASE ASC")
     suspend fun getAll(): List<Food>
 
+    /** Highest-fiber foods, for nudge suggestions. */
+    @Query("SELECT * FROM food ORDER BY fiberG DESC, name COLLATE NOCASE ASC LIMIT :limit")
+    suspend fun topFiberFoods(limit: Int): List<Food>
+
     @Query("DELETE FROM food")
     suspend fun deleteAll()
 }

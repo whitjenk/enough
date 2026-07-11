@@ -12,4 +12,6 @@ class WeightRepository(private val dao: WeightEntryDao) {
     suspend fun getLatest(): WeightEntry? = dao.getLatest()
 
     suspend fun add(entry: WeightEntry): Long = dao.insert(entry)
+
+    suspend fun latestTimestampMillis(): Long? = dao.latestTimestamp()
 }

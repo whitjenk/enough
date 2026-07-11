@@ -4,18 +4,30 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.ActivityEntry
+import com.enough.app.data.local.entity.Food
+import com.enough.app.data.local.entity.RulesEngineState
 import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
+import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.data.repository.ActivityRepository
+import com.enough.app.data.repository.FoodRepository
 import com.enough.app.data.repository.GoalRepository
 import com.enough.app.data.repository.MealRepository
+import com.enough.app.data.repository.RulesEngineStateRepository
 import com.enough.app.data.repository.WeightRepository
 import com.enough.app.domain.DayRange
 import com.enough.app.domain.nutrition.MealNutrition
+import com.enough.app.domain.rules.Nudge
+import com.enough.app.domain.rules.NudgeGenerator
+import com.enough.app.domain.rules.RulesEngine
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
@@ -24,45 +36,90 @@ data class TodayUiState(
     val meals: List<MealWithFood> = emptyList(),
     val fiberSoFarG: Double = 0.0,
     val latestWeight: WeightEntry? = null,
+    val weightTrend: WeightTrendDirection = WeightTrendDirection.UNKNOWN,
     val activities: List<ActivityEntry> = emptyList(),
+    val nudge: Nudge = Nudge.None,
     val isLoading: Boolean = true,
 ) {
     val fiberTargetG: Int get() = goal?.fiberGramsTarget ?: 0
 }
 
 /**
- * Observes today's logged data (meals, latest weight, activity) plus the user's
- * goals, and exposes it as a single [TodayUiState]. Fiber math is delegated to
- * the pure [MealNutrition]. The daily fiber-gap nudge is layered on in Task 5.
+ * Observes today's logged data and the user's goals, runs the pure rules engine
+ * over them (fiber gap → daily nudge, weight trend), and exposes a single
+ * [TodayUiState]. It also persists a [RulesEngineState] snapshot so Phase 1 nudge
+ * gating has recency/trend inputs ready.
  */
 class TodayViewModel(
     goalRepository: GoalRepository,
-    mealRepository: MealRepository,
-    weightRepository: WeightRepository,
-    activityRepository: ActivityRepository,
-    zone: ZoneId = ZoneId.systemDefault(),
-    now: Instant = Instant.now(),
+    private val mealRepository: MealRepository,
+    private val weightRepository: WeightRepository,
+    private val activityRepository: ActivityRepository,
+    foodRepository: FoodRepository,
+    private val rulesEngineStateRepository: RulesEngineStateRepository,
+    private val zone: ZoneId = ZoneId.systemDefault(),
+    private val now: Instant = Instant.now(),
 ) : ViewModel() {
 
     private val today: DayRange = DayRange.today(zone, now)
+    private val suggestions = MutableStateFlow<List<Food>>(emptyList())
+
+    init {
+        viewModelScope.launch {
+            suggestions.value = foodRepository.topFiberFoods()
+        }
+    }
 
     val uiState: StateFlow<TodayUiState> = combine(
         goalRepository.goal,
         mealRepository.observeForDay(today),
-        weightRepository.latest,
+        weightRepository.all,
         activityRepository.observeForDay(today),
-    ) { goal, meals, weight, activities ->
+        suggestions,
+    ) { goal, meals, weights, activities, suggestionFoods ->
+        val fiberSoFar = MealNutrition.fiberGrams(meals)
+        val target = goal?.fiberGramsTarget ?: 0
         TodayUiState(
             goal = goal,
             meals = meals,
-            fiberSoFarG = MealNutrition.fiberGrams(meals),
-            latestWeight = weight,
+            fiberSoFarG = fiberSoFar,
+            latestWeight = weights.lastOrNull(),
+            weightTrend = RulesEngine.weightTrend(weights.map { it.weightKg }),
             activities = activities,
+            nudge = NudgeGenerator.generate(fiberSoFar, target, suggestionFoods),
             isLoading = false,
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = TodayUiState(),
-    )
+    }
+        .onEach { persistRulesState(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = TodayUiState(),
+        )
+
+    /** Cache the rules-engine inputs/outputs for later phases. Best-effort. */
+    private suspend fun persistRulesState(state: TodayUiState) {
+        val lastLogMillis = listOfNotNull(
+            mealRepository.latestTimestampMillis(),
+            activityRepository.latestTimestampMillis(),
+            weightRepository.latestTimestampMillis(),
+        ).maxOrNull()
+        val daysSinceLastLog = RulesEngine.daysSinceLastLog(
+            lastLog = lastLogMillis?.let(Instant::ofEpochMilli),
+            now = now,
+            zone = zone,
+        ) ?: 0
+        val weekStartMillis = now.minus(Duration.ofDays(7)).toEpochMilli()
+
+        rulesEngineStateRepository.save(
+            RulesEngineState(
+                daysSinceLastLog = daysSinceLastLog,
+                weightTrendDirection = state.weightTrend,
+                activityMinutesThisWeek = activityRepository.minutesLoggedSince(weekStartMillis),
+                fiberGapToday = RulesEngine.fiberGapG(state.fiberSoFarG, state.fiberTargetG),
+                lastNudgeType = state.nudge.type,
+                updatedAt = now,
+            ),
+        )
+    }
 }

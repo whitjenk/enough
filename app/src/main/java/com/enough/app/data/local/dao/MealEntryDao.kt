@@ -49,6 +49,9 @@ interface MealEntryDao {
     @Query("SELECT * FROM meal_entry ORDER BY timestamp DESC")
     suspend fun getAll(): List<MealWithFood>
 
+    @Query("SELECT MAX(timestamp) FROM meal_entry")
+    suspend fun latestTimestamp(): Long?
+
     @Query("DELETE FROM meal_entry")
     suspend fun deleteAll()
 }
