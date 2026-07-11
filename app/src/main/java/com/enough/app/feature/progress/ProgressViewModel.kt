@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
+import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.data.repository.ActivityRepository
 import com.enough.app.data.repository.GoalRepository
@@ -99,7 +100,13 @@ class ProgressViewModel(
             val loggedSeries = ProgressCalculations.loggedDaySeries(window, logInstants, now, zone)
 
             ProgressUiState(
-                fiberSeries = ProgressCalculations.fiberSeries(window, meals, now, zone),
+                fiberSeries = ProgressCalculations.fiberSeries(
+                    window,
+                    meals,
+                    now,
+                    zone,
+                    goal?.estimateCalibration ?: EstimateCalibration.BALANCED,
+                ),
                 fiberTargetG = goal?.fiberGramsTarget ?: 0,
                 loggedDaySeries = loggedSeries,
                 daysLoggedLast7 = loggedSeries.count { it },

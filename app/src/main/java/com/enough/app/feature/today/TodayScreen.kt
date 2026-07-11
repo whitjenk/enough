@@ -105,7 +105,7 @@ fun TodayScreen(
 private fun NudgeCard(nudge: Nudge) {
     val message = when (nudge) {
         is Nudge.FiberGap -> stringResource(
-            R.string.nudge_fiber_gap,
+            if (nudge.gentle) R.string.nudge_fiber_gap_gentle else R.string.nudge_fiber_gap,
             nudge.fiberSoFarG,
             nudge.suggestionFood,
             nudge.suggestionServingLabel,

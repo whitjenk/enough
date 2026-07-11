@@ -8,6 +8,7 @@ import com.enough.app.data.local.entity.Food
 import com.enough.app.data.local.entity.RulesEngineState
 import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
+import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.ActivityRepository
@@ -114,7 +115,8 @@ class TodayViewModel(
         activityRepository.observeForDay(today),
         suggestions,
     ) { goal, meals, weights, activities, suggestionFoods ->
-        val fiberSoFar = MealNutrition.fiberGrams(meals)
+        val calibration = goal?.estimateCalibration ?: EstimateCalibration.BALANCED
+        val fiberSoFar = MealNutrition.fiberGrams(meals, calibration)
         val target = goal?.fiberGramsTarget ?: 0
         TodayUiState(
             goal = goal,
@@ -123,7 +125,14 @@ class TodayViewModel(
             latestWeight = weights.lastOrNull(),
             weightTrend = RulesEngine.weightTrend(weights.map { it.weightKg }),
             activities = activities,
-            nudge = NudgeGenerator.generate(fiberSoFar, target, suggestionFoods),
+            nudge = NudgeGenerator.generate(
+                fiberSoFarG = fiberSoFar,
+                targetG = target,
+                suggestions = suggestionFoods,
+                restrictions = goal?.dietaryRestrictions ?: emptySet(),
+                otherRestriction = goal?.dietaryRestrictionOther,
+                gentle = goal?.takesGLP1Medication == true,
+            ),
             isLoading = false,
         )
     }

@@ -1,6 +1,7 @@
 package com.enough.app.domain.progress
 
 import com.enough.app.data.local.dao.MealWithFood
+import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.domain.nutrition.MealNutrition
 import java.time.Instant
 import java.time.LocalDate
@@ -18,9 +19,13 @@ data class DailyFiber(val date: LocalDate, val fiberG: Double)
 object ProgressCalculations {
 
     /** Total fiber grams grouped by the calendar day each meal was logged. */
-    fun fiberByDay(meals: List<MealWithFood>, zone: ZoneId): Map<LocalDate, Double> =
+    fun fiberByDay(
+        meals: List<MealWithFood>,
+        zone: ZoneId,
+        calibration: EstimateCalibration = EstimateCalibration.BALANCED,
+    ): Map<LocalDate, Double> =
         meals.groupBy { it.meal.timestamp.atZone(zone).toLocalDate() }
-            .mapValues { (_, dayMeals) -> MealNutrition.fiberGrams(dayMeals) }
+            .mapValues { (_, dayMeals) -> MealNutrition.fiberGrams(dayMeals, calibration) }
 
     /**
      * A [nDays]-long series ending today (oldest first), zero-filled for days
@@ -31,8 +36,9 @@ object ProgressCalculations {
         meals: List<MealWithFood>,
         now: Instant,
         zone: ZoneId,
+        calibration: EstimateCalibration = EstimateCalibration.BALANCED,
     ): List<DailyFiber> {
-        val byDay = fiberByDay(meals, zone)
+        val byDay = fiberByDay(meals, zone, calibration)
         val today = now.atZone(zone).toLocalDate()
         return (nDays - 1 downTo 0).map { back ->
             val date = today.minusDays(back.toLong())

@@ -1,6 +1,7 @@
 package com.enough.app.domain.nutrition
 
 import com.enough.app.data.local.dao.MealWithFood
+import com.enough.app.data.model.EstimateCalibration
 import kotlin.math.roundToInt
 
 /** Nutrient totals for a set of meals, each scaled by its serving multiplier. */
@@ -31,5 +32,16 @@ object MealNutrition {
         return NutritionTotals(fiberG = fiber, carbsG = carbs, proteinG = protein)
     }
 
-    fun fiberGrams(meals: List<MealWithFood>): Double = totals(meals).fiberG
+    /**
+     * Fiber logged so far, adjusting each meal's fiber by the person's
+     * [calibration] before summing (SPEC §5): low leans the estimate down 15%,
+     * high leans it up 15%, balanced leaves it as logged. Per-meal so it stays
+     * correct once entry types with different uncertainty land (Phase 1).
+     */
+    fun fiberGrams(
+        meals: List<MealWithFood>,
+        calibration: EstimateCalibration = EstimateCalibration.BALANCED,
+    ): Double = meals.sumOf { item ->
+        item.food.fiberG * item.meal.servingsMultiplier * calibration.fiberMultiplier
+    }
 }

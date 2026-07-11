@@ -1,7 +1,9 @@
 package com.enough.app.domain.rules
 
 import com.enough.app.data.local.entity.Food
+import com.enough.app.data.model.DietaryRestriction
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -67,5 +69,54 @@ class NudgeGeneratorTest {
     fun `fiber gap nudge maps to the FIBER_GAP persisted type`() {
         val nudge = NudgeGenerator.generate(10.0, 28, suggestions)
         assertEquals(com.enough.app.data.model.NudgeType.FIBER_GAP, nudge.type)
+    }
+
+    @Test
+    fun `a restriction drops the unsafe best-fit and picks the next safe food`() {
+        // Gap 3.5 -> best fit is Almonds (3.5). With a nut allergy it's excluded,
+        // so the next-closest safe food (Broccoli, 2.4) is suggested instead.
+        val nutFree = NudgeGenerator.generate(
+            fiberSoFarG = 24.5,
+            targetG = 28,
+            suggestions = suggestions,
+            restrictions = setOf(DietaryRestriction.NUT_ALLERGY),
+        )
+        assertTrue(nutFree is Nudge.FiberGap)
+        assertEquals("Broccoli", (nutFree as Nudge.FiberGap).suggestionFood)
+    }
+
+    @Test
+    fun `all suggestions unsafe yields no nudge`() {
+        val meatOnly = listOf(food("Grilled chicken", 6.0), food("Beef jerky", 4.0))
+        val nudge = NudgeGenerator.generate(
+            fiberSoFarG = 5.0,
+            targetG = 28,
+            suggestions = meatOnly,
+            restrictions = setOf(DietaryRestriction.VEGETARIAN),
+        )
+        assertEquals(Nudge.None, nudge)
+    }
+
+    @Test
+    fun `gentle mode suggests the smallest doable add and flags the nudge`() {
+        // Large gap: normal mode would pick the biggest lever (Chia). Gentle picks
+        // the smallest qualifying food instead (Broccoli, 2.4g) and marks gentle.
+        val gentle = NudgeGenerator.generate(
+            fiberSoFarG = 0.0,
+            targetG = 28,
+            suggestions = suggestions,
+            gentle = true,
+        )
+        assertTrue(gentle is Nudge.FiberGap)
+        gentle as Nudge.FiberGap
+        assertEquals("Broccoli", gentle.suggestionFood)
+        assertTrue(gentle.gentle)
+    }
+
+    @Test
+    fun `non-gentle fiber gap is not flagged gentle`() {
+        val nudge = NudgeGenerator.generate(0.0, 28, suggestions)
+        assertTrue(nudge is Nudge.FiberGap)
+        assertFalse((nudge as Nudge.FiberGap).gentle)
     }
 }

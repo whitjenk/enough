@@ -161,6 +161,8 @@
 
     <!-- Daily fiber nudge (supportive tone; never shame or streaks) -->
     <string name="nudge_fiber_gap">You\'re at %1$dg of fiber today. A serving of %2$s (%3$s) adds about %4$dg — small and doable.</string>
+    <!-- Softer variant for people on a GLP-1: no target framing, appetite-aware -->
+    <string name="nudge_fiber_gap_gentle">You\'re at %1$dg of fiber today. No pressure at all — if it feels right, a little %2$s (%3$s) adds about %4$dg.</string>
     <string name="nudge_on_track">You\'re at %1$dg of fiber today, right around your %2$dg goal. That\'s enough.</string>
     <string name="cd_mascot">Enough</string>
     <string name="today_fiber_headline">Fiber today</string>

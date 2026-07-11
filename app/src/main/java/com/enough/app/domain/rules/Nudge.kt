@@ -16,7 +16,10 @@ sealed interface Nudge {
 
     /**
      * A meaningful fiber gap with one specific, doable food suggestion that would
-     * help close it. Never framed as a shortfall or failure.
+     * help close it. Never framed as a shortfall or failure. When [gentle] (the
+     * person takes a GLP-1 medication), the suggestion is a smaller increment and
+     * the UI uses copy that puts no pressure on hitting the target given a reduced
+     * appetite (SPEC §5).
      */
     data class FiberGap(
         val fiberSoFarG: Int,
@@ -24,6 +27,7 @@ sealed interface Nudge {
         val suggestionFood: String,
         val suggestionServingLabel: String,
         val suggestionFiberG: Int,
+        val gentle: Boolean = false,
     ) : Nudge
 
     /** The persisted nudge category for [com.enough.app.data.local.entity.RulesEngineState]. */
