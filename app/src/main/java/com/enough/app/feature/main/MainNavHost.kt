@@ -1,55 +1,137 @@
 package com.enough.app.feature.main
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.enough.app.R
 import com.enough.app.feature.logging.AddMealRoute
 import com.enough.app.feature.logging.LogActivityRoute
 import com.enough.app.feature.logging.LogWeightRoute
+import com.enough.app.feature.progress.ProgressRoute
 import com.enough.app.feature.today.TodayRoute
 
 /** Route identifiers for the post-onboarding app. */
 object Routes {
     const val TODAY = "today"
+    const val PROGRESS = "progress"
     const val ADD_MEAL = "add_meal"
     const val LOG_WEIGHT = "log_weight"
     const val LOG_ACTIVITY = "log_activity"
 }
 
+private data class TopLevelDestination(val route: String, val labelRes: Int)
+
+private val topLevelDestinations = listOf(
+    TopLevelDestination(Routes.TODAY, R.string.nav_today),
+    TopLevelDestination(Routes.PROGRESS, R.string.nav_progress),
+)
+
 /**
- * The main navigation graph shown after onboarding. Today is the home; logging
- * screens are pushed on top and pop back to Today on save. Progress and Settings
- * join this graph in later tasks.
+ * The main navigation graph shown after onboarding. Today and Progress are
+ * top-level tabs (bottom bar); logging screens push on top of Today and pop back
+ * on save. Settings joins the tabs in a later task.
  */
 @Composable
 fun MainNavHost(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = Routes.TODAY) {
-        composable(Routes.TODAY) {
-            TodayRoute(
-                onAddMeal = { navController.navigate(Routes.ADD_MEAL) },
-                onLogWeight = { navController.navigate(Routes.LOG_WEIGHT) },
-                onLogActivity = { navController.navigate(Routes.LOG_ACTIVITY) },
-            )
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val showBottomBar = currentRoute in topLevelDestinations.map { it.route }.toSet()
+
+    Scaffold(
+        bottomBar = {
+            if (showBottomBar) {
+                EnoughBottomBar(
+                    currentRoute = currentRoute,
+                    onSelect = { route -> navController.navigateToTab(route) },
+                )
+            }
+        },
+    ) { padding ->
+        NavHost(
+            navController = navController,
+            startDestination = Routes.TODAY,
+            modifier = Modifier.padding(padding),
+        ) {
+            composable(Routes.TODAY) {
+                TodayRoute(
+                    onAddMeal = { navController.navigate(Routes.ADD_MEAL) },
+                    onLogWeight = { navController.navigate(Routes.LOG_WEIGHT) },
+                    onLogActivity = { navController.navigate(Routes.LOG_ACTIVITY) },
+                )
+            }
+            composable(Routes.PROGRESS) { ProgressRoute() }
+            composable(Routes.ADD_MEAL) {
+                AddMealRoute(
+                    onSaved = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.LOG_WEIGHT) {
+                LogWeightRoute(
+                    onSaved = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.LOG_ACTIVITY) {
+                LogActivityRoute(
+                    onSaved = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
-        composable(Routes.ADD_MEAL) {
-            AddMealRoute(
-                onSaved = { navController.popBackStack() },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(Routes.LOG_WEIGHT) {
-            LogWeightRoute(
-                onSaved = { navController.popBackStack() },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(Routes.LOG_ACTIVITY) {
-            LogActivityRoute(
-                onSaved = { navController.popBackStack() },
-                onBack = { navController.popBackStack() },
-            )
+    }
+}
+
+private fun NavHostController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(graph.startDestinationId) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+/**
+ * A simple text-label bottom bar. Selection is conveyed by weight and color
+ * together, not color alone (DESIGN.md / accessibility).
+ */
+@Composable
+private fun EnoughBottomBar(currentRoute: String?, onSelect: (String) -> Unit) {
+    Surface(tonalElevation = 2.dp) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            topLevelDestinations.forEach { destination ->
+                val selected = currentRoute == destination.route
+                TextButton(onClick = { onSelect(destination.route) }) {
+                    Text(
+                        text = stringResource(destination.labelRes),
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                }
+            }
         }
     }
 }

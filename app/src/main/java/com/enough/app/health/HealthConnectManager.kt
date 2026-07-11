@@ -7,6 +7,11 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
+import androidx.health.connect.client.request.AggregateRequest
+import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.time.TimeRangeFilter
+import java.time.Duration
+import java.time.Instant
 
 /** Availability of Health Connect on this device. */
 enum class HealthConnectAvailability {
@@ -65,4 +70,42 @@ class HealthConnectManager(private val context: Context) {
      */
     fun requestPermissionsContract() =
         PermissionController.createRequestPermissionResultContract()
+
+    // --- Reads (all null-safe: unavailable, denied, or error all yield null) ---
+
+    /** Total steps in [start, end), or null if Health Connect can't provide it. */
+    suspend fun readSteps(start: Instant, end: Instant): Long? {
+        val client = clientOrNull() ?: return null
+        if (!hasAllPermissions()) return null
+        return try {
+            val response = client.aggregate(
+                AggregateRequest(
+                    metrics = setOf(StepsRecord.COUNT_TOTAL),
+                    timeRangeFilter = TimeRangeFilter.between(start, end),
+                ),
+            )
+            response[StepsRecord.COUNT_TOTAL]
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Total sleep minutes across sessions overlapping [start, end), or null. */
+    suspend fun readSleepMinutes(start: Instant, end: Instant): Long? {
+        val client = clientOrNull() ?: return null
+        if (!hasAllPermissions()) return null
+        return try {
+            val response = client.readRecords(
+                ReadRecordsRequest(
+                    recordType = SleepSessionRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(start, end),
+                ),
+            )
+            response.records
+                .sumOf { Duration.between(it.startTime, it.endTime).toMinutes() }
+                .takeIf { response.records.isNotEmpty() }
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

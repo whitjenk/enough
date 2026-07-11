@@ -10,6 +10,7 @@ import com.enough.app.feature.logging.LogActivityViewModel
 import com.enough.app.feature.logging.LogWeightViewModel
 import com.enough.app.feature.main.MainViewModel
 import com.enough.app.feature.onboarding.OnboardingViewModel
+import com.enough.app.feature.progress.ProgressViewModel
 import com.enough.app.feature.today.TodayViewModel
 
 /**
@@ -41,6 +42,17 @@ object AppViewModelProvider {
                 activityRepository = container.activityRepository,
                 foodRepository = container.foodRepository,
                 rulesEngineStateRepository = container.rulesEngineStateRepository,
+                healthConnectManager = container.healthConnectManager,
+                userPreferencesRepository = container.userPreferencesRepository,
+            )
+        }
+        initializer {
+            val container = enoughApplication().container
+            ProgressViewModel(
+                goalRepository = container.goalRepository,
+                mealRepository = container.mealRepository,
+                activityRepository = container.activityRepository,
+                weightRepository = container.weightRepository,
             )
         }
         initializer {

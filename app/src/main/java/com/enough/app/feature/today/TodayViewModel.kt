@@ -9,6 +9,7 @@ import com.enough.app.data.local.entity.RulesEngineState
 import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
 import com.enough.app.data.model.WeightTrendDirection
+import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.ActivityRepository
 import com.enough.app.data.repository.FoodRepository
 import com.enough.app.data.repository.GoalRepository
@@ -20,16 +21,26 @@ import com.enough.app.domain.nutrition.MealNutrition
 import com.enough.app.domain.rules.Nudge
 import com.enough.app.domain.rules.NudgeGenerator
 import com.enough.app.domain.rules.RulesEngine
+import com.enough.app.health.HealthConnectManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
+
+/** Steps/sleep read from Health Connect (optional; null when unavailable). */
+data class HealthConnectData(
+    val stepsToday: Long? = null,
+    val sleepMinutesLastNight: Long? = null,
+) {
+    val hasAny: Boolean get() = stepsToday != null || sleepMinutesLastNight != null
+}
 
 data class TodayUiState(
     val goal: UserGoal? = null,
@@ -39,6 +50,7 @@ data class TodayUiState(
     val weightTrend: WeightTrendDirection = WeightTrendDirection.UNKNOWN,
     val activities: List<ActivityEntry> = emptyList(),
     val nudge: Nudge = Nudge.None,
+    val healthConnect: HealthConnectData = HealthConnectData(),
     val isLoading: Boolean = true,
 ) {
     val fiberTargetG: Int get() = goal?.fiberGramsTarget ?: 0
@@ -46,9 +58,9 @@ data class TodayUiState(
 
 /**
  * Observes today's logged data and the user's goals, runs the pure rules engine
- * over them (fiber gap → daily nudge, weight trend), and exposes a single
- * [TodayUiState]. It also persists a [RulesEngineState] snapshot so Phase 1 nudge
- * gating has recency/trend inputs ready.
+ * over them (fiber gap → daily nudge, weight trend), reads optional steps/sleep
+ * from Health Connect, and exposes a single [TodayUiState]. Also persists a
+ * [RulesEngineState] snapshot for later phases.
  */
 class TodayViewModel(
     goalRepository: GoalRepository,
@@ -57,20 +69,22 @@ class TodayViewModel(
     private val activityRepository: ActivityRepository,
     foodRepository: FoodRepository,
     private val rulesEngineStateRepository: RulesEngineStateRepository,
+    private val healthConnectManager: HealthConnectManager,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val now: Instant = Instant.now(),
 ) : ViewModel() {
 
     private val today: DayRange = DayRange.today(zone, now)
     private val suggestions = MutableStateFlow<List<Food>>(emptyList())
+    private val healthData = MutableStateFlow(HealthConnectData())
 
     init {
-        viewModelScope.launch {
-            suggestions.value = foodRepository.topFiberFoods()
-        }
+        viewModelScope.launch { suggestions.value = foodRepository.topFiberFoods() }
+        loadHealthConnectData()
     }
 
-    val uiState: StateFlow<TodayUiState> = combine(
+    private val baseState: kotlinx.coroutines.flow.Flow<TodayUiState> = combine(
         goalRepository.goal,
         mealRepository.observeForDay(today),
         weightRepository.all,
@@ -90,12 +104,26 @@ class TodayViewModel(
             isLoading = false,
         )
     }
-        .onEach { persistRulesState(it) }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = TodayUiState(),
-        )
+
+    val uiState: StateFlow<TodayUiState> =
+        combine(baseState, healthData) { base, health -> base.copy(healthConnect = health) }
+            .onEach { persistRulesState(it) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = TodayUiState(),
+            )
+
+    private fun loadHealthConnectData() {
+        viewModelScope.launch {
+            if (!userPreferencesRepository.healthConnectSyncEnabled.first()) return@launch
+            val steps = healthConnectManager.readSteps(today.start, today.endExclusive)
+            // "Last night": from mid-evening yesterday through this morning.
+            val sleepStart = today.start.minus(Duration.ofHours(6))
+            val sleep = healthConnectManager.readSleepMinutes(sleepStart, now)
+            healthData.value = HealthConnectData(stepsToday = steps, sleepMinutesLastNight = sleep)
+        }
+    }
 
     /** Cache the rules-engine inputs/outputs for later phases. Best-effort. */
     private suspend fun persistRulesState(state: TodayUiState) {

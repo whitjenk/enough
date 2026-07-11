@@ -84,6 +84,7 @@ fun TodayScreen(
                 )
             }
             item { WeightCard(uiState) }
+            item { HealthConnectCard(uiState.healthConnect) }
             item { MealsHeader() }
             if (uiState.meals.isEmpty()) {
                 item { EmptyHint(stringResource(R.string.today_no_meals)) }
@@ -213,6 +214,28 @@ private fun WeightCard(uiState: TodayUiState) {
                     text = stringResource(R.string.today_weight_none),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthConnectCard(data: HealthConnectData) {
+    if (!data.hasAny) return
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.today_hc_header), style = MaterialTheme.typography.titleMedium)
+            data.stepsToday?.let { steps ->
+                Text(
+                    text = stringResource(R.string.today_hc_steps, "%,d".format(steps)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            data.sleepMinutesLastNight?.let { minutes ->
+                Text(
+                    text = stringResource(R.string.today_hc_sleep, minutes / 60, minutes % 60),
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
         }

@@ -11,6 +11,9 @@ class MealRepository(private val dao: MealEntryDao) {
     fun observeForDay(range: DayRange): Flow<List<MealWithFood>> =
         dao.observeBetween(range.startMillis, range.endMillis)
 
+    fun observeBetween(startMillis: Long, endMillis: Long): Flow<List<MealWithFood>> =
+        dao.observeBetween(startMillis, endMillis)
+
     suspend fun add(entry: MealEntry): Long = dao.insert(entry)
 
     suspend fun delete(entry: MealEntry) = dao.delete(entry)

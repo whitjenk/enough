@@ -10,6 +10,9 @@ class ActivityRepository(private val dao: ActivityEntryDao) {
     fun observeForDay(range: DayRange): Flow<List<ActivityEntry>> =
         dao.observeBetween(range.startMillis, range.endMillis)
 
+    fun observeBetween(startMillis: Long, endMillis: Long): Flow<List<ActivityEntry>> =
+        dao.observeBetween(startMillis, endMillis)
+
     suspend fun add(entry: ActivityEntry): Long = dao.insert(entry)
 
     suspend fun latestTimestampMillis(): Long? = dao.latestTimestamp()

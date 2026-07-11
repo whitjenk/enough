@@ -39,9 +39,10 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 
 
 ## 6. Today and Progress screens
-- [ ] Today screen: today's logged meals/weight/activity, today's fiber-gap nudge, synced Health Connect data
-- [ ] Progress screen: fiber-gap trend, weight trend, weekly activity vs. goal, a streak-free consistency view (e.g. "X of the last 7 days logged" — not a punishing streak counter)
-- [ ] Manual test: log data across several simulated days (adjust device clock or seed test data) and confirm both screens reflect it correctly
+- [x] Today screen: today's logged meals/weight/activity, today's fiber-gap nudge, synced Health Connect data <!-- Today shows meals/weight/activity + the mascot nudge card; Health Connect steps/sleep read defensively (null-safe, respects sync toggle) and shown when present -->
+- [x] Progress screen: fiber-gap trend, weight trend, weekly activity vs. goal, a streak-free consistency view (e.g. "X of the last 7 days logged" — not a punishing streak counter) <!-- ProgressCalculations (pure) -> 7-day fiber bar chart w/ target line, weight trend (supportive wording, never red), weekly minutes vs goal, and "logged on X of last 7 days" dots (filled/hollow shape, not color-only). Bottom nav Today/Progress. -->
+- [ ] Manual test: log data across several simulated days (adjust device clock or seed test data) and confirm both screens reflect it correctly <!-- NOT run on device (no device/emulator). Aggregations verified via ProgressCalculationsTest (fiber-by-day, zero-filled series, distinct-day consistency, logged-day series) + Robolectric render tests of Today and Progress. Needs a multi-day device pass before ship. -->
+
 
 ## 7. Settings and data control
 - [ ] Health Connect sync toggle
