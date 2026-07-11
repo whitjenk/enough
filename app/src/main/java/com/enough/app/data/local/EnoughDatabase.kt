@@ -3,6 +3,8 @@ package com.enough.app.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.enough.app.data.local.dao.ActivityEntryDao
 import com.enough.app.data.local.dao.FoodDao
 import com.enough.app.data.local.dao.MealEntryDao
@@ -33,7 +35,7 @@ import com.enough.app.data.local.entity.WeightEntry
         PrediabetesRiskResult::class,
         RulesEngineState::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -48,5 +50,47 @@ abstract class EnoughDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "enough.db"
+
+        /**
+         * v1 -> v2: the revised onboarding (SPEC §3/§5/§7). Makes the weight-goal
+         * columns nullable (weight goal is now optional) and adds the new
+         * onboarding/settings columns: dietary restrictions, "personal why",
+         * GLP-1 use, and estimate calibration. SQLite can't relax NOT NULL in
+         * place, so `user_goal` is rebuilt; existing rows are preserved.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `user_goal_new` (" +
+                        "`id` INTEGER NOT NULL, " +
+                        "`startWeightKg` REAL, " +
+                        "`targetWeightKg` REAL, " +
+                        "`weightLossPercent` REAL, " +
+                        "`activityGoalType` TEXT NOT NULL, " +
+                        "`activityGoalValue` INTEGER NOT NULL, " +
+                        "`activityGoalCustomLabel` TEXT, " +
+                        "`dailyCalorieEstimate` INTEGER NOT NULL, " +
+                        "`fiberGramsTarget` INTEGER NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, " +
+                        "`dietaryRestrictions` TEXT NOT NULL DEFAULT '', " +
+                        "`dietaryRestrictionOther` TEXT, " +
+                        "`personalWhy` TEXT, " +
+                        "`takesGLP1Medication` INTEGER NOT NULL DEFAULT 0, " +
+                        "`estimateCalibration` TEXT NOT NULL DEFAULT 'BALANCED', " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "INSERT INTO `user_goal_new` (" +
+                        "`id`, `startWeightKg`, `targetWeightKg`, `weightLossPercent`, " +
+                        "`activityGoalType`, `activityGoalValue`, `activityGoalCustomLabel`, " +
+                        "`dailyCalorieEstimate`, `fiberGramsTarget`, `createdAt`) " +
+                        "SELECT `id`, `startWeightKg`, `targetWeightKg`, `weightLossPercent`, " +
+                        "`activityGoalType`, `activityGoalValue`, `activityGoalCustomLabel`, " +
+                        "`dailyCalorieEstimate`, `fiberGramsTarget`, `createdAt` FROM `user_goal`",
+                )
+                db.execSQL("DROP TABLE `user_goal`")
+                db.execSQL("ALTER TABLE `user_goal_new` RENAME TO `user_goal`")
+            }
+        }
     }
 }

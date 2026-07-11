@@ -3,6 +3,8 @@ package com.enough.app.data.local
 import androidx.room.TypeConverter
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
+import com.enough.app.data.model.DietaryRestriction
+import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.MealSource
 import com.enough.app.data.model.NudgeType
 import com.enough.app.data.model.RiskResultSource
@@ -63,4 +65,23 @@ class Converters {
 
     @TypeConverter
     fun nameToNudgeType(value: String?): NudgeType? = value?.let(NudgeType::valueOf)
+
+    /** Stored as a comma-separated list of enum names; empty set -> "". */
+    @TypeConverter
+    fun dietaryRestrictionsToString(value: Set<DietaryRestriction>?): String? =
+        value?.joinToString(separator = ",") { it.name }
+
+    @TypeConverter
+    fun stringToDietaryRestrictions(value: String?): Set<DietaryRestriction>? =
+        value?.split(",")
+            ?.filter { it.isNotBlank() }
+            ?.map { DietaryRestriction.valueOf(it) }
+            ?.toSet()
+
+    @TypeConverter
+    fun estimateCalibrationToName(value: EstimateCalibration?): String? = value?.name
+
+    @TypeConverter
+    fun nameToEstimateCalibration(value: String?): EstimateCalibration? =
+        value?.let(EstimateCalibration::valueOf)
 }

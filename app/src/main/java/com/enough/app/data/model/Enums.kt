@@ -31,3 +31,21 @@ enum class WeightTrendDirection { DOWN, FLAT, UP, UNKNOWN }
 
 /** The kind of nudge shown. Phase 0 only generates fiber-gap nudges. */
 enum class NudgeType { NONE, FIBER_GAP }
+
+/**
+ * A dietary restriction or allergy the person logged in onboarding. Used to
+ * filter food suggestions so a nudge never suggests something they can't eat.
+ * "Other" is captured as free text on the goal, not as an enum value here.
+ */
+enum class DietaryRestriction { VEGETARIAN, VEGAN, GLUTEN_FREE, DAIRY_FREE, NUT_ALLERGY }
+
+/**
+ * How the person prefers uncertain fiber estimates handled (Settings, SPEC §7).
+ * A personal preference about erring low or high, not a "right" answer: it
+ * shifts each meal's fiber value by ±15% before the day's total is summed.
+ */
+enum class EstimateCalibration(val fiberMultiplier: Double) {
+    LOW(0.85),
+    BALANCED(1.0),
+    HIGH(1.15),
+}

@@ -69,7 +69,8 @@ fun OnboardingRoute(
 
     OnboardingScreen(
         uiState = uiState,
-        onGetStarted = viewModel::goToRiskTest,
+        onStartDefault = viewModel::startDefaultPath,
+        onStartRiskTest = viewModel::startRiskTestPath,
         onRiskFormChange = viewModel::onRiskFormChange,
         onSubmitRiskTest = viewModel::submitRiskTest,
         onRiskResultContinue = viewModel::goToGoals,
@@ -85,7 +86,8 @@ fun OnboardingRoute(
 @Composable
 fun OnboardingScreen(
     uiState: OnboardingUiState,
-    onGetStarted: () -> Unit,
+    onStartDefault: () -> Unit,
+    onStartRiskTest: () -> Unit,
     onRiskFormChange: (RiskTestForm) -> Unit,
     onSubmitRiskTest: () -> Unit,
     onRiskResultContinue: () -> Unit,
@@ -96,7 +98,10 @@ fun OnboardingScreen(
     onBack: () -> Unit,
 ) {
     when (uiState.step) {
-        OnboardingStep.WELCOME -> WelcomeStep(onGetStarted)
+        OnboardingStep.WELCOME -> WelcomeStep(
+            onStartDefault = onStartDefault,
+            onStartRiskTest = onStartRiskTest,
+        )
         OnboardingStep.RISK_TEST -> RiskTestStep(
             form = uiState.riskForm,
             onFormChange = onRiskFormChange,
@@ -110,7 +115,6 @@ fun OnboardingScreen(
         )
         OnboardingStep.GOALS -> GoalsStep(
             form = uiState.goalsForm,
-            startWeightLb = uiState.riskForm.weightLb ?: 0.0,
             onFormChange = onGoalsFormChange,
             onContinue = onGoalsContinue,
             onBack = onBack,
@@ -174,25 +178,57 @@ private fun OnboardingScaffold(
 
 // --- Steps ---
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WelcomeStep(onGetStarted: () -> Unit) {
-    OnboardingScaffold(
-        title = stringResource(R.string.onboarding_welcome_title),
-        onBack = null,
-        primaryLabel = stringResource(R.string.onboarding_get_started),
-        primaryEnabled = true,
-        onPrimary = onGetStarted,
-    ) {
-        Text(
-            text = stringResource(R.string.onboarding_welcome_body),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        HorizontalDivider()
-        Text(
-            text = stringResource(R.string.onboarding_welcome_disclaimer),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit) {
+    Scaffold(
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.onboarding_welcome_title)) }) },
+        bottomBar = {
+            Surface {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // Default path is the emphasized primary; the risk test is an
+                    // equally-visible-but-secondary option, never the default.
+                    Button(onClick = onStartDefault, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.onboarding_entry_default))
+                    }
+                    OutlinedButton(onClick = onStartRiskTest, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.onboarding_entry_risk))
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.onboarding_welcome_body),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(R.string.onboarding_entry_default_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.onboarding_entry_risk_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.onboarding_welcome_disclaimer),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -363,7 +399,6 @@ private fun RiskResultStep(
 @Composable
 private fun GoalsStep(
     form: GoalsForm,
-    startWeightLb: Double,
     onFormChange: (GoalsForm) -> Unit,
     onContinue: () -> Unit,
     onBack: () -> Unit,
@@ -375,24 +410,56 @@ private fun GoalsStep(
         primaryEnabled = form.isComplete,
         onPrimary = onContinue,
     ) {
-        val targetLb = (startWeightLb * (1.0 - form.weightLossPercent / 100.0)).roundToInt()
         SectionCard(stringResource(R.string.goals_weight_header)) {
             Text(
-                text = stringResource(
-                    R.string.goals_weight_desc,
-                    stringResource(R.string.weight_pounds, startWeightLb.roundToInt()),
-                    stringResource(R.string.weight_pounds, targetLb),
-                ),
+                text = stringResource(R.string.goals_weight_choice_desc),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Spacer(Modifier.height(12.dp))
-            LabeledSlider(
-                valueLabel = stringResource(R.string.goals_weight_percent_label, form.weightLossPercent),
-                value = form.weightLossPercent,
-                valueRange = 5..7,
-                step = 1,
-                onValueChange = { onFormChange(form.copy(weightLossPercent = it)) },
+            Spacer(Modifier.height(8.dp))
+            // Equally-weighted choice; focusing on fiber/activity is the default,
+            // a weight goal is never turned on for the person (SPEC §3).
+            ChoiceList(
+                options = listOf(
+                    ChoiceOption(false, stringResource(R.string.goals_weight_skip)),
+                    ChoiceOption(true, stringResource(R.string.goals_weight_include)),
+                ),
+                selected = form.includeWeightGoal,
+                onSelect = { onFormChange(form.copy(includeWeightGoal = it)) },
             )
+            if (form.includeWeightGoal) {
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = form.weightLbText,
+                    onValueChange = {
+                        onFormChange(form.copy(weightLbText = it.filter { c -> c.isDigit() || c == '.' }))
+                    },
+                    label = { Text(stringResource(R.string.goals_weight_input_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+                LabeledSlider(
+                    valueLabel = stringResource(R.string.goals_weight_percent_label, form.weightLossPercent),
+                    value = form.weightLossPercent,
+                    valueRange = 5..7,
+                    step = 1,
+                    onValueChange = { onFormChange(form.copy(weightLossPercent = it)) },
+                )
+                val lb = form.weightLb
+                if (lb != null) {
+                    val targetLb = (lb * (1.0 - form.weightLossPercent / 100.0)).roundToInt()
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(
+                            R.string.goals_weight_target,
+                            stringResource(R.string.weight_pounds, lb.roundToInt()),
+                            stringResource(R.string.weight_pounds, targetLb),
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
         }
 
         SectionCard(stringResource(R.string.goals_activity_header)) {
@@ -514,7 +581,7 @@ private fun WelcomePreview() {
     EnoughTheme(dynamicColor = false) {
         OnboardingScreen(
             uiState = OnboardingUiState(step = OnboardingStep.WELCOME),
-            onGetStarted = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
+            onStartDefault = {}, onStartRiskTest = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
             onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
             onConnectHealth = {}, onFinish = {}, onBack = {},
         )
@@ -528,9 +595,9 @@ private fun GoalsPreview() {
         OnboardingScreen(
             uiState = OnboardingUiState(
                 step = OnboardingStep.GOALS,
-                riskForm = RiskTestForm(weightLbText = "180"),
+                goalsForm = GoalsForm(includeWeightGoal = true, weightLbText = "180"),
             ),
-            onGetStarted = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
+            onStartDefault = {}, onStartRiskTest = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
             onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
             onConnectHealth = {}, onFinish = {}, onBack = {},
         )

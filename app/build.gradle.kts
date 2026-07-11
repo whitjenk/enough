@@ -59,6 +59,13 @@ android {
         }
     }
 
+    // Make the exported Room schemas available to Robolectric unit tests (which
+    // read the debug variant's merged assets) so MigrationTestHelper can build old
+    // schema versions and validate migrations. Scoped to debug: not shipped in release.
+    sourceSets {
+        getByName("debug").assets.srcDir("$projectDir/schemas")
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

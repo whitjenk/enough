@@ -39,7 +39,15 @@ class OnboardingViewModel(
 
     // --- Step navigation ---
 
-    fun goToRiskTest() = setStep(OnboardingStep.RISK_TEST)
+    /** Default entry path: skip the quiz, go straight to goal-setting. */
+    fun startDefaultPath() = _uiState.update {
+        it.copy(step = OnboardingStep.GOALS, riskTestPathChosen = false)
+    }
+
+    /** Optional entry path: take the CDC/ADA risk test first. */
+    fun startRiskTestPath() = _uiState.update {
+        it.copy(step = OnboardingStep.RISK_TEST, riskTestPathChosen = true)
+    }
 
     /** Compute and show the score; only valid once the form is complete. */
     fun submitRiskTest() {
@@ -49,7 +57,18 @@ class OnboardingViewModel(
         }
     }
 
-    fun goToGoals() = setStep(OnboardingStep.GOALS)
+    /**
+     * From the risk result into goal-setting, prefilling the weight the risk test
+     * already captured so opting into a weight goal doesn't require re-typing.
+     */
+    fun goToGoals() = _uiState.update { state ->
+        val goals = if (state.goalsForm.weightLbText.isBlank() && state.riskForm.weightLb != null) {
+            state.goalsForm.copy(weightLbText = state.riskForm.weightLbText.trim())
+        } else {
+            state.goalsForm
+        }
+        state.copy(step = OnboardingStep.GOALS, goalsForm = goals)
+    }
 
     fun goToHealthConnect() {
         refreshHealthConnect()
@@ -57,14 +76,17 @@ class OnboardingViewModel(
     }
 
     fun back() {
-        val previous = when (_uiState.value.step) {
-            OnboardingStep.WELCOME -> OnboardingStep.WELCOME
-            OnboardingStep.RISK_TEST -> OnboardingStep.WELCOME
-            OnboardingStep.RISK_RESULT -> OnboardingStep.RISK_TEST
-            OnboardingStep.GOALS -> OnboardingStep.RISK_RESULT
-            OnboardingStep.HEALTH_CONNECT -> OnboardingStep.GOALS
+        _uiState.update { state ->
+            val previous = when (state.step) {
+                OnboardingStep.WELCOME -> OnboardingStep.WELCOME
+                OnboardingStep.RISK_TEST -> OnboardingStep.WELCOME
+                OnboardingStep.RISK_RESULT -> OnboardingStep.RISK_TEST
+                OnboardingStep.GOALS ->
+                    if (state.riskTestPathChosen) OnboardingStep.RISK_RESULT else OnboardingStep.WELCOME
+                OnboardingStep.HEALTH_CONNECT -> OnboardingStep.GOALS
+            }
+            state.copy(step = previous)
         }
-        setStep(previous)
     }
 
     private fun setStep(step: OnboardingStep) = _uiState.update { it.copy(step = step) }
@@ -101,39 +123,60 @@ class OnboardingViewModel(
 
     // --- Finish ---
 
-    /** Persist the risk result and all three goals, then mark onboarding done. */
+    /**
+     * Persist onboarding: the goals (weight optional), the risk result if the
+     * optional risk-test path was taken, then mark onboarding done. Works with or
+     * without the risk test — no risk answers are required.
+     */
     fun finishOnboarding() {
         val state = _uiState.value
-        val answers = state.riskForm.toAnswers() ?: return
         val goalsForm = state.goalsForm
         if (!goalsForm.isComplete) return
         val dailyCalories = goalsForm.dailyCalories ?: return
-        val score = state.riskScore ?: RiskScorer.score(answers)
 
         _uiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val now = Instant.now()
-            val startWeightKg = answers.weightKg
 
-            riskResultRepository.saveResult(
-                PrediabetesRiskResult(
-                    score = score.total,
-                    dateTaken = now,
-                    source = RiskResultSource.CDC_ADA_RISK_TEST,
-                ),
-            )
+            // Risk result is stored only when the optional risk test was taken.
+            if (state.riskTestPathChosen) {
+                val answers = state.riskForm.toAnswers()
+                val score = state.riskScore ?: answers?.let(RiskScorer::score)
+                if (answers != null && score != null) {
+                    riskResultRepository.saveResult(
+                        PrediabetesRiskResult(
+                            score = score.total,
+                            dateTaken = now,
+                            source = RiskResultSource.CDC_ADA_RISK_TEST,
+                        ),
+                    )
+                }
+            }
 
-            // The weight entered during the risk test is the starting weight.
-            weightRepository.add(WeightEntry(weightKg = startWeightKg, timestamp = now))
+            // Weight goal is opt-in. When included, the entered weight is the
+            // starting weight and is logged as the first WeightEntry.
+            val startWeightKg = if (goalsForm.includeWeightGoal) {
+                goalsForm.weightLb?.let(UnitConversions::lbToKg)
+            } else {
+                null
+            }
+            val weightLossPercent =
+                if (startWeightKg != null) goalsForm.weightLossPercent.toDouble() else null
+            val targetWeightKg = if (startWeightKg != null && weightLossPercent != null) {
+                GoalCalculator.targetWeightKg(startWeightKg, weightLossPercent)
+            } else {
+                null
+            }
+
+            if (startWeightKg != null) {
+                weightRepository.add(WeightEntry(weightKg = startWeightKg, timestamp = now))
+            }
 
             goalRepository.saveGoal(
                 UserGoal(
                     startWeightKg = startWeightKg,
-                    targetWeightKg = GoalCalculator.targetWeightKg(
-                        startWeightKg,
-                        goalsForm.weightLossPercent.toDouble(),
-                    ),
-                    weightLossPercent = goalsForm.weightLossPercent.toDouble(),
+                    targetWeightKg = targetWeightKg,
+                    weightLossPercent = weightLossPercent,
                     activityGoalType = goalsForm.activityGoalType,
                     activityGoalValue = goalsForm.activityGoalValue,
                     activityGoalCustomLabel = goalsForm.activityCustomLabel
@@ -148,7 +191,4 @@ class OnboardingViewModel(
             _uiState.update { it.copy(isSaving = false, isComplete = true) }
         }
     }
-
-    // Exposed for previews/tests that want to render a specific weight in kg.
-    fun startWeightKgOrNull(): Double? = _uiState.value.riskForm.weightLb?.let(UnitConversions::lbToKg)
 }

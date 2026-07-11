@@ -72,6 +72,26 @@ class OnboardingFormsTest {
     }
 
     @Test
+    fun `weight goal is opt-in and never defaults on`() {
+        // Default: no weight goal, and the form is complete without any weight.
+        val base = GoalsForm(caloriesText = "2000")
+        assertFalse(base.includeWeightGoal)
+        assertNull(base.weightLb)
+        assertTrue(base.isComplete)
+    }
+
+    @Test
+    fun `including a weight goal requires a positive weight`() {
+        val included = GoalsForm(caloriesText = "2000", includeWeightGoal = true)
+        assertFalse(included.isComplete) // needs a weight now
+        assertNull(included.weightLb)
+
+        val withWeight = included.copy(weightLbText = "180")
+        assertTrue(withWeight.isComplete)
+        assertEquals(180.0, withWeight.weightLb!!, 1e-9)
+    }
+
+    @Test
     fun `activity goal value follows the selected type`() {
         val minutes = GoalsForm(activityGoalType = ActivityGoalType.MINUTES, activityMinutes = 150)
         assertEquals(150, minutes.activityGoalValue)

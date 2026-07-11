@@ -33,7 +33,9 @@ class AppContainer(context: Context) {
         appContext,
         EnoughDatabase::class.java,
         EnoughDatabase.NAME,
-    ).build()
+    )
+        .addMigrations(EnoughDatabase.MIGRATION_1_2)
+        .build()
 
     val foodSeeder: FoodSeeder = FoodSeeder()
 

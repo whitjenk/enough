@@ -27,13 +27,15 @@ class OnboardingScreenRenderTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `welcome step renders and get started fires`() {
-        var started = false
+    fun `entry choice renders and both paths fire`() {
+        var defaultChosen = false
+        var riskChosen = false
         composeRule.setContent {
             EnoughTheme(dynamicColor = false) {
                 OnboardingScreen(
                     uiState = OnboardingUiState(step = OnboardingStep.WELCOME),
-                    onGetStarted = { started = true },
+                    onStartDefault = { defaultChosen = true },
+                    onStartRiskTest = { riskChosen = true },
                     onRiskFormChange = {},
                     onSubmitRiskTest = {},
                     onRiskResultContinue = {},
@@ -47,8 +49,10 @@ class OnboardingScreenRenderTest {
         }
 
         composeRule.onNodeWithText("Welcome to Enough").assertIsDisplayed()
-        composeRule.onNodeWithText("Get started").performClick()
+        composeRule.onNodeWithText("Curious about your risk factors?").performClick()
+        assertTrue("onStartRiskTest should have been invoked", riskChosen)
 
-        assertTrue("onGetStarted should have been invoked", started)
+        composeRule.onNodeWithText("Just here to build better habits").performClick()
+        assertTrue("onStartDefault should have been invoked", defaultChosen)
     }
 }

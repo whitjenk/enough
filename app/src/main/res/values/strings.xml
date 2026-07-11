@@ -12,11 +12,14 @@
     <string name="option_yes">Yes</string>
     <string name="option_no">No</string>
 
-    <!-- Onboarding: welcome -->
+    <!-- Onboarding: welcome / entry choice -->
     <string name="onboarding_welcome_title">Welcome to Enough</string>
     <string name="onboarding_welcome_body">One small, doable thing a day — starting with fiber. Everything stays on your phone. No account, nothing sold.</string>
+    <string name="onboarding_entry_default">Just here to build better habits</string>
+    <string name="onboarding_entry_default_desc">Go straight to setting your goals. No quiz.</string>
+    <string name="onboarding_entry_risk">Curious about your risk factors?</string>
+    <string name="onboarding_entry_risk_desc">Optional: a quick, private prediabetes risk check first.</string>
     <string name="onboarding_welcome_disclaimer">Enough isn\'t medical advice or a diagnosis. It\'s a supportive companion — talk with your doctor about your health.</string>
-    <string name="onboarding_get_started">Get started</string>
 
     <!-- Onboarding: risk test -->
     <string name="onboarding_risk_title">A quick risk check</string>
@@ -54,7 +57,11 @@
     <!-- Onboarding: goals -->
     <string name="goals_title">Your goals</string>
     <string name="goals_weight_header">Weight</string>
-    <string name="goals_weight_desc">A 5 to 7%% shift is enough to matter. From about %1$s, that\'s around %2$s.</string>
+    <string name="goals_weight_choice_desc">A weight goal is optional. Plenty of people do great focusing on fiber and movement alone — your call.</string>
+    <string name="goals_weight_skip">Focus on fiber and activity for now</string>
+    <string name="goals_weight_include">Include a weight goal (5–7%)</string>
+    <string name="goals_weight_input_label">Current weight (lb)</string>
+    <string name="goals_weight_target">A 5 to 7%% shift is enough to matter. From about %1$s, that\'s around %2$s.</string>
     <string name="goals_weight_percent_label">Aim for %1$d%% less</string>
     <string name="weight_pounds">%1$d lb</string>
     <string name="goals_activity_header">Weekly movement</string>

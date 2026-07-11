@@ -9,7 +9,12 @@ import com.enough.app.domain.risk.RiskTestAnswers
 import com.enough.app.domain.risk.Sex
 import com.enough.app.health.HealthConnectAvailability
 
-/** The ordered steps of the Phase 0 onboarding flow (single risk-test path). */
+/**
+ * The steps of the onboarding flow. WELCOME is an entry choice: the default
+ * "build better habits" path goes straight to GOALS; the optional "curious about
+ * your risk" path visits RISK_TEST/RISK_RESULT first. Both converge on GOALS ->
+ * HEALTH_CONNECT (SPEC §3).
+ */
 enum class OnboardingStep {
     WELCOME,
     RISK_TEST,
@@ -57,8 +62,15 @@ data class RiskTestForm(
     }
 }
 
-/** In-progress goal choices. Fiber target is derived, never entered directly. */
+/**
+ * In-progress goal choices. Fiber target is derived, never entered directly.
+ * The weight goal is opt-in ([includeWeightGoal], never defaulted on); when
+ * opted in, [weightLbText] is the current weight it's computed from (prefilled
+ * from the risk test if that path was taken).
+ */
 data class GoalsForm(
+    val includeWeightGoal: Boolean = false,
+    val weightLbText: String = "",
     val weightLossPercent: Int = GoalCalculator.DEFAULT_WEIGHT_LOSS_PERCENT.toInt(),
     val activityGoalType: ActivityGoalType = ActivityGoalType.MINUTES,
     val activityMinutes: Int = GoalCalculator.DEFAULT_WEEKLY_ACTIVITY_MINUTES,
@@ -70,9 +82,13 @@ data class GoalsForm(
 
     val fiberTargetGrams: Int = dailyCalories?.let { GoalCalculator.fiberTargetGrams(it) } ?: 0
 
+    /** Current weight in pounds, when a weight goal is included; else null. */
+    val weightLb: Double? = weightLbText.trim().toDoubleOrNull()?.takeIf { it > 0 }
+
     val isComplete: Boolean
         get() = dailyCalories != null &&
-            (activityGoalType != ActivityGoalType.CUSTOM || activityCustomLabel.isNotBlank())
+            (activityGoalType != ActivityGoalType.CUSTOM || activityCustomLabel.isNotBlank()) &&
+            (!includeWeightGoal || weightLb != null)
 
     /** The activity value that will be stored, interpreted by [activityGoalType]. */
     val activityGoalValue: Int
@@ -91,6 +107,8 @@ data class HealthConnectUiState(
 
 data class OnboardingUiState(
     val step: OnboardingStep = OnboardingStep.WELCOME,
+    /** True if the optional risk-test path was chosen at the entry screen. */
+    val riskTestPathChosen: Boolean = false,
     val riskForm: RiskTestForm = RiskTestForm(),
     val riskScore: RiskScore? = null,
     val goalsForm: GoalsForm = GoalsForm(),
