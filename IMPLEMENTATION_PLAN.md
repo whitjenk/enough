@@ -8,11 +8,12 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 - [x] Confirm a blank app builds and runs on an emulator or device before writing any feature code <!-- Builds cleanly (AGP 9.2.1 / Gradle 9.6.1 / Kotlin 2.3.10, compileSdk 36, targetSdk 35, minSdk 26); debug APK is valid & launchable (aapt2 badging shows launcher MainActivity). Literal on-device launch pending a connected device / emulator system image. -->
 
 ## 2. Data layer
-- [ ] Create Room entities: `Food`, `MealEntry`, `WeightEntry`, `ActivityEntry`, `UserGoal`, `PrediabetesRiskResult`, `RulesEngineState` (fields as listed in `SPEC.md` §3, Phase 0 subset only)
-- [ ] Bundle a starter food list (~150-300 common foods with carbs/fiber/protein per serving) as a JSON asset, sourced from public-domain USDA FoodData Central data; write the one-time seed logic that loads it into Room on first launch
-- [ ] Write basic DAO methods for insert/query on each entity
-- [ ] Unit test: seeding the food list produces the expected row count and a spot-check food (e.g. "banana") has plausible fiber/carb values
-- [ ] **Review checkpoint:** re-read every file touched in this section against `CLAUDE.md`'s engineering standards (architecture, no hardcoded strings, error handling) before moving to section 3. Fix anything that falls short now, not later.
+- [x] Create Room entities: `Food`, `MealEntry`, `WeightEntry`, `ActivityEntry`, `UserGoal`, `PrediabetesRiskResult`, `RulesEngineState` (fields as listed in `SPEC.md` §3, Phase 0 subset only)
+- [x] Bundle a starter food list (~150-300 common foods with carbs/fiber/protein per serving) as a JSON asset, sourced from public-domain USDA FoodData Central data; write the one-time seed logic that loads it into Room on first launch <!-- 172 foods in assets/foods.json; FoodSeeder (pure parse + idempotent seedIfEmpty) run from EnoughApplication on first launch -->
+- [x] Write basic DAO methods for insert/query on each entity
+- [x] Unit test: seeding the food list produces the expected row count and a spot-check food (e.g. "banana") has plausible fiber/carb values <!-- FoodSeedDataTest (pure JVM) + FoodSeederRoomTest (Robolectric, real Room seeding + idempotency + search); 7 tests green -->
+- [x] **Review checkpoint:** re-read every file touched in this section against `CLAUDE.md`'s engineering standards (architecture, no hardcoded strings, error handling) before moving to section 3. Fix anything that falls short now, not later. <!-- Added seeding error handling (logged, retries next launch) in EnoughApplication; confirmed no user-facing hardcoded strings in the data layer; parse logic kept Android-free/testable -->
+
 
 ## 3. Onboarding
 - [ ] Build the CDC/ADA Prediabetes Risk Test as a simple multi-question flow (7 questions, scoring per the published algorithm — see `SPEC.md` §0.5); store the result in `PrediabetesRiskResult`
