@@ -12,8 +12,9 @@ import com.enough.app.feature.onboarding.OnboardingRoute
 
 /**
  * Root of the app UI. Routes to onboarding until it is finished, then to the
- * main app. Kept minimal for Phase 0 — the Today/Progress/Settings nav graph is
- * introduced as those screens land.
+ * main app ([MainNavHost] with the Today/Progress/Settings tabs). A null
+ * onboarding flag means "still loading" so no screen flashes before the
+ * preference is read.
  */
 @Composable
 fun EnoughApp(

@@ -22,11 +22,14 @@ import com.enough.app.domain.rules.Nudge
 import com.enough.app.domain.rules.NudgeGenerator
 import com.enough.app.domain.rules.RulesEngine
 import com.enough.app.health.HealthConnectManager
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -63,19 +66,18 @@ data class TodayUiState(
  * [RulesEngineState] snapshot for later phases.
  */
 class TodayViewModel(
-    goalRepository: GoalRepository,
+    private val goalRepository: GoalRepository,
     private val mealRepository: MealRepository,
     private val weightRepository: WeightRepository,
     private val activityRepository: ActivityRepository,
-    foodRepository: FoodRepository,
+    private val foodRepository: FoodRepository,
     private val rulesEngineStateRepository: RulesEngineStateRepository,
     private val healthConnectManager: HealthConnectManager,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val zone: ZoneId = ZoneId.systemDefault(),
-    private val now: Instant = Instant.now(),
+    private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
 
-    private val today: DayRange = DayRange.today(zone, now)
     private val suggestions = MutableStateFlow<List<Food>>(emptyList())
     private val healthData = MutableStateFlow(HealthConnectData())
 
@@ -84,7 +86,28 @@ class TodayViewModel(
         loadHealthConnectData()
     }
 
-    private val baseState: kotlinx.coroutines.flow.Flow<TodayUiState> = combine(
+    /**
+     * "Now"/"today" are resolved at collection time (inside [flow]), not at
+     * construction, so a retained ViewModel rolls over to the new day when the
+     * screen is re-observed instead of pinning the day it was created on.
+     * [stateIn] with [SharingStarted.WhileSubscribed] re-runs this on return to
+     * the foreground.
+     */
+    val uiState: StateFlow<TodayUiState> = flow {
+        val nowInstant = now()
+        val today = DayRange.today(zone, nowInstant)
+        emitAll(
+            combine(observeBaseState(today), healthData) { base, health ->
+                base.copy(healthConnect = health)
+            }.onEach { persistRulesState(it, nowInstant) },
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = TodayUiState(),
+    )
+
+    private fun observeBaseState(today: DayRange): Flow<TodayUiState> = combine(
         goalRepository.goal,
         mealRepository.observeForDay(today),
         weightRepository.all,
@@ -105,28 +128,21 @@ class TodayViewModel(
         )
     }
 
-    val uiState: StateFlow<TodayUiState> =
-        combine(baseState, healthData) { base, health -> base.copy(healthConnect = health) }
-            .onEach { persistRulesState(it) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = TodayUiState(),
-            )
-
     private fun loadHealthConnectData() {
         viewModelScope.launch {
             if (!userPreferencesRepository.healthConnectSyncEnabled.first()) return@launch
+            val nowInstant = now()
+            val today = DayRange.today(zone, nowInstant)
             val steps = healthConnectManager.readSteps(today.start, today.endExclusive)
             // "Last night": from mid-evening yesterday through this morning.
             val sleepStart = today.start.minus(Duration.ofHours(6))
-            val sleep = healthConnectManager.readSleepMinutes(sleepStart, now)
+            val sleep = healthConnectManager.readSleepMinutes(sleepStart, nowInstant)
             healthData.value = HealthConnectData(stepsToday = steps, sleepMinutesLastNight = sleep)
         }
     }
 
     /** Cache the rules-engine inputs/outputs for later phases. Best-effort. */
-    private suspend fun persistRulesState(state: TodayUiState) {
+    private suspend fun persistRulesState(state: TodayUiState, now: Instant) {
         val lastLogMillis = listOfNotNull(
             mealRepository.latestTimestampMillis(),
             activityRepository.latestTimestampMillis(),
