@@ -1,6 +1,7 @@
 package com.enough.app.feature.onboarding
 
 import com.enough.app.data.model.ActivityGoalType
+import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.domain.UnitConversions
 import com.enough.app.domain.goals.GoalCalculator
 import com.enough.app.domain.risk.AgeBand
@@ -20,6 +21,7 @@ enum class OnboardingStep {
     RISK_TEST,
     RISK_RESULT,
     GOALS,
+    EXTRAS,
     HEALTH_CONNECT,
 }
 
@@ -99,6 +101,28 @@ data class GoalsForm(
         }
 }
 
+/**
+ * Optional extra questions gathered after goals (SPEC §3). Everything here is
+ * skippable — the step is always completable regardless of what's filled in.
+ * [takesGLP1] is null until the person explicitly answers.
+ */
+data class ExtrasForm(
+    val dietaryRestrictions: Set<DietaryRestriction> = emptySet(),
+    val dietaryOther: String = "",
+    val personalWhy: String = "",
+    val takesGLP1: Boolean? = null,
+) {
+    /** Toggle a restriction on/off, returning the updated form. */
+    fun toggleRestriction(restriction: DietaryRestriction): ExtrasForm {
+        val next = if (restriction in dietaryRestrictions) {
+            dietaryRestrictions - restriction
+        } else {
+            dietaryRestrictions + restriction
+        }
+        return copy(dietaryRestrictions = next)
+    }
+}
+
 /** Health Connect availability + whether the user has granted our read permissions. */
 data class HealthConnectUiState(
     val availability: HealthConnectAvailability = HealthConnectAvailability.NOT_SUPPORTED,
@@ -112,6 +136,7 @@ data class OnboardingUiState(
     val riskForm: RiskTestForm = RiskTestForm(),
     val riskScore: RiskScore? = null,
     val goalsForm: GoalsForm = GoalsForm(),
+    val extrasForm: ExtrasForm = ExtrasForm(),
     val healthConnect: HealthConnectUiState = HealthConnectUiState(),
     val isSaving: Boolean = false,
     val isComplete: Boolean = false,

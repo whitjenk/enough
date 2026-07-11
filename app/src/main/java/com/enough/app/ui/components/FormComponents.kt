@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
@@ -54,6 +56,41 @@ fun <T> ChoiceList(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(selected = isSelected, onClick = null)
+                Spacer(Modifier.width(12.dp))
+                Text(option.label, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+/**
+ * An accessible multi-choice list rendered as checkbox rows. The whole row is the
+ * touch target with [Role.Checkbox] semantics; state is conveyed by the control,
+ * not by color alone (DESIGN.md).
+ */
+@Composable
+fun <T> MultiChoiceList(
+    options: List<ChoiceOption<T>>,
+    selected: Set<T>,
+    onToggle: (T) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
+        options.forEach { option ->
+            val isChecked = option.value in selected
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .toggleable(
+                        value = isChecked,
+                        role = Role.Checkbox,
+                        onValueChange = { onToggle(option.value) },
+                    )
+                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = isChecked, onCheckedChange = null)
                 Spacer(Modifier.width(12.dp))
                 Text(option.label, style = MaterialTheme.typography.bodyLarge)
             }

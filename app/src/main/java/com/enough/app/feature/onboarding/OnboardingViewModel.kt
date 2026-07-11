@@ -70,6 +70,9 @@ class OnboardingViewModel(
         state.copy(step = OnboardingStep.GOALS, goalsForm = goals)
     }
 
+    /** From goals into the optional extra questions. */
+    fun goToExtras() = setStep(OnboardingStep.EXTRAS)
+
     fun goToHealthConnect() {
         refreshHealthConnect()
         setStep(OnboardingStep.HEALTH_CONNECT)
@@ -83,7 +86,8 @@ class OnboardingViewModel(
                 OnboardingStep.RISK_RESULT -> OnboardingStep.RISK_TEST
                 OnboardingStep.GOALS ->
                     if (state.riskTestPathChosen) OnboardingStep.RISK_RESULT else OnboardingStep.WELCOME
-                OnboardingStep.HEALTH_CONNECT -> OnboardingStep.GOALS
+                OnboardingStep.EXTRAS -> OnboardingStep.GOALS
+                OnboardingStep.HEALTH_CONNECT -> OnboardingStep.EXTRAS
             }
             state.copy(step = previous)
         }
@@ -96,6 +100,8 @@ class OnboardingViewModel(
     fun onRiskFormChange(form: RiskTestForm) = _uiState.update { it.copy(riskForm = form) }
 
     fun onGoalsFormChange(form: GoalsForm) = _uiState.update { it.copy(goalsForm = form) }
+
+    fun onExtrasFormChange(form: ExtrasForm) = _uiState.update { it.copy(extrasForm = form) }
 
     // --- Health Connect ---
 
@@ -172,6 +178,7 @@ class OnboardingViewModel(
                 weightRepository.add(WeightEntry(weightKg = startWeightKg, timestamp = now))
             }
 
+            val extras = state.extrasForm
             goalRepository.saveGoal(
                 UserGoal(
                     startWeightKg = startWeightKg,
@@ -184,6 +191,10 @@ class OnboardingViewModel(
                     dailyCalorieEstimate = dailyCalories,
                     fiberGramsTarget = GoalCalculator.fiberTargetGrams(dailyCalories),
                     createdAt = now,
+                    dietaryRestrictions = extras.dietaryRestrictions,
+                    dietaryRestrictionOther = extras.dietaryOther.trim().takeIf { it.isNotEmpty() },
+                    personalWhy = extras.personalWhy.trim().takeIf { it.isNotEmpty() },
+                    takesGLP1Medication = extras.takesGLP1 == true,
                 ),
             )
 

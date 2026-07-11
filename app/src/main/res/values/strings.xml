@@ -79,6 +79,23 @@
     <string name="goals_fiber_target">Your fiber target: %1$dg a day</string>
     <string name="goals_fiber_desc">That\'s 14g per 1,000 calories — the level linked with steadier blood sugar and better gut health.</string>
 
+    <!-- Onboarding: optional extras -->
+    <string name="extras_title">A few optional things</string>
+    <string name="extras_subtitle">All optional — skip anything you\'d rather not answer.</string>
+    <string name="extras_diet_header">Anything you avoid eating?</string>
+    <string name="extras_diet_desc">We\'ll keep food suggestions in line with these.</string>
+    <string name="diet_vegetarian">Vegetarian</string>
+    <string name="diet_vegan">Vegan</string>
+    <string name="diet_gluten_free">Gluten-free</string>
+    <string name="diet_dairy_free">Dairy-free</string>
+    <string name="diet_nut_allergy">Nut allergy</string>
+    <string name="extras_diet_other_label">Anything else (optional)</string>
+    <string name="extras_why_header">What\'s making you want to do this?</string>
+    <string name="extras_why_desc">Just for you — nobody else sees it.</string>
+    <string name="extras_why_hint">Optional</string>
+    <string name="extras_glp1_header">Medication</string>
+    <string name="extras_glp1_question">Are you currently taking a GLP-1 medication (Ozempic, Wegovy, Zepbound, or similar)?</string>
+
     <!-- Onboarding: Health Connect -->
     <string name="hc_title">Connect Health Connect</string>
     <string name="hc_desc">If you\'d like, Enough can read your steps, sleep, and weight from Health Connect so you don\'t have to log them by hand. It only reads — nothing is written or shared.</string>

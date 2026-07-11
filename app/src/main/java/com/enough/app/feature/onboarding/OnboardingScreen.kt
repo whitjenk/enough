@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
 import com.enough.app.data.model.ActivityGoalType
+import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.risk.AgeBand
 import com.enough.app.domain.risk.RiskScore
@@ -43,6 +44,7 @@ import com.enough.app.health.HealthConnectAvailability
 import com.enough.app.ui.components.ChoiceList
 import com.enough.app.ui.components.ChoiceOption
 import com.enough.app.ui.components.LabeledSlider
+import com.enough.app.ui.components.MultiChoiceList
 import com.enough.app.ui.components.SectionCard
 import com.enough.app.ui.theme.EnoughTheme
 import androidx.compose.ui.res.stringResource
@@ -75,7 +77,9 @@ fun OnboardingRoute(
         onSubmitRiskTest = viewModel::submitRiskTest,
         onRiskResultContinue = viewModel::goToGoals,
         onGoalsFormChange = viewModel::onGoalsFormChange,
-        onGoalsContinue = viewModel::goToHealthConnect,
+        onGoalsContinue = viewModel::goToExtras,
+        onExtrasFormChange = viewModel::onExtrasFormChange,
+        onExtrasContinue = viewModel::goToHealthConnect,
         onConnectHealth = { permissionLauncher.launch(viewModel.healthConnectPermissions) },
         onFinish = viewModel::finishOnboarding,
         onBack = viewModel::back,
@@ -93,6 +97,8 @@ fun OnboardingScreen(
     onRiskResultContinue: () -> Unit,
     onGoalsFormChange: (GoalsForm) -> Unit,
     onGoalsContinue: () -> Unit,
+    onExtrasFormChange: (ExtrasForm) -> Unit,
+    onExtrasContinue: () -> Unit,
     onConnectHealth: () -> Unit,
     onFinish: () -> Unit,
     onBack: () -> Unit,
@@ -117,6 +123,12 @@ fun OnboardingScreen(
             form = uiState.goalsForm,
             onFormChange = onGoalsFormChange,
             onContinue = onGoalsContinue,
+            onBack = onBack,
+        )
+        OnboardingStep.EXTRAS -> ExtrasStep(
+            form = uiState.extrasForm,
+            onFormChange = onExtrasFormChange,
+            onContinue = onExtrasContinue,
             onBack = onBack,
         )
         OnboardingStep.HEALTH_CONNECT -> HealthConnectStep(
@@ -527,6 +539,85 @@ private fun GoalsStep(
 }
 
 @Composable
+private fun ExtrasStep(
+    form: ExtrasForm,
+    onFormChange: (ExtrasForm) -> Unit,
+    onContinue: () -> Unit,
+    onBack: () -> Unit,
+) {
+    OnboardingScaffold(
+        title = stringResource(R.string.extras_title),
+        onBack = onBack,
+        primaryLabel = stringResource(R.string.action_continue),
+        primaryEnabled = true, // everything here is optional
+        onPrimary = onContinue,
+    ) {
+        Text(
+            text = stringResource(R.string.extras_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        SectionCard(stringResource(R.string.extras_diet_header)) {
+            Text(
+                text = stringResource(R.string.extras_diet_desc),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(8.dp))
+            MultiChoiceList(
+                options = listOf(
+                    ChoiceOption(DietaryRestriction.VEGETARIAN, stringResource(R.string.diet_vegetarian)),
+                    ChoiceOption(DietaryRestriction.VEGAN, stringResource(R.string.diet_vegan)),
+                    ChoiceOption(DietaryRestriction.GLUTEN_FREE, stringResource(R.string.diet_gluten_free)),
+                    ChoiceOption(DietaryRestriction.DAIRY_FREE, stringResource(R.string.diet_dairy_free)),
+                    ChoiceOption(DietaryRestriction.NUT_ALLERGY, stringResource(R.string.diet_nut_allergy)),
+                ),
+                selected = form.dietaryRestrictions,
+                onToggle = { onFormChange(form.toggleRestriction(it)) },
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = form.dietaryOther,
+                onValueChange = { onFormChange(form.copy(dietaryOther = it)) },
+                label = { Text(stringResource(R.string.extras_diet_other_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        SectionCard(stringResource(R.string.extras_why_header)) {
+            Text(
+                text = stringResource(R.string.extras_why_desc),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = form.personalWhy,
+                onValueChange = { onFormChange(form.copy(personalWhy = it)) },
+                label = { Text(stringResource(R.string.extras_why_hint)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        SectionCard(stringResource(R.string.extras_glp1_header)) {
+            Text(
+                text = stringResource(R.string.extras_glp1_question),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(8.dp))
+            ChoiceList(
+                options = listOf(
+                    ChoiceOption(true, stringResource(R.string.option_yes)),
+                    ChoiceOption(false, stringResource(R.string.option_no)),
+                ),
+                selected = form.takesGLP1,
+                onSelect = { onFormChange(form.copy(takesGLP1 = it)) },
+            )
+        }
+    }
+}
+
+@Composable
 private fun HealthConnectStep(
     state: HealthConnectUiState,
     isSaving: Boolean,
@@ -583,6 +674,7 @@ private fun WelcomePreview() {
             uiState = OnboardingUiState(step = OnboardingStep.WELCOME),
             onStartDefault = {}, onStartRiskTest = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
             onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
+            onExtrasFormChange = {}, onExtrasContinue = {},
             onConnectHealth = {}, onFinish = {}, onBack = {},
         )
     }
@@ -599,6 +691,7 @@ private fun GoalsPreview() {
             ),
             onStartDefault = {}, onStartRiskTest = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
             onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
+            onExtrasFormChange = {}, onExtrasContinue = {},
             onConnectHealth = {}, onFinish = {}, onBack = {},
         )
     }

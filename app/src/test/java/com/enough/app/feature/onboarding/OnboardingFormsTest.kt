@@ -1,6 +1,7 @@
 package com.enough.app.feature.onboarding
 
 import com.enough.app.data.model.ActivityGoalType
+import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.domain.risk.AgeBand
 import com.enough.app.domain.risk.Sex
 import org.junit.Assert.assertEquals
@@ -89,6 +90,37 @@ class OnboardingFormsTest {
         val withWeight = included.copy(weightLbText = "180")
         assertTrue(withWeight.isComplete)
         assertEquals(180.0, withWeight.weightLb!!, 1e-9)
+    }
+
+    // --- ExtrasForm ---
+
+    @Test
+    fun `toggling a restriction adds then removes it`() {
+        val empty = ExtrasForm()
+        assertTrue(empty.dietaryRestrictions.isEmpty())
+
+        val added = empty.toggleRestriction(DietaryRestriction.VEGAN)
+        assertTrue(added.dietaryRestrictions.contains(DietaryRestriction.VEGAN))
+
+        val removed = added.toggleRestriction(DietaryRestriction.VEGAN)
+        assertFalse(removed.dietaryRestrictions.contains(DietaryRestriction.VEGAN))
+    }
+
+    @Test
+    fun `restrictions accumulate independently`() {
+        val form = ExtrasForm()
+            .toggleRestriction(DietaryRestriction.VEGETARIAN)
+            .toggleRestriction(DietaryRestriction.NUT_ALLERGY)
+        assertEquals(
+            setOf(DietaryRestriction.VEGETARIAN, DietaryRestriction.NUT_ALLERGY),
+            form.dietaryRestrictions,
+        )
+    }
+
+    @Test
+    fun `GLP-1 answer is unset until chosen`() {
+        assertNull(ExtrasForm().takesGLP1)
+        assertEquals(true, ExtrasForm(takesGLP1 = true).takesGLP1)
     }
 
     @Test

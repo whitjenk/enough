@@ -41,6 +41,8 @@ class OnboardingScreenRenderTest {
                     onRiskResultContinue = {},
                     onGoalsFormChange = {},
                     onGoalsContinue = {},
+                    onExtrasFormChange = {},
+                    onExtrasContinue = {},
                     onConnectHealth = {},
                     onFinish = {},
                     onBack = {},
