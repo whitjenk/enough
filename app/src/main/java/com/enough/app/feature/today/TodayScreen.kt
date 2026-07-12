@@ -15,8 +15,10 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,8 +31,12 @@ import com.enough.app.R
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.ActivityEntry
 import com.enough.app.data.model.ActivityUnit
+import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.MealEntryType
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
+import com.enough.app.domain.nutrition.MealNutrition
+import com.enough.app.domain.rules.DailySwap
 import com.enough.app.domain.rules.Nudge
 import com.enough.app.ui.components.Mascot
 import com.enough.app.ui.theme.EnoughTheme
@@ -49,6 +55,8 @@ fun TodayRoute(
         onAddMeal = onAddMeal,
         onLogWeight = onLogWeight,
         onLogActivity = onLogActivity,
+        onDeleteMeal = viewModel::deleteMeal,
+        onResetMomentShown = viewModel::onResetMomentShown,
     )
 }
 
@@ -59,6 +67,8 @@ fun TodayScreen(
     onAddMeal: () -> Unit,
     onLogWeight: () -> Unit,
     onLogActivity: () -> Unit,
+    onDeleteMeal: (MealWithFood) -> Unit,
+    onResetMomentShown: () -> Unit,
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.today_title)) }) },
@@ -78,7 +88,7 @@ fun TodayScreen(
             // shows, the nudge is suppressed so the two never contradict on a
             // rough day (a light inline arbitration ahead of Phase 1's layer).
             if (uiState.showResetMoment) {
-                item { ResetMomentCard(onLogSomething = onAddMeal) }
+                item { ResetMomentCard(onLogSomething = onAddMeal, onShown = onResetMomentShown) }
             } else {
                 item { NudgeCard(uiState.nudge) }
             }
@@ -97,7 +107,13 @@ fun TodayScreen(
             if (uiState.meals.isEmpty()) {
                 item { EmptyHint(stringResource(R.string.today_no_meals)) }
             } else {
-                items(uiState.meals, key = { it.meal.id }) { meal -> MealRow(meal) }
+                items(uiState.meals, key = { it.meal.id }) { meal ->
+                    MealRow(
+                        item = meal,
+                        calibration = uiState.calibration,
+                        onDelete = { onDeleteMeal(meal) },
+                    )
+                }
             }
             item { ActivityHeader() }
             if (uiState.activities.isEmpty()) {
@@ -158,7 +174,11 @@ private fun NudgeCard(nudge: Nudge) {
 }
 
 @Composable
-private fun ResetMomentCard(onLogSomething: () -> Unit) {
+private fun ResetMomentCard(onLogSomething: () -> Unit, onShown: () -> Unit) {
+    // Record "shown" only when the card actually composes, so the
+    // once-per-rough-patch budget is never spent on a state the person never saw.
+    LaunchedEffect(Unit) { onShown() }
+
     // The app's name rendered as a felt moment: warm, no catch-up math, no red.
     // Uses the secondary container (a distinct warm surface, not the success role
     // reserved for goal-met) with the mascot for warmth.
@@ -198,7 +218,7 @@ private fun ResetMomentCard(onLogSomething: () -> Unit) {
 }
 
 @Composable
-private fun DailySwapCard(swap: com.enough.app.domain.rules.DailySwap.Swap) {
+private fun DailySwapCard(swap: DailySwap.Swap) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.today_swap_header), style = MaterialTheme.typography.titleMedium)
@@ -319,30 +339,38 @@ private fun ActivityHeader() {
 }
 
 @Composable
-private fun MealRow(item: MealWithFood) {
-    val fiberExact = item.food.fiberG * item.meal.servingsMultiplier
+private fun MealRow(
+    item: MealWithFood,
+    calibration: EstimateCalibration,
+    onDelete: () -> Unit,
+) {
     // Coarse category logs are inherently estimates, so show an honest ±band
     // rather than a fake-precise gram number (SPEC §7.5). Real entries stay exact.
-    val secondary = if (item.meal.entryType == com.enough.app.data.model.MealEntryType.COARSE_ESTIMATE) {
-        stringResource(
-            R.string.today_meal_secondary_estimate,
-            (fiberExact * 0.75).roundToInt(),
-            (fiberExact * 1.25).roundToInt(),
-        )
+    val secondary = if (item.meal.entryType == MealEntryType.COARSE_ESTIMATE) {
+        val range = MealNutrition.coarseFiberRange(item, calibration)
+        stringResource(R.string.today_meal_secondary_estimate, range.lowG, range.highG)
     } else {
         stringResource(
             R.string.today_meal_secondary,
             stringResource(R.string.today_servings_format, formatServings(item.meal.servingsMultiplier)),
-            fiberExact.roundToInt(),
+            (item.food.fiberG * item.meal.servingsMultiplier).roundToInt(),
         )
     }
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(item.food.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-        Text(
-            text = secondary,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(item.food.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                text = secondary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = onDelete) {
+            Text(stringResource(R.string.today_meal_remove))
+        }
     }
 }
 
@@ -381,7 +409,7 @@ private fun TodayPreview() {
         TodayScreen(
             uiState = TodayUiState(
                 isLoading = false,
-                dailySwap = com.enough.app.domain.rules.DailySwap.Swap(
+                dailySwap = DailySwap.Swap(
                     food = "Lentils",
                     servingLabel = "1/2 cup",
                     fiberG = 8,
@@ -391,6 +419,8 @@ private fun TodayPreview() {
             onAddMeal = {},
             onLogWeight = {},
             onLogActivity = {},
+            onDeleteMeal = {},
+            onResetMomentShown = {},
         )
     }
 }

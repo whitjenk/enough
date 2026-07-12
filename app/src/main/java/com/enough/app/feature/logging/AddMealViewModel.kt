@@ -31,14 +31,21 @@ data class AddMealUiState(
     val customServingText: String = "1 serving",
     val saved: Boolean = false,
 ) {
-    val servings: Double? = servingsText.trim().toDoubleOrNull()?.takeIf { it > 0 }
+    val servings: Double? = servingsText.toDecimalOrNull()?.takeIf { it > 0 }
     val canSave: Boolean get() = selectedFood != null && servings != null
 
     /** Fiber is required for a custom food; 0 is valid (e.g. a protein shake). */
-    val customFiberG: Double? = customFiberText.trim().toDoubleOrNull()?.takeIf { it >= 0 }
+    val customFiberG: Double? = customFiberText.toDecimalOrNull()?.takeIf { it >= 0 }
     val canSaveCustom: Boolean
         get() = customName.isNotBlank() && customFiberG != null && customServingText.isNotBlank()
 }
+
+/**
+ * Parse a user-typed decimal accepting both "." and "," as the separator — the
+ * Decimal soft keyboard produces a comma in many locales, and silently dropping
+ * it would turn "2,5" into 25.
+ */
+private fun String.toDecimalOrNull(): Double? = trim().replace(',', '.').toDoubleOrNull()
 
 /**
  * Backs the add-meal screen. The default path is the low-friction coarse
@@ -56,6 +63,13 @@ class AddMealViewModel(
     val uiState: StateFlow<AddMealUiState> = _uiState.asStateFlow()
 
     private var searchJob: Job? = null
+
+    /**
+     * Set synchronously on the first save tap so a double-tap on a quick-log
+     * chip (or save button) can't insert the same meal twice before the
+     * `saved`-triggered navigation lands.
+     */
+    private var savePending = false
 
     init {
         viewModelScope.launch {
@@ -79,6 +93,8 @@ class AddMealViewModel(
         quickLog(food, if (food.selectable) MealEntryType.DATABASE_MATCHED else MealEntryType.COARSE_ESTIMATE)
 
     private fun quickLog(food: Food, entryType: MealEntryType) {
+        if (savePending) return
+        savePending = true
         viewModelScope.launch {
             mealRepository.add(
                 MealEntry(
@@ -138,6 +154,8 @@ class AddMealViewModel(
         val fiber = state.customFiberG ?: return
         val name = state.customName.trim().takeIf { it.isNotBlank() } ?: return
         val serving = state.customServingText.trim().takeIf { it.isNotBlank() } ?: return
+        if (savePending) return
+        savePending = true
         viewModelScope.launch {
             val food = foodRepository.addCustomFood(name = name, servingLabel = serving, fiberG = fiber)
             mealRepository.add(
@@ -157,6 +175,8 @@ class AddMealViewModel(
         val state = _uiState.value
         val food = state.selectedFood ?: return
         val servings = state.servings ?: return
+        if (savePending) return
+        savePending = true
         viewModelScope.launch {
             mealRepository.add(
                 MealEntry(

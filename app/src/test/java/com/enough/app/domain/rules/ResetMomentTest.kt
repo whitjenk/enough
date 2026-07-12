@@ -85,6 +85,49 @@ class ResetMomentTest {
     }
 
     @Test
+    fun `wide miss respects the cooldown even after a new log`() {
+        // Shown 2 days ago; the person logged yesterday (so the once-per-episode
+        // rule alone would re-arm) and missed widely again. Without a cooldown
+        // this would repeat every other day for a consistently-under-target
+        // logger — the cooldown keeps it quiet.
+        assertFalse(
+            ResetMoment.shouldShow(
+                todayEpochDay = today,
+                daysSinceLastLog = 1,
+                hadWideMissYesterday = true,
+                lastShownEpochDay = today - 2,
+            ),
+        )
+    }
+
+    @Test
+    fun `wide miss fires again once the cooldown has passed`() {
+        assertTrue(
+            ResetMoment.shouldShow(
+                todayEpochDay = today,
+                daysSinceLastLog = 1,
+                hadWideMissYesterday = true,
+                lastShownEpochDay = today - ResetMoment.WIDE_MISS_COOLDOWN_DAYS,
+            ),
+        )
+    }
+
+    @Test
+    fun `absence trigger is not held back by the wide-miss cooldown`() {
+        // Shown 5 days ago, then the person logged 3 days ago and went quiet
+        // again: a genuinely new absence episode may fire even though 5 days is
+        // inside the 7-day wide-miss cooldown window.
+        assertTrue(
+            ResetMoment.shouldShow(
+                todayEpochDay = today,
+                daysSinceLastLog = 3,
+                hadWideMissYesterday = false,
+                lastShownEpochDay = today - 5,
+            ),
+        )
+    }
+
+    @Test
     fun `re-enables for a new rough patch after the person logs again`() {
         // Last shown long ago (day 100). The person has since logged; last log is
         // recent (2 days ago) and they've gone quiet again -> a genuinely new

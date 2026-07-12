@@ -44,4 +44,26 @@ object MealNutrition {
     ): Double = meals.sumOf { item ->
         item.food.fiberG * item.meal.servingsMultiplier * calibration.fiberMultiplier
     }
+
+    /** How far a coarse quick-log's honest display range spreads around its center. */
+    const val COARSE_ESTIMATE_SPREAD = 0.25
+
+    /** The displayed low–high fiber band for one coarse-estimate entry. */
+    data class FiberRange(val lowG: Int, val highG: Int)
+
+    /**
+     * Honest display range for a coarse quick-log entry: ±[COARSE_ESTIMATE_SPREAD]
+     * around the same calibrated per-meal value that feeds the day's total, so
+     * the row's band and the headline number never disagree about the center.
+     */
+    fun coarseFiberRange(
+        item: MealWithFood,
+        calibration: EstimateCalibration = EstimateCalibration.BALANCED,
+    ): FiberRange {
+        val center = item.food.fiberG * item.meal.servingsMultiplier * calibration.fiberMultiplier
+        return FiberRange(
+            lowG = (center * (1 - COARSE_ESTIMATE_SPREAD)).roundToInt(),
+            highG = (center * (1 + COARSE_ESTIMATE_SPREAD)).roundToInt(),
+        )
+    }
 }

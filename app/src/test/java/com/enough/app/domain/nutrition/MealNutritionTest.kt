@@ -70,6 +70,25 @@ class MealNutritionTest {
     }
 
     @Test
+    fun `coarse display range spreads around the calibrated value`() {
+        val coarse = MealWithFood(
+            MealEntry(
+                id = 2, foodId = 1, servingsMultiplier = 1.0, timestamp = Instant.EPOCH,
+                source = MealSource.MANUAL, entryType = MealEntryType.COARSE_ESTIMATE,
+            ),
+            Food(id = 1, name = "Veggie-heavy meal", servingLabel = "1 meal", carbsG = 30.0, fiberG = 8.0, proteinG = 8.0, selectable = false),
+        )
+        // Balanced: ±25% around 8g -> 6–10.
+        assertEquals(MealNutrition.FiberRange(6, 10), MealNutrition.coarseFiberRange(coarse))
+        // The band centers on the same calibrated value that feeds the day's
+        // total (8 * 1.15 = 9.2 -> 7–12), so the row and the headline agree.
+        assertEquals(
+            MealNutrition.FiberRange(7, 12),
+            MealNutrition.coarseFiberRange(coarse, EstimateCalibration.HIGH),
+        )
+    }
+
+    @Test
     fun `calibration shifts logged fiber by plus or minus 15 percent`() {
         val meals = listOf(meal(fiber = 10.0, carbs = 20.0, protein = 5.0, servings = 2.0)) // 20g
         assertEquals(17.0, MealNutrition.fiberGrams(meals, EstimateCalibration.LOW), 1e-9)

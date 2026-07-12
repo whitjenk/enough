@@ -19,7 +19,6 @@ import com.enough.app.data.local.entity.PrediabetesRiskResult
 import com.enough.app.data.local.entity.RulesEngineState
 import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
-import com.enough.app.data.seed.CategoryFoods
 
 /**
  * The single on-device SQLite database. Local-first, no cloud mirror
@@ -115,8 +114,13 @@ abstract class EnoughDatabase : RoomDatabase() {
          * default 1; the synthetic category foods are 0) and `meal_entry.entryType`
          * (existing entries default to database-matched). Both are additive so
          * logged meals are preserved. Also inserts the synthetic category foods for
-         * existing installs — a fresh install seeds them from [CategoryFoods] via
-         * the seeder instead, and this migration never runs there.
+         * existing installs — a fresh install seeds them via the seeder instead,
+         * and this migration never runs there.
+         *
+         * The inserted rows are a frozen literal snapshot of the category foods as
+         * they were at v4. A migration must never read live code (like the seeder's
+         * current list): editing that code later would silently rewrite what this
+         * historical migration does and diverge upgraded installs from each other.
          */
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -125,14 +129,14 @@ abstract class EnoughDatabase : RoomDatabase() {
                     "ALTER TABLE `meal_entry` ADD COLUMN `entryType` TEXT NOT NULL " +
                         "DEFAULT 'DATABASE_MATCHED'",
                 )
-                CategoryFoods.ALL.forEach { food ->
-                    db.execSQL(
-                        "INSERT INTO `food` " +
-                            "(`name`,`servingLabel`,`carbsG`,`fiberG`,`proteinG`,`dietaryTags`,`selectable`) " +
-                            "VALUES (?,?,?,?,?,'',0)",
-                        arrayOf<Any>(food.name, food.servingLabel, food.carbsG, food.fiberG, food.proteinG),
-                    )
-                }
+                db.execSQL(
+                    "INSERT INTO `food` " +
+                        "(`name`,`servingLabel`,`carbsG`,`fiberG`,`proteinG`,`dietaryTags`,`selectable`) VALUES " +
+                        "('Veggie-heavy meal','1 meal',30.0,8.0,8.0,'',0)," +
+                        "('Mixed meal','1 meal',40.0,5.0,20.0,'',0)," +
+                        "('Protein-heavy meal','1 meal',15.0,3.0,35.0,'',0)," +
+                        "('Carb-heavy meal','1 meal',55.0,2.0,8.0,'',0)",
+                )
             }
         }
 

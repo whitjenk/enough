@@ -66,10 +66,6 @@ class SettingsViewModel(
         }
     }
 
-    fun dismissFeedback() {
-        feedback.value = null
-    }
-
     fun setHealthConnectSyncEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setHealthConnectSyncEnabled(enabled)

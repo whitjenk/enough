@@ -62,6 +62,7 @@ data class TodayUiState(
     val isLoading: Boolean = true,
 ) {
     val fiberTargetG: Int get() = goal?.fiberGramsTarget ?: 0
+    val calibration: EstimateCalibration get() = goal?.estimateCalibration ?: EstimateCalibration.BALANCED
 }
 
 /**
@@ -204,9 +205,11 @@ class TodayViewModel(
     }
 
     /**
-     * Decide whether the reset-day ("Enough") moment shows, and record the day it
-     * was shown so it fires at most once per rough patch (never escalating toward
-     * a quiet user). "Wide miss" is scored against the last completed day.
+     * Decide whether the reset-day ("Enough") moment shows. "Wide miss" is scored
+     * against the last completed day. Deciding here is side-effect free; the shown
+     * day is recorded by [onResetMomentShown] only when the card actually renders,
+     * so the once-per-episode budget is never spent on an emission the person
+     * never saw.
      */
     private suspend fun evaluateResetMoment(
         state: TodayUiState,
@@ -215,27 +218,39 @@ class TodayViewModel(
     ): Boolean {
         val todayEpochDay = today.start.atZone(zone).toLocalDate().toEpochDay()
         val target = state.fiberTargetG
-        val calibration = state.goal?.estimateCalibration ?: EstimateCalibration.BALANCED
 
         val hadWideMiss = if (target > 0) {
             val yesterday = DayRange.of(today.start.atZone(zone).toLocalDate().minusDays(1), zone)
             val yesterdayMeals = mealRepository.mealsForDay(yesterday)
             yesterdayMeals.isNotEmpty() &&
-                MealNutrition.fiberGrams(yesterdayMeals, calibration) < target * ResetMoment.WIDE_MISS_FRACTION
+                MealNutrition.fiberGrams(yesterdayMeals, state.calibration) < target * ResetMoment.WIDE_MISS_FRACTION
         } else {
             false
         }
 
-        val lastShown = userPreferencesRepository.resetMomentShownEpochDay.first()
-        val show = ResetMoment.shouldShow(
+        return ResetMoment.shouldShow(
             todayEpochDay = todayEpochDay,
             daysSinceLastLog = daysSinceLastLog,
             hadWideMissYesterday = hadWideMiss,
-            lastShownEpochDay = lastShown,
+            lastShownEpochDay = userPreferencesRepository.resetMomentShownEpochDay.first(),
         )
-        if (show && lastShown != todayEpochDay) {
-            userPreferencesRepository.setResetMomentShownEpochDay(todayEpochDay)
+    }
+
+    /**
+     * Called by the UI when the reset-day card composes. Recording the shown day
+     * keeps the card up for the rest of today and suppresses it for the rest of
+     * this rough patch (see [ResetMoment.shouldShow]).
+     */
+    fun onResetMomentShown() {
+        viewModelScope.launch {
+            userPreferencesRepository.setResetMomentShownEpochDay(
+                now().atZone(zone).toLocalDate().toEpochDay(),
+            )
         }
-        return show
+    }
+
+    /** Remove a logged meal (e.g. an accidental quick-log tap). */
+    fun deleteMeal(item: MealWithFood) {
+        viewModelScope.launch { mealRepository.delete(item.meal) }
     }
 }

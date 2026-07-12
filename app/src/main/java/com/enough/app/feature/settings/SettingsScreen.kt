@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
 import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.di.AppViewModelProvider
+import com.enough.app.domain.feedback.FeedbackSummary
 import com.enough.app.ui.components.ChoiceList
 import com.enough.app.ui.components.ChoiceOption
 import com.enough.app.ui.theme.EnoughTheme
@@ -174,7 +175,7 @@ private fun CalibrationCard(
 
 @Composable
 private fun FeedbackCard(
-    feedback: com.enough.app.domain.feedback.FeedbackSummary?,
+    feedback: FeedbackSummary?,
     onPrepare: () -> Unit,
     onShare: (String) -> Unit,
 ) {

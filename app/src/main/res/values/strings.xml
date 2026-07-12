@@ -192,6 +192,7 @@
     <string name="today_meal_secondary">%1$s · about %2$dg fiber</string>
     <!-- Coarse quick-log entries are estimates: an honest range, not a precise number -->
     <string name="today_meal_secondary_estimate">Estimate · about %1$d–%2$dg fiber</string>
+    <string name="today_meal_remove">Remove</string>
     <string name="today_servings_format">%1$s servings</string>
     <string name="today_weight_header">Latest weight</string>
     <string name="today_weight_value">%1$d lb</string>
@@ -230,6 +231,8 @@
     <string name="add_meal_custom_save">Save and log it</string>
     <string name="add_meal_custom_cancel">Cancel</string>
     <string name="add_meal_nutrition_per_serving">%1$.1fg fiber · %2$.1fg carbs · %3$.1fg protein per %4$s</string>
+    <!-- Custom foods only capture fiber; don't present the defaulted carbs/protein as data -->
+    <string name="add_meal_nutrition_fiber_only">%1$.1fg fiber per %2$s</string>
     <string name="add_meal_servings_label">Servings</string>
     <string name="add_meal_selected_fiber">This adds about %1$.1fg of fiber.</string>
     <string name="cd_clear_search">Clear search</string>

@@ -263,7 +263,9 @@ private fun CustomFoodForm(
             )
             OutlinedTextField(
                 value = uiState.customFiberText,
-                onValueChange = { onFiberChange(it.filter { c -> c.isDigit() || c == '.' }) },
+                // Keep "," as well as "." — the Decimal keyboard produces a comma
+                // in many locales, and stripping it would silently 10x the value.
+                onValueChange = { onFiberChange(it.filter { c -> c.isDigit() || c == '.' || c == ',' }) },
                 label = { Text(stringResource(R.string.add_meal_custom_fiber)) },
                 supportingText = { Text(stringResource(R.string.add_meal_custom_fiber_hint)) },
                 singleLine = true,
@@ -293,14 +295,26 @@ private fun FoodRow(food: Food, onClick: () -> Unit) {
     ) {
         Text(food.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Text(
-            text = stringResource(
-                R.string.add_meal_nutrition_per_serving,
-                food.fiberG, food.carbsG, food.proteinG, food.servingLabel,
-            ),
+            text = nutritionLine(food),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * A custom food only ever had fiber entered; its carbs/protein default to 0 and
+ * showing them as "0.0g" would present a placeholder as data. Show only what
+ * the person actually told us.
+ */
+@Composable
+private fun nutritionLine(food: Food): String = if (food.userCreated) {
+    stringResource(R.string.add_meal_nutrition_fiber_only, food.fiberG, food.servingLabel)
+} else {
+    stringResource(
+        R.string.add_meal_nutrition_per_serving,
+        food.fiberG, food.carbsG, food.proteinG, food.servingLabel,
+    )
 }
 
 @Composable
@@ -314,16 +328,13 @@ private fun SelectedFoodEditor(
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(food.name, style = MaterialTheme.typography.titleLarge)
             Text(
-                text = stringResource(
-                    R.string.add_meal_nutrition_per_serving,
-                    food.fiberG, food.carbsG, food.proteinG, food.servingLabel,
-                ),
+                text = nutritionLine(food),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = servingsText,
-                onValueChange = { onServingsChange(it.filter { c -> c.isDigit() || c == '.' }) },
+                onValueChange = { onServingsChange(it.filter { c -> c.isDigit() || c == '.' || c == ',' }) },
                 label = { Text(stringResource(R.string.add_meal_servings_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

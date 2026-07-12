@@ -2,7 +2,6 @@ package com.enough.app.data.local
 
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.platform.app.InstrumentationRegistry
-import com.enough.app.data.seed.CategoryFoods
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -54,10 +53,20 @@ class CoarseLogMigrationTest {
             assertTrue(cursor.moveToFirst())
             assertEquals("DATABASE_MATCHED", cursor.getString(0))
         }
-        // The synthetic category foods are inserted, non-selectable.
-        db.query("SELECT COUNT(*) FROM food WHERE selectable = 0").use { cursor ->
-            assertTrue(cursor.moveToFirst())
-            assertEquals(CategoryFoods.ALL.size, cursor.getInt(0))
+        // The synthetic category foods are inserted, non-selectable. Asserted as
+        // literals (not against the live seeder list) because the migration is a
+        // frozen snapshot — this test should fail if someone edits the migration,
+        // not silently follow a change to the current category foods.
+        db.query(
+            "SELECT name FROM food WHERE selectable = 0 ORDER BY fiberG DESC",
+        ).use { cursor ->
+            val names = buildList {
+                while (cursor.moveToNext()) add(cursor.getString(0))
+            }
+            assertEquals(
+                listOf("Veggie-heavy meal", "Mixed meal", "Protein-heavy meal", "Carb-heavy meal"),
+                names,
+            )
         }
         db.close()
     }

@@ -23,6 +23,15 @@ object ResetMoment {
     const val WIDE_MISS_FRACTION = 0.5
 
     /**
+     * Minimum days between wide-miss-triggered moments. Unlike the absence
+     * trigger (whose episode ends only when the person logs again), a wide miss
+     * re-arms with every new log — someone logging daily but consistently under
+     * target would otherwise see the card every other day, turning the app's
+     * warmest moment into a formula.
+     */
+    const val WIDE_MISS_COOLDOWN_DAYS = 7
+
+    /**
      * @param todayEpochDay today as a local epoch-day
      * @param daysSinceLastLog whole days since the last log; null = never logged
      * @param hadWideMissYesterday the last completed day was logged but fell far
@@ -49,6 +58,11 @@ object ResetMoment {
         if (lastShownEpochDay != null) {
             val lastLogEpochDay = daysSinceLastLog?.let { todayEpochDay - it }
             if (lastLogEpochDay == null || lastShownEpochDay >= lastLogEpochDay) return false
+
+            // The wide-miss path additionally rate-limits itself (see
+            // [WIDE_MISS_COOLDOWN_DAYS]); an absence gap is a distinct-enough
+            // episode that the once-per-episode rule above is sufficient.
+            if (!absence && todayEpochDay - lastShownEpochDay < WIDE_MISS_COOLDOWN_DAYS) return false
         }
         return true
     }

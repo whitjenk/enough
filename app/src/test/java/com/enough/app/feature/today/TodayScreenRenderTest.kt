@@ -13,6 +13,7 @@ import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.MealSource
 import com.enough.app.ui.theme.EnoughTheme
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,7 +66,11 @@ class TodayScreenRenderTest {
 
         composeRule.setContent {
             EnoughTheme(dynamicColor = false) {
-                TodayScreen(state, onAddMeal = {}, onLogWeight = {}, onLogActivity = {})
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {},
+                )
             }
         }
 
@@ -93,7 +98,11 @@ class TodayScreenRenderTest {
 
         composeRule.setContent {
             EnoughTheme(dynamicColor = false) {
-                TodayScreen(state, onAddMeal = {}, onLogWeight = {}, onLogActivity = {})
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {},
+                )
             }
         }
 
@@ -117,9 +126,14 @@ class TodayScreenRenderTest {
             isLoading = false,
         )
 
+        var shownRecorded = false
         composeRule.setContent {
             EnoughTheme(dynamicColor = false) {
-                TodayScreen(state, onAddMeal = {}, onLogWeight = {}, onLogActivity = {})
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = { shownRecorded = true },
+                )
             }
         }
 
@@ -127,5 +141,8 @@ class TodayScreenRenderTest {
         composeRule.onNodeWithText("Today's a fresh start").assertIsDisplayed()
         // ...and the routine fiber nudge is suppressed so the two don't contradict.
         composeRule.onNodeWithText("Kidney beans", substring = true).assertDoesNotExist()
+        // Composing the card is what records "shown" (not the state computation),
+        // so the once-per-rough-patch budget is only spent on a moment truly seen.
+        assertTrue(shownRecorded)
     }
 }
