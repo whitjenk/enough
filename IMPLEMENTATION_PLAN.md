@@ -133,13 +133,33 @@ Do not start this section until Phase 0's definition of done above is fully met 
 - [ ] When either streak crosses a threshold (e.g. 3 weeks), *offer* a target adjustment — never auto-apply one
 - [ ] Unit test: synthetic history of 3+ weeks over/under target correctly triggers the offer; fewer weeks does not
 
-## 19. More frequent, honest recognition + the minimum sample size guardrail
+## 19. Forward-looking predictive nudges ("Tier 1" — statistics over history, not a model)
+- [ ] Day-of-week pattern nudge: detect a recurring pattern (e.g. a specific day of the week where fiber consistently finishes short), tracked via `lastDayOfWeekNudgeShown` so it doesn't repeat every week once surfaced once
+- [ ] Trend extrapolation nudge: project current pace toward the weight/activity goal by day 90, framed as a current-trajectory observation, never a guarantee — tracked via `lastTrendExtrapolationShown`
+- [ ] Lapse-risk nudge: detect a recurring missed-logging pattern (e.g. the same day of the week, multiple weeks running) and offer to change how nudges work on that day rather than just pointing out the pattern — tracked via `lastLapseRiskNudgeShown`
+- [ ] All three route through the arbitration layer (task 16) as ordinary candidate messages — not exempt from the one-proactive-message-per-day rule
+- [ ] All three respect the minimum sample size guardrail (task 20) — do not surface any of these below the threshold
+- [ ] **Hard constraint, confirm explicitly in review:** none of these three predicts a physiological response (blood sugar, insulin) — they predict the person's own logged behavior and trajectory only. If a future version starts predicting glucose response without real device data, that's reintroducing the exact population-average scoring-formula problem rejected earlier in this spec — stop and flag it rather than building it
+- [ ] Unit test: given synthetic history with a clear day-of-week or lapse pattern, the correct nudge fires; given insufficient data, none of the three fire
+
+## 20. More frequent, honest recognition + the minimum sample size guardrail
 - [ ] Recognize real sustained patterns (e.g. 3 straight weeks hitting the fiber target) as they happen, not just at the fixed 90/180/365-day milestones — pull from history already being tracked, no new data sources needed
 - [ ] Set an explicit minimum sample size threshold (e.g. no correlation or pattern claim from fewer than ~2 weeks of relevant data) and apply it uniformly across tasks 17-19 — this is a shared guardrail, not a one-off check
 - [ ] Unit test: recognition and pattern claims never surface below the threshold, regardless of which feature is generating them
 
-## 20. Optional anonymous outcomes ping (the one deliberate exception to "no server")
+## 21. Optional anonymous outcomes ping (the one deliberate exception to "no server")
 - [ ] At the 90-day milestone, offer a single optional prompt: "would you be willing to anonymously share whether this helped, so it can improve for others?" with three choices (helped / didn't / prefer not to say) and a clear, easy way to decline entirely
 - [ ] If accepted, send exactly one increment to a minimal aggregate-only endpoint — no user ID, no device ID, no timestamp, no other field. Set up the simplest possible free-tier serverless function for this (a single counter increment); do not build anything more capable than that
 - [ ] Track `hasRespondedToOutcomesPing` so this is asked at most once per person, ever
 - [ ] Review checkpoint: confirm by reading the actual network request that it contains nothing beyond the single counter increment — this is the one place in the whole app where a mistake would break the "nothing leaves your phone" promise, so verify it directly rather than assuming the implementation matches the spec
+
+## 22. "Enough for today" tap — a standing, always-visible affordance
+- [ ] Add a permanent, one-tap control on the Today screen, available every day regardless of whether anything's gone wrong (distinct from the reactive reset-day moment in task 12)
+- [ ] On tap: suppress all further proactive messages for the rest of that day (route through the arbitration layer, task 16), record the date in `enoughForTodayTappedDates`
+- [ ] Exclude any date in `enoughForTodayTappedDates` from lapse-risk detection (task 19) and show it neutrally, not negatively, in the consistency view — this was an active choice, not an absence
+- [ ] Review checkpoint: read the copy and interaction against the buddy voice guidelines in `CLAUDE.md` — this should feel proud and easy to use, not like a hidden escape hatch
+
+## 23. Structural settings differentiators
+- [ ] Custom quiet hours (`UserGoal.quietHoursStart`/`quietHoursEnd`) — no assumed day/night pattern, since a shift worker's "evening" might be 8am
+- [ ] Hide-numbers mode (`UserGoal.hideNumbersMode`): shows trend direction only (up/down/steady) instead of literal weight/fiber numbers when enabled — **must apply consistently to the home screen, the milestone export, and the pre-visit report**, not just the main display, or someone could unknowingly share a number they specifically chose to hide
+- [ ] Unit test: with hide-numbers mode on, confirm no literal number appears in any of the three surfaces above, including generated export files

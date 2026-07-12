@@ -12,6 +12,8 @@ An Android app named **Enough** that helps people improve weight and metabolic h
 - **No streaks, badges, punishing gamification, or shame-based copy.** Nudges are supportive, never guilt-based.
 - **Never claim "CDC-recognized," "CDC-approved," or that the app diagnoses or reverses insulin resistance.** See the language guardrails in `SPEC.md`.
 - **Never claim the app measures or estimates A1c.** It tracks logged behavior, not clinical values.
+- **The weight-loss goal is always optional, never a default.** Onboarding must present "fiber and activity only" as an equally real choice. No calorie-deficit or countdown framing anywhere, ever.
+- **Every specific food suggestion must respect logged dietary restrictions and allergies first.** Filter before suggesting, not after.
 
 ## Current phase: Phase 0 only
 Build **only** what's in the "Phase 0" section of `SPEC.md` right now. Phase 1 and Phase 2 features (walk/food-order nudges, the doctor-told onboarding path, buddy chat, Gemini Nano) are explicitly out of scope until Phase 0 is complete and working. If you find yourself building toward those, stop.
@@ -27,6 +29,19 @@ Build **only** what's in the "Phase 0" section of `SPEC.md` right now. Phase 1 a
 - After each task: build it, verify it actually runs (don't just assume compiling means correct), check the box in `IMPLEMENTATION_PLAN.md`, commit with a message naming the task, then move to the next one.
 - If a task is ambiguous or seems to require a decision not covered in `SPEC.md`, stop and ask rather than guessing.
 - Keep commits small and scoped to one task each — this is what makes it safe to roll back if something goes wrong later.
+
+## Buddy voice — for any chat, nudge, or copy the buddy "says"
+- **React to something specific and real** (a logged timestamp, an actual food, a real gap) — never a generic template that could apply to anyone's day.
+- **Offer an exit, not just choices.** A real option to do nothing ("or should today just be today?") matters more than a longer list of things to do.
+- **Short.** A real friend doesn't send numbered lists over text. If a response has more than 2-3 sentences, it's drifting into lecture territory — cut it.
+- **No exclamation points, no "you've got this," no emoji.** Warmth comes from specificity, not enthusiasm punctuation.
+- **First person is fine here** ("I noticed…", "I'd try…") — this is the one surface in the app where a personal voice is appropriate, unlike neutral system copy elsewhere.
+- **It's allowed to end a conversation without steering toward another reply.** Closing warmly ("deal, see you tomorrow") beats angling for engagement.
+- **Never diagnose, never guarantee an outcome** — see the language guardrails in `SPEC.md` §8, they apply here most of all since this is the most personal-feeling surface in the app.
+- **It's allowed to say "I don't know" or defer to a real doctor.** Genuine humility, not liability language — an assistant performing omniscience is less trustworthy than one that admits a limit plainly.
+- **No comparison to other people, ever, in any form** — no aggregate benchmarks, no "better than X% of users," even phrased warmly. This is a hard law, not a style preference.
+- **Never escalate toward a quiet user.** The absence check-in fires once and genuinely stops — no increasingly urgent "we miss you" follow-ups. Silence is allowed to just be silence.
+- **Respect `ConversationalPreference` adjustments the person has stated directly** ("go quieter on Saturdays," "don't count that trip") rather than requiring a settings-menu toggle for every day-to-day, relational request.
 
 ## Engineering standards — hold to these on every task, not just the checklist
 - **Architecture:** follow official Android app architecture guidance — unidirectional data flow, Compose UI → ViewModel (expose a single `UiState` via `StateFlow`) → Repository → Room/Health Connect data sources. Don't put business logic (like rules-engine calculations) directly in composables or in the ViewModel — keep it in testable, plain-Kotlin classes the ViewModel calls into.
