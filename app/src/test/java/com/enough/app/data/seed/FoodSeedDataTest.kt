@@ -110,6 +110,6 @@ class FoodSeedDataTest {
     }
 
     private companion object {
-        const val EXPECTED_FOOD_COUNT = 172
+        const val EXPECTED_FOOD_COUNT = 197
     }
 }
