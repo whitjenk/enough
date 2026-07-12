@@ -8,7 +8,6 @@
     <!-- Shared -->
     <string name="action_back">Back</string>
     <string name="action_continue">Continue</string>
-    <string name="cd_back">Go back</string>
     <string name="option_yes">Yes</string>
     <string name="option_no">No</string>
 
@@ -42,8 +41,6 @@
     <string name="risk_weight_hint">Pounds</string>
     <string name="risk_asian_note">If you\'re of Asian descent, diabetes risk can begin at a lower weight — worth keeping in mind.</string>
     <string name="onboarding_see_result">See my result</string>
-    <string name="unit_feet">ft</string>
-    <string name="unit_inches">in</string>
     <string name="height_value">%1$d ft %2$d in</string>
 
     <!-- Onboarding: risk result -->
@@ -75,7 +72,6 @@
     <string name="goals_activity_custom_hint">e.g. stretch each morning, or a loop around the block</string>
     <string name="goals_fiber_header">Daily fiber</string>
     <string name="goals_calories_label">About how many calories do you eat a day?</string>
-    <string name="goals_calories_hint">Calories per day</string>
     <string name="goals_fiber_target">Your fiber target: %1$dg a day</string>
     <string name="goals_fiber_desc">That\'s 14g per 1,000 calories — the level linked with steadier blood sugar and better gut health.</string>
 
@@ -101,7 +97,6 @@
     <string name="hc_desc">If you\'d like, Enough can read your steps, sleep, and weight from Health Connect so you don\'t have to log them by hand. It only reads — nothing is written or shared.</string>
     <string name="hc_connect">Connect</string>
     <string name="hc_connected">Connected</string>
-    <string name="hc_skip">Not now</string>
     <string name="hc_unavailable">Health Connect isn\'t available on this device. That\'s fine — you can log everything by hand.</string>
     <string name="hc_update_required">Health Connect needs an update before it can connect. You can do that anytime and log by hand until then.</string>
     <string name="onboarding_finish">Finish</string>

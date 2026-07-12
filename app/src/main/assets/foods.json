@@ -65,7 +65,7 @@
   { "name": "Hummus", "servingLabel": "2 tbsp", "carbsG": 6.0, "fiberG": 1.5, "proteinG": 2.0, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
   { "name": "Black-eyed peas", "servingLabel": "1/2 cup cooked", "carbsG": 18.0, "fiberG": 5.6, "proteinG": 6.7, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
   { "name": "Lima beans", "servingLabel": "1/2 cup cooked", "carbsG": 20.0, "fiberG": 6.6, "proteinG": 7.3, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
-  { "name": "Refried beans", "servingLabel": "1/2 cup", "carbsG": 18.0, "fiberG": 6.0, "proteinG": 6.5, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
+  { "name": "Refried beans", "servingLabel": "1/2 cup", "carbsG": 18.0, "fiberG": 6.0, "proteinG": 6.5, "dietaryTags": ["gluten_free", "dairy_free"] },
   { "name": "Soybeans", "servingLabel": "1/2 cup cooked", "carbsG": 10.0, "fiberG": 5.2, "proteinG": 14.0, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
   { "name": "Baked beans", "servingLabel": "1/2 cup", "carbsG": 27.0, "fiberG": 5.2, "proteinG": 6.0, "dietaryTags": ["gluten_free", "dairy_free"] },
   { "name": "Oatmeal", "servingLabel": "1 cup cooked", "carbsG": 27.0, "fiberG": 4.0, "proteinG": 5.9, "dietaryTags": ["vegetarian", "vegan", "dairy_free"] },
@@ -145,7 +145,7 @@
   { "name": "Soy milk", "servingLabel": "1 cup", "carbsG": 8.0, "fiberG": 2.0, "proteinG": 7.0, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
   { "name": "Oat milk", "servingLabel": "1 cup", "carbsG": 16.0, "fiberG": 2.0, "proteinG": 3.0, "dietaryTags": ["vegetarian", "vegan", "dairy_free"] },
   { "name": "Ice cream", "servingLabel": "1/2 cup", "carbsG": 16.0, "fiberG": 0.5, "proteinG": 2.3, "dietaryTags": ["vegetarian", "gluten_free"] },
-  { "name": "Dark chocolate", "servingLabel": "1 oz", "carbsG": 13.0, "fiberG": 3.1, "proteinG": 2.2, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
+  { "name": "Dark chocolate", "servingLabel": "1 oz", "carbsG": 13.0, "fiberG": 3.1, "proteinG": 2.2, "dietaryTags": ["vegetarian", "gluten_free"] },
   { "name": "Guacamole", "servingLabel": "1/4 cup", "carbsG": 4.0, "fiberG": 3.0, "proteinG": 1.0, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
   { "name": "Salsa", "servingLabel": "1/4 cup", "carbsG": 4.0, "fiberG": 1.0, "proteinG": 1.0, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
   { "name": "Olive oil", "servingLabel": "1 tbsp", "carbsG": 0.0, "fiberG": 0.0, "proteinG": 0.0, "dietaryTags": ["vegetarian", "vegan", "gluten_free", "dairy_free"] },
@@ -170,5 +170,5 @@
   { "name": "Lentil soup", "servingLabel": "1 cup", "carbsG": 30.0, "fiberG": 8.0, "proteinG": 11.0, "dietaryTags": ["vegetarian", "vegan", "dairy_free"] },
   { "name": "Chili with beans", "servingLabel": "1 cup", "carbsG": 30.0, "fiberG": 9.0, "proteinG": 17.0, "dietaryTags": ["gluten_free", "dairy_free"] },
   { "name": "Caesar salad", "servingLabel": "2 cups", "carbsG": 8.0, "fiberG": 3.0, "proteinG": 5.0, "dietaryTags": [] },
-  { "name": "Coleslaw", "servingLabel": "1/2 cup", "carbsG": 12.0, "fiberG": 1.5, "proteinG": 0.8, "dietaryTags": ["vegetarian", "gluten_free", "dairy_free"] }
+  { "name": "Coleslaw", "servingLabel": "1/2 cup", "carbsG": 12.0, "fiberG": 1.5, "proteinG": 0.8, "dietaryTags": ["vegetarian", "gluten_free"] }
 ]
