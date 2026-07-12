@@ -7,6 +7,16 @@ import kotlinx.serialization.Serializable
 enum class MealSource { TEXT, MANUAL }
 
 /**
+ * How precise a logged meal's nutrients are.
+ *
+ * [DATABASE_MATCHED] is an exact bundled food (text search / recent re-log).
+ * [COARSE_ESTIMATE] is a low-friction category quick-log ("veggie-heavy meal")
+ * backed by a representative synthetic food — inherently a rough estimate, so the
+ * UI shows an honest range rather than a fake-precise gram number (SPEC §7.5/§15).
+ */
+enum class MealEntryType { DATABASE_MATCHED, COARSE_ESTIMATE }
+
+/**
  * The kind of weekly activity goal the person chose in onboarding.
  *
  * Deliberately not step-only: the accessibility fix in SPEC.md §5 requires a

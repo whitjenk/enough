@@ -19,6 +19,7 @@ import com.enough.app.data.local.entity.PrediabetesRiskResult
 import com.enough.app.data.local.entity.RulesEngineState
 import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
+import com.enough.app.data.seed.CategoryFoods
 
 /**
  * The single on-device SQLite database. Local-first, no cloud mirror
@@ -35,7 +36,7 @@ import com.enough.app.data.local.entity.WeightEntry
         PrediabetesRiskResult::class,
         RulesEngineState::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -105,6 +106,33 @@ abstract class EnoughDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `food` ADD COLUMN `dietaryTags` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        /**
+         * v3 -> v4: the low-friction coarse quick-log (SPEC §7.5). Adds
+         * `food.selectable` (real curated foods stay searchable/suggestable at the
+         * default 1; the synthetic category foods are 0) and `meal_entry.entryType`
+         * (existing entries default to database-matched). Both are additive so
+         * logged meals are preserved. Also inserts the synthetic category foods for
+         * existing installs — a fresh install seeds them from [CategoryFoods] via
+         * the seeder instead, and this migration never runs there.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `food` ADD COLUMN `selectable` INTEGER NOT NULL DEFAULT 1")
+                db.execSQL(
+                    "ALTER TABLE `meal_entry` ADD COLUMN `entryType` TEXT NOT NULL " +
+                        "DEFAULT 'DATABASE_MATCHED'",
+                )
+                CategoryFoods.ALL.forEach { food ->
+                    db.execSQL(
+                        "INSERT INTO `food` " +
+                            "(`name`,`servingLabel`,`carbsG`,`fiberG`,`proteinG`,`dietaryTags`,`selectable`) " +
+                            "VALUES (?,?,?,?,?,'',0)",
+                        arrayOf<Any>(food.name, food.servingLabel, food.carbsG, food.fiberG, food.proteinG),
+                    )
+                }
             }
         }
     }

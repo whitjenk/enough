@@ -4,6 +4,7 @@ import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.Food
 import com.enough.app.data.local.entity.MealEntry
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.MealEntryType
 import com.enough.app.data.model.MealSource
 import com.enough.app.domain.rules.RulesEngine
 import org.junit.Assert.assertEquals
@@ -48,6 +49,24 @@ class MealNutritionTest {
     @Test
     fun `fractional servings are honored`() {
         assertEquals(4.9, MealNutrition.fiberGrams(listOf(meal(9.8, 12.0, 4.7, 0.5))), 1e-9)
+    }
+
+    @Test
+    fun `a coarse category entry contributes a reasonable fiber estimate under each calibration`() {
+        // A "veggie-heavy meal" quick-log: one serving of an 8g-fiber category
+        // food. Its fiber flows through the same math as any entry, shifted by
+        // calibration, so the day's total stays honest regardless of entry type.
+        val coarse = MealWithFood(
+            MealEntry(
+                id = 2, foodId = 1, servingsMultiplier = 1.0, timestamp = Instant.EPOCH,
+                source = MealSource.MANUAL, entryType = MealEntryType.COARSE_ESTIMATE,
+            ),
+            Food(id = 1, name = "Veggie-heavy meal", servingLabel = "1 meal", carbsG = 30.0, fiberG = 8.0, proteinG = 8.0, selectable = false),
+        )
+        val meals = listOf(coarse)
+        assertEquals(6.8, MealNutrition.fiberGrams(meals, EstimateCalibration.LOW), 1e-9)
+        assertEquals(8.0, MealNutrition.fiberGrams(meals, EstimateCalibration.BALANCED), 1e-9)
+        assertEquals(9.2, MealNutrition.fiberGrams(meals, EstimateCalibration.HIGH), 1e-9)
     }
 
     @Test

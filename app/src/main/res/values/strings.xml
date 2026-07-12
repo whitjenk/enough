@@ -182,6 +182,8 @@
     <string name="today_meals_header">Meals</string>
     <string name="today_no_meals">No meals logged yet today. Whenever you\'re ready.</string>
     <string name="today_meal_secondary">%1$s · about %2$dg fiber</string>
+    <!-- Coarse quick-log entries are estimates: an honest range, not a precise number -->
+    <string name="today_meal_secondary_estimate">Estimate · about %1$d–%2$dg fiber</string>
     <string name="today_servings_format">%1$s servings</string>
     <string name="today_weight_header">Latest weight</string>
     <string name="today_weight_value">%1$d lb</string>
@@ -202,6 +204,10 @@
 
     <!-- Add meal -->
     <string name="add_meal_title">Add a meal</string>
+    <!-- Coarse quick-log (the default, low-friction path) -->
+    <string name="add_meal_quick_header">Quick log</string>
+    <string name="add_meal_recent_header">Recent</string>
+    <string name="add_meal_search_header">Search an exact food</string>
     <string name="add_meal_search_hint">Search foods</string>
     <string name="add_meal_empty_prompt">Type to search the food list.</string>
     <string name="add_meal_no_results">No matches yet — try another word.</string>

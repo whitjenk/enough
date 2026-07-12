@@ -3,6 +3,8 @@ package com.enough.app.feature.logging
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +49,8 @@ fun AddMealRoute(
 
     AddMealScreen(
         uiState = uiState,
+        onLogCategory = viewModel::onLogCategory,
+        onLogRecent = viewModel::onLogRecent,
         onQueryChange = viewModel::onQueryChange,
         onSelectFood = viewModel::onSelectFood,
         onServingsChange = viewModel::onServingsChange,
@@ -58,6 +63,8 @@ fun AddMealRoute(
 @Composable
 fun AddMealScreen(
     uiState: AddMealUiState,
+    onLogCategory: (Food) -> Unit,
+    onLogRecent: (Food) -> Unit,
     onQueryChange: (String) -> Unit,
     onSelectFood: (Food) -> Unit,
     onServingsChange: (String) -> Unit,
@@ -93,6 +100,25 @@ fun AddMealScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp),
         ) {
+            val selected = uiState.selectedFood
+
+            // Default view: the low-friction quick-log. Once the person starts a
+            // precise search (or picks a food), it recedes to keep the screen calm.
+            if (selected == null && uiState.query.isBlank()) {
+                QuickLogSections(
+                    categories = uiState.categories,
+                    recents = uiState.recents,
+                    onLogCategory = onLogCategory,
+                    onLogRecent = onLogRecent,
+                )
+                HorizontalDivider(Modifier.padding(top = 8.dp))
+            }
+
+            Text(
+                text = stringResource(R.string.add_meal_search_header),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 16.dp),
+            )
             OutlinedTextField(
                 value = uiState.query,
                 onValueChange = onQueryChange,
@@ -101,7 +127,6 @@ fun AddMealScreen(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
             )
 
-            val selected = uiState.selectedFood
             if (selected != null) {
                 SelectedFoodEditor(
                     food = selected,
@@ -111,6 +136,44 @@ fun AddMealScreen(
                 )
             } else {
                 FoodResults(uiState = uiState, onSelectFood = onSelectFood)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuickLogSections(
+    categories: List<Food>,
+    recents: List<Food>,
+    onLogCategory: (Food) -> Unit,
+    onLogRecent: (Food) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.add_meal_quick_header),
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        categories.forEach { category ->
+            AssistChip(
+                onClick = { onLogCategory(category) },
+                label = { Text(category.name) },
+            )
+        }
+    }
+    if (recents.isNotEmpty()) {
+        Text(
+            text = stringResource(R.string.add_meal_recent_header),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            recents.forEach { food ->
+                AssistChip(
+                    onClick = { onLogRecent(food) },
+                    label = { Text(food.name) },
+                )
             }
         }
     }
@@ -208,12 +271,15 @@ private fun AddMealPreview() {
     com.enough.app.ui.theme.EnoughTheme(dynamicColor = false) {
         AddMealScreen(
             uiState = AddMealUiState(
-                query = "bean",
-                results = listOf(
+                categories = listOf(
+                    Food(id = 10, name = "Veggie-heavy meal", servingLabel = "1 meal", carbsG = 30.0, fiberG = 8.0, proteinG = 8.0, selectable = false),
+                    Food(id = 11, name = "Mixed meal", servingLabel = "1 meal", carbsG = 40.0, fiberG = 5.0, proteinG = 20.0, selectable = false),
+                ),
+                recents = listOf(
                     Food(id = 1, name = "Black beans", servingLabel = "1/2 cup cooked", carbsG = 20.0, fiberG = 7.5, proteinG = 7.6),
-                    Food(id = 2, name = "Green beans", servingLabel = "1 cup", carbsG = 8.0, fiberG = 3.4, proteinG = 2.0),
                 ),
             ),
+            onLogCategory = {}, onLogRecent = {},
             onQueryChange = {}, onSelectFood = {}, onServingsChange = {}, onSave = {}, onBack = {},
         )
     }

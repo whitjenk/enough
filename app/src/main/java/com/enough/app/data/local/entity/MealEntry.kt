@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.enough.app.data.model.MealEntryType
 import com.enough.app.data.model.MealSource
 import java.time.Instant
 
@@ -29,4 +30,6 @@ data class MealEntry(
     val servingsMultiplier: Double,
     val timestamp: Instant,
     val source: MealSource,
+    /** How precise this entry is; drives honest range display for coarse logs. */
+    val entryType: MealEntryType = MealEntryType.DATABASE_MATCHED,
 )

@@ -22,7 +22,9 @@ class FoodSeeder(
     /**
      * Seed the food table from [assetPath] if it is currently empty. Safe to
      * call on every launch — returns the number of foods inserted (0 if the
-     * table was already seeded).
+     * table was already seeded). Also seeds the synthetic coarse-category foods
+     * (so a fresh install or a post-wipe re-seed can quick-log immediately);
+     * existing installs get them via the v3->v4 migration instead.
      */
     suspend fun seedIfEmpty(
         context: Context,
@@ -31,7 +33,7 @@ class FoodSeeder(
     ): Int {
         if (dao.count() > 0) return 0
         val jsonText = context.assets.open(assetPath).bufferedReader().use { it.readText() }
-        val foods = parseFoods(jsonText)
+        val foods = parseFoods(jsonText) + CategoryFoods.ALL
         dao.insertAll(foods)
         return foods.size
     }

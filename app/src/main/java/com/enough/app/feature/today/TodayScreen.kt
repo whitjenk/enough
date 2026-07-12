@@ -320,15 +320,26 @@ private fun ActivityHeader() {
 
 @Composable
 private fun MealRow(item: MealWithFood) {
-    val fiber = (item.food.fiberG * item.meal.servingsMultiplier).roundToInt()
+    val fiberExact = item.food.fiberG * item.meal.servingsMultiplier
+    // Coarse category logs are inherently estimates, so show an honest ±band
+    // rather than a fake-precise gram number (SPEC §7.5). Real entries stay exact.
+    val secondary = if (item.meal.entryType == com.enough.app.data.model.MealEntryType.COARSE_ESTIMATE) {
+        stringResource(
+            R.string.today_meal_secondary_estimate,
+            (fiberExact * 0.75).roundToInt(),
+            (fiberExact * 1.25).roundToInt(),
+        )
+    } else {
+        stringResource(
+            R.string.today_meal_secondary,
+            stringResource(R.string.today_servings_format, formatServings(item.meal.servingsMultiplier)),
+            fiberExact.roundToInt(),
+        )
+    }
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(item.food.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Text(
-            text = stringResource(
-                R.string.today_meal_secondary,
-                stringResource(R.string.today_servings_format, formatServings(item.meal.servingsMultiplier)),
-                fiber,
-            ),
+            text = secondary,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

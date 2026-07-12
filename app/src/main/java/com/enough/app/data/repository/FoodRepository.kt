@@ -15,4 +15,10 @@ class FoodRepository(private val dao: FoodDao) {
 
     /** Highest-fiber foods, used to source nudge suggestions. */
     suspend fun topFiberFoods(limit: Int = 12): List<Food> = dao.topFiberFoods(limit)
+
+    /** The synthetic coarse-category foods that back the one-tap quick-log. */
+    suspend fun categoryFoods(): List<Food> = dao.categoryFoods()
+
+    /** Most recently logged foods, for one-tap re-logging. */
+    suspend fun recentFoods(limit: Int = 6): List<Food> = dao.recentlyLogged(limit)
 }

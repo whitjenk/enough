@@ -6,6 +6,7 @@ import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.data.model.DietaryTag
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.MealEntryType
 import com.enough.app.data.model.MealSource
 import com.enough.app.data.model.NudgeType
 import com.enough.app.data.model.RiskResultSource
@@ -36,6 +37,12 @@ class Converters {
 
     @TypeConverter
     fun nameToMealSource(value: String?): MealSource? = value?.let(MealSource::valueOf)
+
+    @TypeConverter
+    fun mealEntryTypeToName(value: MealEntryType?): String? = value?.name
+
+    @TypeConverter
+    fun nameToMealEntryType(value: String?): MealEntryType? = value?.let(MealEntryType::valueOf)
 
     @TypeConverter
     fun activityGoalTypeToName(value: ActivityGoalType?): String? = value?.name

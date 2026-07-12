@@ -26,4 +26,11 @@ data class Food(
     val fiberG: Double,
     val proteinG: Double,
     val dietaryTags: Set<DietaryTag> = emptySet(),
+    /**
+     * True for real, curated bundled foods: shown in text search and eligible as
+     * nudge/swap suggestions. False for the synthetic coarse-category foods
+     * ("veggie-heavy meal", etc.) that back the low-friction quick-log — those are
+     * only offered as logging chips, never surfaced in search or as a suggestion.
+     */
+    val selectable: Boolean = true,
 )
