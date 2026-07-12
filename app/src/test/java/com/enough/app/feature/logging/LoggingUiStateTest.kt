@@ -28,6 +28,17 @@ class LoggingUiStateTest {
     }
 
     @Test
+    fun `custom food save needs a name and a fiber value, and 0 fiber is valid`() {
+        val base = AddMealUiState(customName = "Fairlife shake", customServingText = "1 bottle")
+        assertTrue(base.copy(customFiberText = "1").canSaveCustom)
+        assertTrue("0g fiber (e.g. a protein shake) is valid", base.copy(customFiberText = "0").canSaveCustom)
+        assertFalse("blank fiber is not saveable", base.copy(customFiberText = "").canSaveCustom)
+        assertFalse("blank name is not saveable", base.copy(customName = "", customFiberText = "5").canSaveCustom)
+        assertFalse("negative fiber is rejected", base.copy(customFiberText = "-3").canSaveCustom)
+        assertFalse("blank serving is not saveable", base.copy(customServingText = "", customFiberText = "5").canSaveCustom)
+    }
+
+    @Test
     fun `log weight parses pounds and gates save`() {
         assertFalse(LogWeightUiState(weightLbText = "").canSave)
         assertFalse(LogWeightUiState(weightLbText = "0").canSave)

@@ -38,6 +38,7 @@ class AppContainer(context: Context) {
             EnoughDatabase.MIGRATION_1_2,
             EnoughDatabase.MIGRATION_2_3,
             EnoughDatabase.MIGRATION_3_4,
+            EnoughDatabase.MIGRATION_4_5,
         )
         .build()
 

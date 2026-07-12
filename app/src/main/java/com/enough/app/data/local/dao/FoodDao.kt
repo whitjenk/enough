@@ -11,6 +11,10 @@ interface FoodDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(foods: List<Food>)
 
+    /** Insert one food (e.g. a user-created custom food); returns its new id. */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(food: Food): Long
+
     @Query("SELECT COUNT(*) FROM food")
     suspend fun count(): Int
 
@@ -31,9 +35,13 @@ interface FoodDao {
     @Query("SELECT * FROM food ORDER BY name COLLATE NOCASE ASC")
     suspend fun getAll(): List<Food>
 
-    /** Highest-fiber real foods, for nudge/swap suggestions (excludes synthetic). */
+    /**
+     * Highest-fiber curated foods, for nudge/swap suggestions. Excludes both the
+     * synthetic category foods (selectable = 0) and user-created foods
+     * (userCreated = 1), whose fiber is user-entered and untagged.
+     */
     @Query(
-        "SELECT * FROM food WHERE selectable = 1 " +
+        "SELECT * FROM food WHERE selectable = 1 AND userCreated = 0 " +
             "ORDER BY fiberG DESC, name COLLATE NOCASE ASC LIMIT :limit",
     )
     suspend fun topFiberFoods(limit: Int): List<Food>

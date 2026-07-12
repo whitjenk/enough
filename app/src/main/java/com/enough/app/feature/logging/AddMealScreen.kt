@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,6 +56,12 @@ fun AddMealRoute(
         onSelectFood = viewModel::onSelectFood,
         onServingsChange = viewModel::onServingsChange,
         onSave = viewModel::save,
+        onStartAddCustom = viewModel::onStartAddCustom,
+        onCustomNameChange = viewModel::onCustomNameChange,
+        onCustomFiberChange = viewModel::onCustomFiberChange,
+        onCustomServingChange = viewModel::onCustomServingChange,
+        onSaveCustom = viewModel::onSaveCustom,
+        onCancelCustom = viewModel::onCancelAddCustom,
         onBack = onBack,
     )
 }
@@ -69,6 +76,12 @@ fun AddMealScreen(
     onSelectFood: (Food) -> Unit,
     onServingsChange: (String) -> Unit,
     onSave: () -> Unit,
+    onStartAddCustom: () -> Unit,
+    onCustomNameChange: (String) -> Unit,
+    onCustomFiberChange: (String) -> Unit,
+    onCustomServingChange: (String) -> Unit,
+    onSaveCustom: () -> Unit,
+    onCancelCustom: () -> Unit,
     onBack: () -> Unit,
 ) {
     Scaffold(
@@ -101,6 +114,18 @@ fun AddMealScreen(
                 .padding(horizontal = 20.dp),
         ) {
             val selected = uiState.selectedFood
+
+            if (uiState.addingCustom) {
+                CustomFoodForm(
+                    uiState = uiState,
+                    onNameChange = onCustomNameChange,
+                    onFiberChange = onCustomFiberChange,
+                    onServingChange = onCustomServingChange,
+                    onSave = onSaveCustom,
+                    onCancel = onCancelCustom,
+                )
+                return@Column
+            }
 
             // Default view: the low-friction quick-log. Once the person starts a
             // precise search (or picks a food), it recedes to keep the screen calm.
@@ -135,7 +160,7 @@ fun AddMealScreen(
                     onServingsChange = onServingsChange,
                 )
             } else {
-                FoodResults(uiState = uiState, onSelectFood = onSelectFood)
+                FoodResults(uiState = uiState, onSelectFood = onSelectFood, onAddCustom = onStartAddCustom)
             }
         }
     }
@@ -180,11 +205,19 @@ private fun QuickLogSections(
 }
 
 @Composable
-private fun FoodResults(uiState: AddMealUiState, onSelectFood: (Food) -> Unit) {
+private fun FoodResults(
+    uiState: AddMealUiState,
+    onSelectFood: (Food) -> Unit,
+    onAddCustom: () -> Unit,
+) {
     when {
         uiState.query.isBlank() -> HintText(stringResource(R.string.add_meal_empty_prompt))
-        uiState.results.isEmpty() && !uiState.isSearching ->
+        uiState.results.isEmpty() && !uiState.isSearching -> Column {
             HintText(stringResource(R.string.add_meal_no_results))
+            TextButton(onClick = onAddCustom) {
+                Text(stringResource(R.string.add_meal_add_custom, uiState.query.trim()))
+            }
+        }
         else -> LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp),
@@ -192,6 +225,58 @@ private fun FoodResults(uiState: AddMealUiState, onSelectFood: (Food) -> Unit) {
             items(uiState.results, key = { it.id }) { food ->
                 FoodRow(food = food, onClick = { onSelectFood(food) })
                 HorizontalDivider()
+            }
+            item {
+                TextButton(onClick = onAddCustom, modifier = Modifier.padding(top = 8.dp)) {
+                    Text(stringResource(R.string.add_meal_add_custom_more, uiState.query.trim()))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomFoodForm(
+    uiState: AddMealUiState,
+    onNameChange: (String) -> Unit,
+    onFiberChange: (String) -> Unit,
+    onServingChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth().padding(top = 12.dp), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.add_meal_custom_title), style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = uiState.customName,
+                onValueChange = onNameChange,
+                label = { Text(stringResource(R.string.add_meal_custom_name)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = uiState.customServingText,
+                onValueChange = onServingChange,
+                label = { Text(stringResource(R.string.add_meal_custom_serving)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = uiState.customFiberText,
+                onValueChange = { onFiberChange(it.filter { c -> c.isDigit() || c == '.' }) },
+                label = { Text(stringResource(R.string.add_meal_custom_fiber)) },
+                supportingText = { Text(stringResource(R.string.add_meal_custom_fiber_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onSave, enabled = uiState.canSaveCustom, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.add_meal_custom_save))
+                }
+                TextButton(onClick = onCancel) {
+                    Text(stringResource(R.string.add_meal_custom_cancel))
+                }
             }
         }
     }
@@ -280,7 +365,10 @@ private fun AddMealPreview() {
                 ),
             ),
             onLogCategory = {}, onLogRecent = {},
-            onQueryChange = {}, onSelectFood = {}, onServingsChange = {}, onSave = {}, onBack = {},
+            onQueryChange = {}, onSelectFood = {}, onServingsChange = {}, onSave = {},
+            onStartAddCustom = {}, onCustomNameChange = {}, onCustomFiberChange = {},
+            onCustomServingChange = {}, onSaveCustom = {}, onCancelCustom = {},
+            onBack = {},
         )
     }
 }

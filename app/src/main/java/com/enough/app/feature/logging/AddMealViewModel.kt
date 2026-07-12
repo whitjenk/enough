@@ -25,10 +25,19 @@ data class AddMealUiState(
     val isSearching: Boolean = false,
     val selectedFood: Food? = null,
     val servingsText: String = "1",
+    val addingCustom: Boolean = false,
+    val customName: String = "",
+    val customFiberText: String = "",
+    val customServingText: String = "1 serving",
     val saved: Boolean = false,
 ) {
     val servings: Double? = servingsText.trim().toDoubleOrNull()?.takeIf { it > 0 }
     val canSave: Boolean get() = selectedFood != null && servings != null
+
+    /** Fiber is required for a custom food; 0 is valid (e.g. a protein shake). */
+    val customFiberG: Double? = customFiberText.trim().toDoubleOrNull()?.takeIf { it >= 0 }
+    val canSaveCustom: Boolean
+        get() = customName.isNotBlank() && customFiberG != null && customServingText.isNotBlank()
 }
 
 /**
@@ -105,6 +114,43 @@ class AddMealViewModel(
 
     fun onServingsChange(text: String) {
         _uiState.update { it.copy(servingsText = text) }
+    }
+
+    /** Start the "can't find it? add it" flow, prefilling the name from the query. */
+    fun onStartAddCustom() {
+        _uiState.update {
+            it.copy(addingCustom = true, customName = it.query.trim(), customFiberText = "", customServingText = "1 serving")
+        }
+    }
+
+    fun onCustomNameChange(text: String) = _uiState.update { it.copy(customName = text) }
+    fun onCustomFiberChange(text: String) = _uiState.update { it.copy(customFiberText = text) }
+    fun onCustomServingChange(text: String) = _uiState.update { it.copy(customServingText = text) }
+    fun onCancelAddCustom() = _uiState.update { it.copy(addingCustom = false) }
+
+    /**
+     * Save the person's custom food (remembered + searchable for next time) and
+     * log it now. Its user-entered fiber is a precise value, so it's a
+     * database-matched entry, not a coarse estimate.
+     */
+    fun onSaveCustom() {
+        val state = _uiState.value
+        val fiber = state.customFiberG ?: return
+        val name = state.customName.trim().takeIf { it.isNotBlank() } ?: return
+        val serving = state.customServingText.trim().takeIf { it.isNotBlank() } ?: return
+        viewModelScope.launch {
+            val food = foodRepository.addCustomFood(name = name, servingLabel = serving, fiberG = fiber)
+            mealRepository.add(
+                MealEntry(
+                    foodId = food.id,
+                    servingsMultiplier = 1.0,
+                    timestamp = Instant.now(),
+                    source = MealSource.MANUAL,
+                    entryType = MealEntryType.DATABASE_MATCHED,
+                ),
+            )
+            _uiState.update { it.copy(saved = true) }
+        }
     }
 
     fun save() {

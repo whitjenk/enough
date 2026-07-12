@@ -219,6 +219,16 @@
     <string name="add_meal_search_hint">Search foods</string>
     <string name="add_meal_empty_prompt">Type to search the food list.</string>
     <string name="add_meal_no_results">No matches yet — try another word.</string>
+    <!-- Custom food: "can't find it? add it" -->
+    <string name="add_meal_add_custom">Add \"%1$s\"</string>
+    <string name="add_meal_add_custom_more">Don\'t see it? Add \"%1$s\"</string>
+    <string name="add_meal_custom_title">Add your own food</string>
+    <string name="add_meal_custom_name">Name</string>
+    <string name="add_meal_custom_serving">Serving (e.g. 1 bottle)</string>
+    <string name="add_meal_custom_fiber">Fiber (grams)</string>
+    <string name="add_meal_custom_fiber_hint">It\'s on the nutrition label. Use 0 if there\'s none.</string>
+    <string name="add_meal_custom_save">Save and log it</string>
+    <string name="add_meal_custom_cancel">Cancel</string>
     <string name="add_meal_nutrition_per_serving">%1$.1fg fiber · %2$.1fg carbs · %3$.1fg protein per %4$s</string>
     <string name="add_meal_servings_label">Servings</string>
     <string name="add_meal_selected_fiber">This adds about %1$.1fg of fiber.</string>

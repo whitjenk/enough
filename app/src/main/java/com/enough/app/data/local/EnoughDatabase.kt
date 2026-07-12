@@ -36,7 +36,7 @@ import com.enough.app.data.seed.CategoryFoods
         PrediabetesRiskResult::class,
         RulesEngineState::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -133,6 +133,18 @@ abstract class EnoughDatabase : RoomDatabase() {
                         arrayOf<Any>(food.name, food.servingLabel, food.carbsG, food.fiberG, food.proteinG),
                     )
                 }
+            }
+        }
+
+        /**
+         * v4 -> v5: custom foods ("can't find it? add it"). Adds
+         * `food.userCreated` (existing curated/category rows default to 0). A user
+         * food is searchable and re-loggable but excluded from the suggestion pool.
+         * Additive, so nothing is dropped.
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `food` ADD COLUMN `userCreated` INTEGER NOT NULL DEFAULT 0")
             }
         }
     }
