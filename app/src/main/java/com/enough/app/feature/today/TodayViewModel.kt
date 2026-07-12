@@ -19,6 +19,7 @@ import com.enough.app.data.repository.RulesEngineStateRepository
 import com.enough.app.data.repository.WeightRepository
 import com.enough.app.domain.DayRange
 import com.enough.app.domain.nutrition.MealNutrition
+import com.enough.app.domain.rules.DailySwap
 import com.enough.app.domain.rules.Nudge
 import com.enough.app.domain.rules.NudgeGenerator
 import com.enough.app.domain.rules.RulesEngine
@@ -54,6 +55,7 @@ data class TodayUiState(
     val weightTrend: WeightTrendDirection = WeightTrendDirection.UNKNOWN,
     val activities: List<ActivityEntry> = emptyList(),
     val nudge: Nudge = Nudge.None,
+    val dailySwap: DailySwap.Swap? = null,
     val healthConnect: HealthConnectData = HealthConnectData(),
     val isLoading: Boolean = true,
 ) {
@@ -118,6 +120,8 @@ class TodayViewModel(
         val calibration = goal?.estimateCalibration ?: EstimateCalibration.BALANCED
         val fiberSoFar = MealNutrition.fiberGrams(meals, calibration)
         val target = goal?.fiberGramsTarget ?: 0
+        val restrictions = goal?.dietaryRestrictions ?: emptySet()
+        val gentle = goal?.takesGLP1Medication == true
         TodayUiState(
             goal = goal,
             meals = meals,
@@ -129,9 +133,16 @@ class TodayViewModel(
                 fiberSoFarG = fiberSoFar,
                 targetG = target,
                 suggestions = suggestionFoods,
-                restrictions = goal?.dietaryRestrictions ?: emptySet(),
+                restrictions = restrictions,
                 otherRestriction = goal?.dietaryRestrictionOther,
-                gentle = goal?.takesGLP1Medication == true,
+                gentle = gentle,
+            ),
+            dailySwap = DailySwap.forDay(
+                epochDay = today.start.atZone(zone).toLocalDate().toEpochDay(),
+                candidates = suggestionFoods,
+                restrictions = restrictions,
+                otherRestriction = goal?.dietaryRestrictionOther,
+                gentle = gentle,
             ),
             isLoading = false,
         )

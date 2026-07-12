@@ -166,6 +166,11 @@
     <!-- Softer variant for people on a GLP-1: no target framing, appetite-aware -->
     <string name="nudge_fiber_gap_gentle">You\'re at %1$dg of fiber today. No pressure at all — if it feels right, a little %2$s (%3$s) adds about %4$dg.</string>
     <string name="nudge_on_track">You\'re at %1$dg of fiber today, right around your %2$dg goal. That\'s enough.</string>
+    <!-- Today's one swap: a zero-input daily idea, never a nudge to log; always leaves an out -->
+    <string name="today_swap_header">One idea for today</string>
+    <string name="today_swap_body">%1$s (%2$s) is an easy ~%3$dg of fiber — or not, today can just be today.</string>
+    <!-- Softer variant for people on a GLP-1: no number to hit, appetite-aware -->
+    <string name="today_swap_body_gentle">%1$s (%2$s) adds a little fiber, if it feels right — no number to hit.</string>
     <string name="cd_mascot">Enough</string>
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>

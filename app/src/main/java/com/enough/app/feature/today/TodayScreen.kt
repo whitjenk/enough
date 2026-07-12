@@ -76,6 +76,7 @@ fun TodayScreen(
             }
             item { NudgeCard(uiState.nudge) }
             item { FiberCard(uiState) }
+            uiState.dailySwap?.let { swap -> item { DailySwapCard(swap) } }
             item {
                 LoggingActions(
                     onAddMeal = onAddMeal,
@@ -145,6 +146,24 @@ private fun NudgeCard(nudge: Nudge) {
                 pulsing = nudge is Nudge.FiberGap,
             )
             Text(text = message, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+private fun DailySwapCard(swap: com.enough.app.domain.rules.DailySwap.Swap) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.today_swap_header), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(
+                    if (swap.gentle) R.string.today_swap_body_gentle else R.string.today_swap_body,
+                    swap.food,
+                    swap.servingLabel,
+                    swap.fiberG,
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+            )
         }
     }
 }
@@ -302,7 +321,15 @@ private fun formatServings(value: Double): String =
 private fun TodayPreview() {
     com.enough.app.ui.theme.EnoughTheme(dynamicColor = false) {
         TodayScreen(
-            uiState = TodayUiState(isLoading = false),
+            uiState = TodayUiState(
+                isLoading = false,
+                dailySwap = com.enough.app.domain.rules.DailySwap.Swap(
+                    food = "Lentils",
+                    servingLabel = "1/2 cup",
+                    fiberG = 8,
+                    gentle = false,
+                ),
+            ),
             onAddMeal = {},
             onLogWeight = {},
             onLogActivity = {},

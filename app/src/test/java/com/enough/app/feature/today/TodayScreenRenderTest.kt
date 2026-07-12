@@ -78,4 +78,28 @@ class TodayScreenRenderTest {
         // The daily fiber nudge card renders its supportive, specific message.
         composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun `today renders the one-idea daily swap card when a swap is present`() {
+        val state = TodayUiState(
+            dailySwap = com.enough.app.domain.rules.DailySwap.Swap(
+                food = "Chia seeds",
+                servingLabel = "2 tbsp",
+                fiberG = 10,
+                gentle = false,
+            ),
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(state, onAddMeal = {}, onLogWeight = {}, onLogActivity = {})
+            }
+        }
+
+        // The zero-input daily value renders near the top, above the logging
+        // actions, with its non-logging, exit-offering copy.
+        composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
+        composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
+    }
 }
