@@ -1,0 +1,297 @@
+package com.enough.app.feature.progress
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.enough.app.R
+import com.enough.app.data.model.WeightTrendDirection
+import com.enough.app.di.AppViewModelProvider
+import com.enough.app.domain.UnitConversions
+import com.enough.app.ui.theme.EnoughTheme
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+@Composable
+fun ProgressRoute(
+    viewModel: ProgressViewModel = viewModel(factory = AppViewModelProvider.Factory),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    ProgressScreen(uiState)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProgressScreen(uiState: ProgressUiState) {
+    Scaffold(
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.progress_title)) }) },
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+        ) {
+            item { ConsistencyCard(uiState) }
+            item { FiberTrendCard(uiState) }
+            item { WeightCard(uiState) }
+            item { MovementCard(uiState) }
+        }
+    }
+}
+
+@Composable
+private fun ConsistencyCard(uiState: ProgressUiState) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.progress_consistency_header), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(
+                    R.string.progress_consistency_value,
+                    uiState.daysLoggedLast7,
+                    uiState.windowDays,
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val loggedLabel = stringResource(R.string.cd_day_logged)
+                val notLoggedLabel = stringResource(R.string.cd_day_not_logged)
+                uiState.loggedDaySeries.forEachIndexed { index, logged ->
+                    ConsistencyDot(
+                        logged = logged,
+                        contentDescription = if (logged) loggedLabel else notLoggedLabel,
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.progress_consistency_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConsistencyDot(logged: Boolean, contentDescription: String) {
+    // Filled vs. hollow shape carries the meaning — not color alone (DESIGN.md).
+    val base = Modifier
+        .size(20.dp)
+        .semantics { this.contentDescription = contentDescription }
+    if (logged) {
+        androidx.compose.foundation.layout.Box(
+            base.clip(CircleShape).then(
+                Modifier.background(EnoughTheme.successColors.success),
+            ),
+        )
+    } else {
+        androidx.compose.foundation.layout.Box(
+            base.clip(CircleShape).border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
+        )
+    }
+}
+
+@Composable
+private fun FiberTrendCard(uiState: ProgressUiState) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.progress_fiber_header), style = MaterialTheme.typography.titleMedium)
+            val hasData = uiState.fiberSeries.any { it.fiberG > 0.0 }
+            if (!hasData) {
+                Text(
+                    text = stringResource(R.string.progress_fiber_no_data),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                val todayFiber = uiState.fiberSeries.lastOrNull()?.fiberG?.roundToInt() ?: 0
+                Text(
+                    text = stringResource(R.string.progress_fiber_today_value, todayFiber),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                FiberBarChart(
+                    values = uiState.fiberSeries.map { it.fiberG },
+                    targetG = uiState.fiberTargetG,
+                    barColor = MaterialTheme.colorScheme.primary,
+                    targetLineColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    chartDescription = stringResource(R.string.cd_fiber_chart, uiState.windowDays),
+                )
+                if (uiState.fiberTargetG > 0) {
+                    Text(
+                        text = stringResource(R.string.progress_fiber_target_label, uiState.fiberTargetG),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FiberBarChart(
+    values: List<Double>,
+    targetG: Int,
+    barColor: Color,
+    targetLineColor: Color,
+    chartDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    val maxValue = max(targetG.toDouble(), values.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
+    Canvas(modifier.semantics { contentDescription = chartDescription }) {
+        val slot = size.width / values.size
+        val barWidth = slot * 0.55f
+        values.forEachIndexed { index, value ->
+            val barHeight = (value / maxValue).toFloat() * size.height
+            val left = index * slot + (slot - barWidth) / 2f
+            val top = size.height - barHeight
+            drawRoundRect(
+                color = barColor,
+                topLeft = Offset(left, top),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(barWidth / 3f, barWidth / 3f),
+            )
+        }
+        if (targetG > 0) {
+            val y = size.height - (targetG / maxValue).toFloat() * size.height
+            drawLine(
+                color = targetLineColor,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 2f,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeightCard(uiState: ProgressUiState) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.progress_weight_header), style = MaterialTheme.typography.titleMedium)
+            val current = uiState.currentWeightKg
+            if (current == null) {
+                Text(
+                    text = stringResource(R.string.progress_weight_none),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.progress_weight_current, UnitConversions.kgToLb(current).roundToInt()),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (uiState.startWeightKg != null && uiState.targetWeightKg != null) {
+                    Text(
+                        text = stringResource(
+                            R.string.progress_weight_start_target,
+                            UnitConversions.kgToLb(uiState.startWeightKg).roundToInt(),
+                            UnitConversions.kgToLb(uiState.targetWeightKg).roundToInt(),
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    text = stringResource(weightTrendCopy(uiState.weightTrend)),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+    }
+}
+
+private fun weightTrendCopy(trend: WeightTrendDirection): Int = when (trend) {
+    WeightTrendDirection.DOWN -> R.string.progress_weight_trend_down
+    WeightTrendDirection.FLAT -> R.string.progress_weight_trend_flat
+    WeightTrendDirection.UP -> R.string.progress_weight_trend_up
+    WeightTrendDirection.UNKNOWN -> R.string.progress_weight_trend_unknown
+}
+
+@Composable
+private fun MovementCard(uiState: ProgressUiState) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.progress_movement_header), style = MaterialTheme.typography.titleMedium)
+            val goalMinutes = uiState.activityGoalMinutes
+            val text = when {
+                goalMinutes != null -> stringResource(
+                    R.string.progress_movement_minutes,
+                    uiState.weeklyActivityMinutes,
+                    goalMinutes,
+                )
+                uiState.weeklyActivityMinutes > 0 -> stringResource(
+                    R.string.progress_movement_minutes_no_goal,
+                    uiState.weeklyActivityMinutes,
+                )
+                else -> stringResource(
+                    R.string.progress_movement_days,
+                    uiState.daysLoggedLast7,
+                    uiState.windowDays,
+                )
+            }
+            Text(text = text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun ProgressPreview() {
+    EnoughTheme(dynamicColor = false) {
+        ProgressScreen(
+            ProgressUiState(
+                fiberSeries = listOf(0, 12, 18, 9, 24, 15, 20).mapIndexed { i, v ->
+                    com.enough.app.domain.progress.DailyFiber(java.time.LocalDate.now().minusDays((6 - i).toLong()), v.toDouble())
+                },
+                fiberTargetG = 28,
+                loggedDaySeries = listOf(false, true, true, true, true, true, true),
+                daysLoggedLast7 = 6,
+                currentWeightKg = 82.0,
+                startWeightKg = 84.0,
+                targetWeightKg = 80.0,
+                weightTrend = WeightTrendDirection.DOWN,
+                weeklyActivityMinutes = 90,
+                activityGoalMinutes = 150,
+                isLoading = false,
+            ),
+        )
+    }
+}

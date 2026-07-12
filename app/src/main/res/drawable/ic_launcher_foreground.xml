@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Abstract, asymmetric organic blob (the "bit of life" accent from DESIGN.md).
+   No face, no leaf, no literal illustration. Drawn within the 108dp adaptive
+   icon canvas, inside the ~66dp central safe zone.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F3F7EE"
+        android:pathData="M54,32
+            C66,31 76,39 78,51
+            C80,63 73,74 61,77
+            C50,80 38,76 33,66
+            C28,56 30,44 39,37
+            C43,34 48,32 54,32 Z" />
+    <path
+        android:fillColor="#B8D8BE"
+        android:pathData="M60,46
+            C66,46 70,51 69,57
+            C68,63 63,66 57,65
+            C52,64 49,59 51,53
+            C52,49 55,46 60,46 Z" />
+</vector>

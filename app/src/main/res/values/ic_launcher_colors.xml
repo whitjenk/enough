@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm, muted green seed from DESIGN.md (growth/fiber association). -->
+    <color name="ic_launcher_background">#4E7A5C</color>
+</resources>

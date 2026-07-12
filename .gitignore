@@ -32,3 +32,9 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Local development docs (kept on disk, excluded from the repo)
+CLAUDE.md
+DESIGN.md
+IMPLEMENTATION_PLAN.md
+SPEC.md
