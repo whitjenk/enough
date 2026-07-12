@@ -1,5 +1,6 @@
 package com.enough.app.feature.settings
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,11 +50,22 @@ fun SettingsRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     val privacyPolicyUrl = stringResource(R.string.privacy_policy_url)
     SettingsScreen(
         uiState = uiState,
         onToggleSync = viewModel::setHealthConnectSyncEnabled,
         onSetCalibration = viewModel::setEstimateCalibration,
+        onPrepareFeedback = viewModel::prepareFeedback,
+        onShareFeedback = { text ->
+            // User-initiated only: they tap share and pick the destination in the
+            // OS chooser. The app never sends anything on its own.
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, text)
+            }
+            context.startActivity(Intent.createChooser(send, null))
+        },
         onDeleteData = viewModel::deleteAllData,
         onOpenPrivacyPolicy = { uriHandler.openUri(privacyPolicyUrl) },
     )
@@ -64,6 +77,8 @@ fun SettingsScreen(
     uiState: SettingsUiState,
     onToggleSync: (Boolean) -> Unit,
     onSetCalibration: (EstimateCalibration) -> Unit,
+    onPrepareFeedback: () -> Unit,
+    onShareFeedback: (String) -> Unit,
     onDeleteData: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
 ) {
@@ -82,6 +97,11 @@ fun SettingsScreen(
         ) {
             SyncCard(enabled = uiState.healthConnectSyncEnabled, onToggle = onToggleSync)
             CalibrationCard(selected = uiState.estimateCalibration, onSelect = onSetCalibration)
+            FeedbackCard(
+                feedback = uiState.feedback,
+                onPrepare = onPrepareFeedback,
+                onShare = onShareFeedback,
+            )
             SupportCard()
             PrivacyCard(onOpenPrivacyPolicy = onOpenPrivacyPolicy)
             DeleteCard(onDeleteClick = { showDeleteDialog = true })
@@ -153,6 +173,47 @@ private fun CalibrationCard(
 }
 
 @Composable
+private fun FeedbackCard(
+    feedback: com.enough.app.domain.feedback.FeedbackSummary?,
+    onPrepare: () -> Unit,
+    onShare: (String) -> Unit,
+) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.settings_feedback_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.settings_feedback_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (feedback == null) {
+                OutlinedButton(onClick = onPrepare) {
+                    Text(stringResource(R.string.settings_feedback_prepare))
+                }
+            } else {
+                val yesNo = stringResource(if (feedback.hasWeightGoal) R.string.feedback_yes else R.string.feedback_no)
+                // The person sees exactly the text that will be shared — nothing more.
+                val shareText = stringResource(
+                    R.string.feedback_share_text,
+                    feedback.daysLogged,
+                    feedback.mealsLogged,
+                    feedback.daysHitFiberTarget,
+                    feedback.fiberTargetG,
+                    yesNo,
+                )
+                Text(
+                    text = shareText,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedButton(onClick = { onShare(shareText) }) {
+                    Text(stringResource(R.string.settings_feedback_share))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SupportCard() {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -212,6 +273,8 @@ private fun SettingsPreview() {
             uiState = SettingsUiState(healthConnectSyncEnabled = true),
             onToggleSync = {},
             onSetCalibration = {},
+            onPrepareFeedback = {},
+            onShareFeedback = {},
             onDeleteData = {},
             onOpenPrivacyPolicy = {},
         )

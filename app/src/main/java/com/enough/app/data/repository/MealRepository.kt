@@ -18,6 +18,9 @@ class MealRepository(private val dao: MealEntryDao) {
     suspend fun mealsForDay(range: DayRange): List<MealWithFood> =
         dao.getBetween(range.startMillis, range.endMillis)
 
+    /** One-shot read of all logged meals (e.g. to build an aggregate summary). */
+    suspend fun allMeals(): List<MealWithFood> = dao.getAll()
+
     suspend fun add(entry: MealEntry): Long = dao.insert(entry)
 
     suspend fun delete(entry: MealEntry) = dao.delete(entry)

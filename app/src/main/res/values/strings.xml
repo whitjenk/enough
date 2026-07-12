@@ -119,6 +119,14 @@
     <string name="settings_calibration_low">Lean lower</string>
     <string name="settings_calibration_balanced">Balanced</string>
     <string name="settings_calibration_high">Lean higher</string>
+    <!-- Help improve Enough: user-initiated, aggregate-only, nothing sent on its own -->
+    <string name="settings_feedback_title">Help improve Enough</string>
+    <string name="settings_feedback_desc">Nothing is ever sent on its own. You can look at an anonymous summary of your use — just counts, nothing that identifies you — and choose to share it if you want.</string>
+    <string name="settings_feedback_prepare">See the summary</string>
+    <string name="settings_feedback_share">Share this summary</string>
+    <string name="feedback_yes">yes</string>
+    <string name="feedback_no">no</string>
+    <string name="feedback_share_text">Enough — anonymous summary (nothing here identifies me).\nDays I logged a meal: %1$d\nMeals logged: %2$d\nDays I reached my fiber goal: %3$d of %1$d\nFiber goal: %4$dg/day\nWeight goal set: %5$s</string>
     <string name="settings_support_title">Going through a rough patch?</string>
     <string name="settings_support_desc">Progress isn\'t a straight line, and missing a day doesn\'t undo what you\'ve built. One small thing, whenever you\'re ready, is enough. If things feel heavy — with your health or otherwise — it\'s okay to lean on your doctor or someone you trust.</string>
     <string name="settings_privacy_title">Privacy</string>

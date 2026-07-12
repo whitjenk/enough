@@ -71,6 +71,7 @@ object AppViewModelProvider {
             SettingsViewModel(
                 userPreferencesRepository = container.userPreferencesRepository,
                 goalRepository = container.goalRepository,
+                mealRepository = container.mealRepository,
                 wipeAllUserData = container::wipeAllUserData,
             )
         }
