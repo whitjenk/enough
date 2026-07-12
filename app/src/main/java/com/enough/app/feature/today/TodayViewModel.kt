@@ -22,6 +22,7 @@ import com.enough.app.domain.nutrition.MealNutrition
 import com.enough.app.domain.rules.DailySwap
 import com.enough.app.domain.rules.Nudge
 import com.enough.app.domain.rules.NudgeGenerator
+import com.enough.app.domain.rules.ResetMoment
 import com.enough.app.domain.rules.RulesEngine
 import com.enough.app.health.HealthConnectManager
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +33,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -56,6 +57,7 @@ data class TodayUiState(
     val activities: List<ActivityEntry> = emptyList(),
     val nudge: Nudge = Nudge.None,
     val dailySwap: DailySwap.Swap? = null,
+    val showResetMoment: Boolean = false,
     val healthConnect: HealthConnectData = HealthConnectData(),
     val isLoading: Boolean = true,
 ) {
@@ -102,7 +104,7 @@ class TodayViewModel(
         emitAll(
             combine(observeBaseState(today), healthData) { base, health ->
                 base.copy(healthConnect = health)
-            }.onEach { persistRulesState(it, nowInstant) },
+            }.map { enrichAndPersist(it, nowInstant, today) },
         )
     }.stateIn(
         scope = viewModelScope,
@@ -161,8 +163,16 @@ class TodayViewModel(
         }
     }
 
-    /** Cache the rules-engine inputs/outputs for later phases. Best-effort. */
-    private suspend fun persistRulesState(state: TodayUiState, now: Instant) {
+    /**
+     * One suspend step per emission: compute recency once, persist the rules
+     * snapshot, and decide the reset-day moment. Returns the state enriched with
+     * [TodayUiState.showResetMoment]. Best-effort.
+     */
+    private suspend fun enrichAndPersist(
+        state: TodayUiState,
+        now: Instant,
+        today: DayRange,
+    ): TodayUiState {
         val lastLogMillis = listOfNotNull(
             mealRepository.latestTimestampMillis(),
             activityRepository.latestTimestampMillis(),
@@ -172,9 +182,15 @@ class TodayViewModel(
             lastLog = lastLogMillis?.let(Instant::ofEpochMilli),
             now = now,
             zone = zone,
-        ) ?: 0
-        val weekStartMillis = now.minus(Duration.ofDays(7)).toEpochMilli()
+        )
 
+        persistRulesState(state, now, daysSinceLastLog ?: 0)
+        return state.copy(showResetMoment = evaluateResetMoment(state, today, daysSinceLastLog))
+    }
+
+    /** Cache the rules-engine inputs/outputs for later phases. Best-effort. */
+    private suspend fun persistRulesState(state: TodayUiState, now: Instant, daysSinceLastLog: Int) {
+        val weekStartMillis = now.minus(Duration.ofDays(7)).toEpochMilli()
         rulesEngineStateRepository.save(
             RulesEngineState(
                 daysSinceLastLog = daysSinceLastLog,
@@ -185,5 +201,41 @@ class TodayViewModel(
                 updatedAt = now,
             ),
         )
+    }
+
+    /**
+     * Decide whether the reset-day ("Enough") moment shows, and record the day it
+     * was shown so it fires at most once per rough patch (never escalating toward
+     * a quiet user). "Wide miss" is scored against the last completed day.
+     */
+    private suspend fun evaluateResetMoment(
+        state: TodayUiState,
+        today: DayRange,
+        daysSinceLastLog: Int?,
+    ): Boolean {
+        val todayEpochDay = today.start.atZone(zone).toLocalDate().toEpochDay()
+        val target = state.fiberTargetG
+        val calibration = state.goal?.estimateCalibration ?: EstimateCalibration.BALANCED
+
+        val hadWideMiss = if (target > 0) {
+            val yesterday = DayRange.of(today.start.atZone(zone).toLocalDate().minusDays(1), zone)
+            val yesterdayMeals = mealRepository.mealsForDay(yesterday)
+            yesterdayMeals.isNotEmpty() &&
+                MealNutrition.fiberGrams(yesterdayMeals, calibration) < target * ResetMoment.WIDE_MISS_FRACTION
+        } else {
+            false
+        }
+
+        val lastShown = userPreferencesRepository.resetMomentShownEpochDay.first()
+        val show = ResetMoment.shouldShow(
+            todayEpochDay = todayEpochDay,
+            daysSinceLastLog = daysSinceLastLog,
+            hadWideMissYesterday = hadWideMiss,
+            lastShownEpochDay = lastShown,
+        )
+        if (show && lastShown != todayEpochDay) {
+            userPreferencesRepository.setResetMomentShownEpochDay(todayEpochDay)
+        }
+        return show
     }
 }

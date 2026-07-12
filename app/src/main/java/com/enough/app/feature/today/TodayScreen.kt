@@ -74,7 +74,14 @@ fun TodayScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            item { NudgeCard(uiState.nudge) }
+            // The reset-day moment outranks the routine fiber nudge: when it
+            // shows, the nudge is suppressed so the two never contradict on a
+            // rough day (a light inline arbitration ahead of Phase 1's layer).
+            if (uiState.showResetMoment) {
+                item { ResetMomentCard(onLogSomething = onAddMeal) }
+            } else {
+                item { NudgeCard(uiState.nudge) }
+            }
             item { FiberCard(uiState) }
             uiState.dailySwap?.let { swap -> item { DailySwapCard(swap) } }
             item {
@@ -146,6 +153,46 @@ private fun NudgeCard(nudge: Nudge) {
                 pulsing = nudge is Nudge.FiberGap,
             )
             Text(text = message, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+private fun ResetMomentCard(onLogSomething: () -> Unit) {
+    // The app's name rendered as a felt moment: warm, no catch-up math, no red.
+    // Uses the secondary container (a distinct warm surface, not the success role
+    // reserved for goal-met) with the mascot for warmth.
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Mascot(
+                    color = EnoughTheme.successColors.success,
+                    contentDescription = stringResource(R.string.cd_mascot),
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        stringResource(R.string.reset_moment_header),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        stringResource(R.string.reset_moment_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+            FilledTonalButton(onClick = onLogSomething) {
+                Text(stringResource(R.string.reset_moment_log_action))
+            }
         }
     }
 }

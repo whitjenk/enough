@@ -102,4 +102,30 @@ class TodayScreenRenderTest {
         composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
         composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun `reset moment card shows and suppresses the fiber nudge`() {
+        val state = TodayUiState(
+            nudge = com.enough.app.domain.rules.Nudge.FiberGap(
+                fiberSoFarG = 4,
+                gapG = 24,
+                suggestionFood = "Kidney beans",
+                suggestionServingLabel = "1/2 cup",
+                suggestionFiberG = 8,
+            ),
+            showResetMoment = true,
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(state, onAddMeal = {}, onLogWeight = {}, onLogActivity = {})
+            }
+        }
+
+        // The reset moment renders its warm, no-catch-up copy...
+        composeRule.onNodeWithText("Today's a fresh start").assertIsDisplayed()
+        // ...and the routine fiber nudge is suppressed so the two don't contradict.
+        composeRule.onNodeWithText("Kidney beans", substring = true).assertDoesNotExist()
+    }
 }

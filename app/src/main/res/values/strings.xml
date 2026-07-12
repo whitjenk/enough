@@ -171,6 +171,10 @@
     <string name="today_swap_body">%1$s (%2$s) is an easy ~%3$dg of fiber — or not, today can just be today.</string>
     <!-- Softer variant for people on a GLP-1: no number to hit, appetite-aware -->
     <string name="today_swap_body_gentle">%1$s (%2$s) adds a little fiber, if it feels right — no number to hit.</string>
+    <!-- The "Enough" reset-day moment: warm, zero catch-up math, an easy out -->
+    <string name="reset_moment_header">Today\'s a fresh start</string>
+    <string name="reset_moment_body">No need to make up for anything. Log one small thing if you want — or let today just be today.</string>
+    <string name="reset_moment_log_action">Log something small</string>
     <string name="cd_mascot">Enough</string>
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>
