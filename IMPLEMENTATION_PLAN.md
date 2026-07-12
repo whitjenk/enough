@@ -54,7 +54,7 @@ Work through these tasks in order, one at a time. For each task: implement it, *
 - [x] Health Connect sync toggle <!-- Settings tab: Switch bound to UserPreferencesRepository.healthConnectSyncEnabled (DataStore); Today/HC reads already respect the flag. SettingsViewModel exposes a single UiState via StateFlow; screen stateless with @Preview -->
 - [x] Estimate calibration control: a simple three-way choice (lean low / balanced / lean high), default balanced, stored in `UserGoal.estimateCalibration`. Frame it neutrally in the copy — this is a personal preference about how to handle uncertainty, not a "cheat" setting and not a right answer <!-- Settings "Fiber estimate style" card: accessible ChoiceList (radio, not color-only) over Lean lower/Balanced/Lean higher, bound to UserGoal.estimateCalibration via SettingsViewModel.setEstimateCalibration (reads current goal, copies, upserts). UiState now combines the sync pref + goal flow. Neutral copy ("there's no wrong pick"). Render test asserts the control fires HIGH. -->
 - [x] "Delete my data" — must actually wipe all local tables, not just hide them <!-- AppContainer.wipeAllUserData(): database.clearAllTables() + preferences.clear(), then re-seed bundled food reference data and route back to onboarding. Confirm dialog before wipe. Verified by DatabaseWipeTest (Robolectric): inserts across all 7 tables, clearAllTables(), asserts every table empty -->
-- [x] A quiet, non-judgmental support resource, reachable but not intrusive (Settings or Learn) — see `SPEC.md` §0.6 <!-- Settings "Going through a rough patch?" card: supportive copy that reaffirms the "Enough" ethos (missing a day doesn't undo progress; one small thing is enough) and gently points to your doctor / someone you trust. NOTE: SPEC.md has no §0.6, so the exact resource was a judgment call. Deliberately region-safe — no hardcoded hotline number, since the app has no locale logic and a US-only number would be wrong for others. FLAG: if a specific crisis line (e.g. US 988) or an external link is wanted, confirm the region/number and it can be added. -->
+- [x] A quiet, non-judgmental support resource, reachable but not intrusive (Settings or Learn) — see `SPEC.md` §0.6 <!-- Settings "Going through a rough patch?" card: supportive copy that reaffirms the "Enough" ethos (missing a day doesn't undo progress; one small thing is enough) and gently points to your doctor / someone you trust. NOTE: SPEC §0.6 (added later) frames this as a non-intrusive Settings/Learn mention and explicitly says not to build disordered-eating detection; the exact resource wording was still a judgment call. Deliberately region-safe — no hardcoded hotline number, since the app has no locale logic and a US-only number would be wrong for others. FLAG: if a specific crisis line (e.g. US 988) or an external link is wanted, confirm the region/number and it can be added. -->
 - [x] No account/login screen anywhere in the app — confirm by checking every screen in the nav graph <!-- Nav graph = Today/Progress/Settings tabs + AddMeal/LogWeight/LogActivity + onboarding flow; none is a login/account screen. Codebase-wide grep for login/signin/account/auth/password/oauth/firebase/credential returns only unrelated "logInstants" logging matches. No sign-up path exists. -->
 
 ## 8. Ship prep
@@ -115,9 +115,30 @@ Do not start this section until Phase 0's definition of done above is fully met 
 ## 15. Eating-out quick-log
 - [ ] Add a coarser logging path alongside the database-search flow: a simple categorical entry (roughly veggie-heavy / protein-heavy / carb-heavy / mixed) for meals that don't match a precise database food, stored as `MealEntry.entryType = eating-out-estimate`
 - [ ] This entry type should visibly respect `estimateCalibration` more explicitly than a database-matched entry — the uncertainty here is real and larger, and the UI should reflect that honestly rather than presenting a fake-precise gram number
+- [ ] Bundle a short, evergreen on-the-go fiber tip list shown alongside this entry type (extra beans at build-your-own places, brown rice over white, veggie-loaded over meat-only, oatmeal over pastry, avocado/guac add-on, fruit over fries, side salad swap). Keep it conceptual — no hardcoded chain-specific gram counts, since fast food nutrition data drifts as menus change and a stale specific number is a real credibility risk
 - [ ] Unit test: an eating-out entry contributes a reasonable fiber estimate to the day's total under each calibration setting
 
-## 16. Optional anonymous outcomes ping (the one deliberate exception to "no server")
+## 16. Rules engine arbitration layer (do this alongside 12-13, before it becomes a real bug)
+- [ ] Build an explicit priority order across all message/nudge types (fiber gap, walk, food-order, sleep, stress check-in, reset-day moment, milestone views, checkpoint nudges, absence check-ins) — the reset-day moment always outranks routine nudges
+- [ ] Enforce one proactive message per day, tracked via `lastProactiveMessageDate`/`lastProactiveMessageType` — if two nudges are eligible the same day, the arbitration layer picks one, never both
+- [ ] Unit test: given a synthetic day where both a walk nudge and the reset-day moment are eligible, only the reset-day moment fires
+
+## 17. Cross-lever pattern insight (deterministic, not gated behind Phase 2)
+- [ ] Build simple correlation logic in the rules engine itself — e.g. does hitting the fiber target correlate with earlier bedtimes, higher step counts, etc. — over already-logged history. This must work identically for every user regardless of device tier; Phase 2's AI only rephrases it later, it doesn't create it
+- [ ] Apply the minimum sample size guardrail (task 19) before any correlation is allowed to surface
+- [ ] Unit test: given synthetic history with a clear correlation, the rules engine surfaces it; given insufficient data, it correctly stays silent
+
+## 18. Adaptive target calibration
+- [ ] Detect sustained over-performance (`consecutiveWeeksOverTarget`) or under-performance (`consecutiveWeeksUnderTarget`) against the fiber or activity target
+- [ ] When either streak crosses a threshold (e.g. 3 weeks), *offer* a target adjustment — never auto-apply one
+- [ ] Unit test: synthetic history of 3+ weeks over/under target correctly triggers the offer; fewer weeks does not
+
+## 19. More frequent, honest recognition + the minimum sample size guardrail
+- [ ] Recognize real sustained patterns (e.g. 3 straight weeks hitting the fiber target) as they happen, not just at the fixed 90/180/365-day milestones — pull from history already being tracked, no new data sources needed
+- [ ] Set an explicit minimum sample size threshold (e.g. no correlation or pattern claim from fewer than ~2 weeks of relevant data) and apply it uniformly across tasks 17-19 — this is a shared guardrail, not a one-off check
+- [ ] Unit test: recognition and pattern claims never surface below the threshold, regardless of which feature is generating them
+
+## 20. Optional anonymous outcomes ping (the one deliberate exception to "no server")
 - [ ] At the 90-day milestone, offer a single optional prompt: "would you be willing to anonymously share whether this helped, so it can improve for others?" with three choices (helped / didn't / prefer not to say) and a clear, easy way to decline entirely
 - [ ] If accepted, send exactly one increment to a minimal aggregate-only endpoint — no user ID, no device ID, no timestamp, no other field. Set up the simplest possible free-tier serverless function for this (a single counter increment); do not build anything more capable than that
 - [ ] Track `hasRespondedToOutcomesPing` so this is asked at most once per person, ever

@@ -2,6 +2,14 @@
 
 A free, local-first Android companion for weight and metabolic health, built around fiber as the primary daily metric instead of calories. See `SPEC.md` for the full positioning, evidence, and phased plan.
 
+## Before a wide launch (human steps, not code)
+
+These can't be delegated to Claude Code — worth doing after Phase 0/1 are built and closed testing has gone well, before pushing for real reach:
+
+- [ ] **Registered dietitian review.** Have an actual RD spend a few hours reviewing the food-swap suggestions, fiber-gap thresholds, and nudge copy. The CDC framework underneath is validated; the specific content built on top of it hasn't been reviewed by a clinician yet, and this app's credibility depends on that gap being closed before wide reach.
+- [ ] **Accessibility audit.** Run Android's built-in Accessibility Scanner against every screen; do a full pass with TalkBack through onboarding and daily logging; verify layouts hold up at the largest system font size; check color contrast (WCAG AA) on the fiber ring and success/warning states specifically, since those carry real meaning, not just decoration.
+- [ ] **Decide on the optional anonymous outcomes ping** (spec'd in `SPEC.md` and `IMPLEMENTATION_PLAN.md` task 20) with full awareness that it's the one deliberate exception to the zero-server architecture — read that section closely before building it, not just before shipping it.
+
 ## Getting started
 
 - [ ] **Verify the name.** Search "Enough" directly on the Play Store, run it through USPTO's trademark search (tmsearch.uspto.gov) for software/health classes, and check domain availability. Do this before anything else — cheapest to fix now.

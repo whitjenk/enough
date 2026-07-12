@@ -34,6 +34,29 @@ Four differentiators, each answering a specific competitor failure found in real
 
 ---
 
+## 0.6 Safety and inclusivity principles (launch-blocking, not optional)
+
+- **The weight-loss goal must be optional, not a default everyone passes through.** A meaningful group of real users shouldn't have a numeric weight target at all: people at a normal weight who are still insulin resistant, people for whom a weight-loss goal is actively harmful (disordered eating history), and people who simply want fiber and activity without weight being the frame. Onboarding must offer "focus on fiber and activity only" as a real, equally-supported choice, not a buried option.
+- **No calorie-deficit framing, ever, anywhere** — no "calories remaining today," no countdown language. This was already true by design (fiber-first, not calorie-first) — this principle makes it an explicit rule rather than an incidental side effect.
+- **A quiet, non-judgmental support resource mention belongs in Settings or Learn** — not intrusive, not a popup, just present for anyone who needs it. This app is not a clinical screening tool and shouldn't attempt to detect or diagnose disordered eating; the responsible move at this scale is removing known risk patterns (weight-loss defaults, calorie framing, streaks) and making support easy to find, not building a detection system.
+- **Dietary restrictions and allergies must be captured in onboarding and respected in every food suggestion.** A specific food-swap nudge that ignores an allergy or a vegan/vegetarian/gluten-free preference is worse than no suggestion at all — it breaks the "this buddy actually knows me" trust the whole design depends on.
+- **This app explicitly welcomes people on GLP-1 medications — it does not position against them.** Earlier positioning framed this app in contrast to GLP-1 companion apps, but a real, sizable share of the actual audience is either currently on one or transitioning off one, and silence on this isn't neutral — it means the app behaves identically for someone with GLP-1-related appetite suppression and GI sensitivity as for someone without, which is a mismatch either way. Concretely: if `UserGoal.takesGLP1Medication` is true, soften fiber-increase suggestions (smaller increments, awareness that common GI side effects make a sudden large fiber jump uncomfortable rather than helpful) and never frame the fiber target as something to hit despite reduced appetite. This is a tone and suggestion-intensity adjustment, not medical guidance — the app still isn't offering medication-specific advice.
+
+---
+
+## 0.7 Why "AI-first" means architecture, not a feature list
+
+The differentiation here isn't "this app has AI and competitors don't" — they're adding AI too. The real advantage is having no legacy architecture or business model to protect while doing it:
+
+- **On-device AI is the default architecture, not a premium bolt-on** — this is *why* zero-cost is structurally true here and hard for a cloud-infrastructure incumbent to cheaply replicate, not just a promise
+- **Photo/voice logging is the primary path, not a secondary button next to a decades-old manual-search UI** — no legacy UX to maintain in parallel
+- **The data model is designed for future personalization/correlation from day one**, not retrofitted onto a schema built for simple calorie summation
+- **One photo can map to multiple logged foods natively**, since there's no existing "one search, one selection" assumption to preserve
+
+**The equally important other half: AI-first means restraint, not maximum AI usage.** Deterministic logic (fiber-gap math, trend calculations, consistency counts) stays deterministic — running it through a model would be slower, costlier, and less trustworthy, not more impressive. The rules-engine-first, AI-only-for-open-ended-conversation architecture already in this spec *is* the AI-first decision. A real anti-pattern to avoid at every phase: don't reach for an LLM call to solve something arithmetic already solves better.
+
+**Upgrade path worth being deliberate about:** Phase 0/1 nudge phrasing is an honest template ("you're at Xg — [swap] adds about Yg") — reliable and testable, but still templated. Once Phase 2's on-device model exists, the phrasing (not the underlying math) is a good candidate to become genuinely generated and context-specific, so it stops reading as a fill-in-the-blank the longer someone uses the app.
+
 ## 1. Phased scope
 
 ### Phase 0 — ship this first (genuinely weekend-sized)
@@ -41,25 +64,58 @@ The smallest thing that is honestly a complete, useful product on its own:
 
 | Screen | Purpose |
 |---|--------|
-| Onboarding | The real CDC/ADA Prediabetes Risk Test only (one path — skip the doctor-told branch for now); connect Health Connect; set a 5–7% weight-loss goal, a weekly activity target (with a non-step-based option — see §5), and a fiber target (14g/1,000 kcal) |
+| Onboarding | Leads with a default path — **"just here to build better habits"** — straight to goal-setting, no quiz. The real CDC/ADA Prediabetes Risk Test is offered as an optional second choice ("curious about your risk factors?"), never a gate. Either way: connect Health Connect, set a weekly activity target (with a non-step-based option — see §5) and a fiber target (14g/1,000 kcal); **weight-loss goal is an equally-presented optional choice** ("include a weight goal, or focus on fiber and activity only?"); capture dietary restrictions/allergies (vegetarian, vegan, gluten-free, dairy-free, nut allergy, other) so food suggestions never violate them; one optional free-text question, **"what's making you want to do this?"** (`UserGoal.personalWhy`) — captured now even though it's only referenced starting Phase 2's buddy chat, since it's cheap to ask once and expensive to retrofit later; one optional yes/no question, **"are you currently taking a GLP-1 medication (Ozempic, Wegovy, Zepbound, or similar)?"** — resolves an explicit stance decision, see §0.6 |
 | Today | Logged meals, weight, synced steps/sleep; the day's fiber-gap nudge |
 | Add meal / activity | Fast text search against the local food list; manual weight/activity entry |
 | Progress | Fiber gap vs. target (headline metric), weight trend, streak-free consistency view |
+| Settings | Health Connect sync, estimate calibration (low/balanced/high for fiber and portion estimates), delete my data |
 
 **No AI, no device tiering, no buddy chat, no walk/food-order nudges yet.** Just: set targets, log fast, get one honest fiber nudge a day, see the trend. This alone is a real, shippable, useful app.
 
+**Why the risk test is optional, not the front door:** the whole point of this app, down to the name, is that it has value regardless of anyone's diabetes risk — it's preventative and general, not a diagnosis tool. Making a diabetes screening quiz the mandatory first thing every user sees contradicted that positioning. The test itself didn't change (still the real, validated CDC/ADA version, family-history question included) — it just stopped being a gate.
+
 ### Phase 1 — once Phase 0 is live and you've heard from real testers
+
+**Top priority, do these two first — one closes a brand-promise gap, the other closes an internal inconsistency in what's already spec'd:**
+
+- **The "Enough" moment — a real reset-day feature, not just an underlying design principle.** Every part of this spec avoids catch-up math and guilt by design, but there's currently no single concrete feature that makes the app's own name tangible. Add a specific, nameable card/screen: triggered either after 3+ days without logging, after a day where the fiber target was missed by a wide margin, or when the person tells the buddy (Phase 2) they had a rough day — the app shows a warm, simple message ("today's a fresh start — no need to make up for anything") with zero catch-up framing, no "you're behind" language, and an easy, optional "log something small if you want" — never required. This is the single highest-leverage gap relative to how much thought went into the name itself.
+- **Fill in sleep and stress for real — they're currently labels, not features.** The weekly sequencing lists "fiber → walks → sleep," but sleep has no actual nudge design, and stress — one of the original evidence-based pillars alongside fiber and walking — quietly disappeared from the sequencing entirely somewhere along the way. Fix both:
+  - **Sleep nudge:** pull duration from Health Connect (already read from Phase 0); when sleep is notably short or bedtime notably inconsistent, one gentle, non-judgmental nudge — same design pattern as the walk/food-order nudges, not a new architecture.
+  - **Stress:** there's no reliable automatic signal for this (Health Connect doesn't have a real stress metric), so don't overbuild an automated detection system for something that can't be sensed honestly. Instead: a simple, optional, one-tap daily check-in (not required), stress content covered honestly in the Learn section, and stress as a topic the buddy (Phase 2) can actually talk about — the lighter-weight, more honest choice given the limits of what's actually detectable here.
+  - Update the sequencing to the real four-lever version: fiber → walks → sleep → stress.
+
+**Rules engine architecture — do this alongside the top-priority items above, since it becomes a real coordination problem the moment more than one nudge type exists:**
+
+- **Arbitration layer.** By this point in the spec there are 8+ message/nudge types (fiber gap, walk, food-order, sleep, stress check-in, the reset-day moment, milestone views, checkpoint nudges, absence check-ins) with nothing deciding what happens when more than one is eligible the same day. Left unresolved, this is a near-certain collision — e.g. a walk nudge firing the same day as the reset-day moment would directly contradict it. Fix: an explicit priority order (the reset-day moment always wins over routine nudges) and a hard rule of one proactive message per day, period.
+- **Cross-lever pattern insight, built as deterministic correlation, not gated behind AI.** Simple statistics over already-logged history (does hitting the fiber target correlate with an earlier bedtime, more steps, etc.) belongs in the rules engine itself, available to every user regardless of device tier — see the correction above.
+- **Adaptive target calibration.** Targets are currently set once at onboarding and never revisited. Detect sustained over- or under-performance (e.g. 3+ weeks comfortably clearing the fiber target, or 3+ weeks consistently well short of it) and *offer*, never auto-apply, a target adjustment. This applies the "Enough" philosophy to the goals themselves, not just the tone around them.
+- **More frequent, honest recognition.** Right now positive acknowledgment only happens at the 90/180/365-day milestones — a long gap with no signal in between. Recognize real sustained patterns (e.g. 3 straight weeks hitting the fiber target) when they happen, off history that's already being tracked.
+- **Minimum sample size guardrail, wrapping around all of the above.** Any pattern callout, correlation, or target-adjustment suggestion needs a minimum number of data points before it's allowed to surface at all — otherwise this becomes false-pattern claims dressed up as insight, exactly the overclaiming this app is built to avoid. Set an explicit threshold (e.g. don't surface a correlation claim from fewer than ~2 weeks of relevant data) rather than leaving this to judgment call by call.
+
+**The rest of Phase 1:**
 - Post-meal walk nudge (with its Health Connect redundancy check and quiet-hours logic)
 - Food-order nudge (pattern-based + inline meal-logging tip)
-- Weekly single-focus sequencing (fiber → walks → sleep) to gate when Phase 1 nudges turn on
-- Second onboarding path: "a doctor already told me" — captures their number and retest date instead of the risk test
+- Third onboarding path: "a doctor already told me" — captures their number and retest date instead of the risk test
 - Pre-visit report screen tied to the retest date
-- Learn section (short pages backing each nudge)
+- Learn section (short pages backing each nudge, including the sleep and stress content above)
+- **Nudge-to-action.** Every specific food-swap suggestion gets a simple "add to list" tap, appending to a basic local grocery list — otherwise a good suggestion has nowhere to go and likely dies the moment it's read. Small, cheap, real behavior-change multiplier.
+- **Eating-out quick-log.** Real meals often happen at restaurants or someone else's table, where matching to a precise database food doesn't work. Add a coarser entry path — a rough "how veggie/protein/carb-heavy was this" categorical log instead of an exact match — and treat it as inherently an estimate, respecting the `estimateCalibration` setting even more explicitly than a database-matched entry does. Pair this with a short, **evergreen** list of on-the-go fiber boosts shown as a tip alongside this entry type: ask for extra beans/legumes (free at most build-your-own bowl places), choose brown rice over white when offered, a veggie-loaded sandwich over meat-only, oatmeal over a pastry, avocado/guacamole as an add-on, fruit over fries as a side, a side salad added or swapped in. **Keep this list conceptual, not chain-specific with hardcoded gram counts** — fast food nutrition data drifts as menus change, and a stale specific number (e.g. "13g of fiber at X") is a real credibility risk the moment a chain reformulates. If specific chain examples are included at all, frame them as loose illustrations, not permanent guaranteed facts.
+- **90-day "how far you've come" milestone view** — available to every onboarding path, not just the doctor-told one. Once 90 days have passed since onboarding, surfaces real trend data (weight change, % of days fiber target was hit, activity consistency) as a genuine accomplishment, not a manufactured streak or a clinical printout. This is the retention answer for the majority of users who don't have a doctor-given retest date to anchor a longer-horizon "did this actually matter" moment.
+  - **The retention arc doesn't stop at day 90.** After the milestone, introduce the next focus lever (past fiber → walks → sleep, consider what a second cycle looks like — perhaps deepening the same three with higher targets, or introducing a new one like sleep consistency in earnest). The milestone view itself repeats at 180 and 365 days with a longer view each time, so there's always a next chapter rather than a single peak followed by silence.
+  - **Shareable milestone card, fully opt-in.** Let someone export the 90/180/365-day milestone as a simple, genuinely nice image if they want to — never suggested, never prompted, no share sheet popping up uninvited. This is the one place organic reach can come from something already built, without bolting on a separate viral mechanic that would fight the app's no-pressure personality.
+- **Optional 90-day real-world checkpoint nudge** — extends the `DoctorCheckIn` concept to every path, not just doctor-told. A single, gentle, dismissible suggestion around the 90-day mark: "it's been 90 days — want to check in with a doctor or an at-home test to see where things actually stand?" Never repeats more than once per ~90-day window, and "not right now" is a fully valid, easy response — see the buddy voice guidelines in `CLAUDE.md`.
+- **Optional anonymous outcomes ping — a deliberate, narrow exception to the "no server" rule, not a reversal of it.** Local-first, zero-analytics architecture means there's no way to ever learn at scale whether this app actually helps anyone. The fix, held to strict limits: at the 90-day milestone, offer a fully optional one-tap prompt — "would you be willing to anonymously share whether this helped, so it can improve for others?" If accepted, the *only* thing that ever gets sent is a single incremented counter (helped / didn't / prefer not to say) to a minimal aggregate-only endpoint. No user ID, no device ID, no timestamp, no other field, ever. This is the one and only network call the app makes anywhere in this spec — adding a second one, of any kind, deserves the same level of scrutiny as this one got.
 
 ### Phase 2 — only once Phase 0 has real, sustained usage worth investing in
 - Device-capability check + Gemini Nano integration (ML Kit GenAI: Prompt, Image Description, Speech Recognition) for flagship phones
 - Fallback-tier photo/voice logging (basic ML Kit image labeling, platform speech-to-text) for everyone else
-- Buddy chat screen
+- Buddy chat screen — **must have an explicit safety design before shipping, not an assumption that warmth covers it.** If someone expresses distress, disordered eating thoughts, or a desire for extreme restriction, the buddy must never diagnose, lecture, or encourage restriction — it should respond with care and point toward real support resources, following the same principles in §0.6
+  - **This is what separates a real accountability partner from a warm-sounding chatbot: memory and follow-through, not just tone.** Five concrete mechanisms, not just a personality:
+    1. **Capture "your why" once, in onboarding** (free text, one line: "what's making you want to do this?"). Reference it sparingly — meaningful moments only (a low point, a milestone), never as daily filler, or it cheapens fast.
+    2. **Context assembly, not model memory.** Gemini Nano is stateless per conversation — every buddy chat invocation must be fed real assembled context (recent logs, current consistency stats, active focus lever, stated why, anything notable the person mentioned) rather than relying on the model to "remember." This is the actual engineering backbone the other four mechanisms depend on.
+    3. **Real pattern callouts from the person's own data** ("the last three times you hit your fiber goal, you'd also gone to bed before 11") — only possible because it's genuinely their data, not a template. **Correction from an earlier version of this spec: the correlation itself is arithmetic over already-logged data, not something that needs a model — it belongs in the deterministic Phase 1 rules engine (see the rules engine architecture section below), not gated behind Phase 2's flagship-only AI layer. Otherwise only flagship-device users would ever get real personalized insight, which is an equity problem, not just a technical one. Phase 2's AI adds more natural phrasing on top of this later; it doesn't create the insight.**
+    4. **A distinct absence check-in, separate from the daily fiber nudge.** Tied to `daysSinceLastLog`: after several quiet days, one message — "haven't heard from you in a few days, everything okay? no pressure" — then it stops. Doesn't repeat daily like the fiber nudge does; this is about the person, not the metric.
+    5. **Honest mirroring, not just validation.** When someone expresses low motivation, the buddy can gently reflect their own stated why back ("totally fine — just flagging you mentioned wanting X, your call") without guilt or pressure. Respects autonomy while still being honest, which is what separates a friend from a yes-man.
 
 This is the single most engineering-expensive piece in the whole plan relative to how many users can even access the flagship path — it's deliberately last.
 
@@ -87,7 +143,7 @@ The peer/accountability circle — the one feature in this whole plan that requi
 - **Health Connect Jetpack SDK** — read steps/sleep/weight/glucose, write logged data back
 - **Phase 2 only:** ML Kit GenAI APIs (Gemini Nano via AICore) on flagship devices; ML Kit on-device Image Labeling + platform SpeechRecognizer as the fallback tier
 - **Target API level 35 now** (36 required from Aug 31, 2026)
-- **No backend, no cloud AI API, no hosting bill — in any phase**
+- **No backend, no cloud AI API, no hosting bill — in any phase, with one narrow, explicit exception:** the optional anonymous outcomes ping in the Phase 1 addendum, which sends a single aggregate counter increment and nothing else. That is the only network call anywhere in this app — see §1's Phase 1 list for the strict limits on it.
 
 ### Data model (build incrementally — add tables as each phase needs them)
 ```
@@ -95,12 +151,15 @@ The peer/accountability circle — the one feature in this whole plan that requi
 Food
   id, name, servingLabel, carbsG, fiberG, proteinG
 MealEntry
-  id, foodId, servingsMultiplier, timestamp, source (text/manual)
+  id, foodId, servingsMultiplier, timestamp, source (text/manual), logGroupId (nullable — links multiple MealEntry rows logged from a single action, e.g. one photo of a plate with several foods; null for Phase 0's one-food-per-log text entries, used starting Phase 2)
 WeightEntry
   id, weightKg, timestamp
 UserGoal
-  weightLossPercent (5-7 target), weeklyActivityMinutes (150 target, or activityGoalType: steps/minutes/other),
-  fiberGramsTarget (14g/1000kcal)
+  weightLossPercent (nullable — optional, 5-7 target when set), weeklyActivityMinutes (150 target, or activityGoalType: steps/minutes/other),
+  fiberGramsTarget (14g/1000kcal), estimateCalibration (low/balanced/high — default balanced; applies a roughly ±15% adjustment to fiber/portion estimates wherever the app is guessing rather than looking up an exact value),
+  dietaryRestrictions (vegetarian/vegan/gluten-free/dairy-free/nut-allergy/other, multi-select),
+  personalWhy (free text, optional, captured once at onboarding — only referenced starting Phase 2's buddy chat, but cheap to capture now and expensive to retrofit later),
+  takesGLP1Medication (nullable bool, optional — softens fiber-increase suggestion intensity when true, see §0.6)
 PrediabetesRiskResult
   score, dateTaken, source (CDC/ADA Prediabetes Risk Test)
 RulesEngineState
@@ -108,13 +167,19 @@ RulesEngineState
 
 # Phase 1 additions
 DoctorCheckIn
-  labValue, dateTaken, nextRetestDate, source (doctor-reported / risk test)
-RulesEngineState += currentFocusLever (fiber/walks/sleep), minutesSinceLastMeal
+  labValue, dateTaken, nextRetestDate, source (doctor-reported / risk test / self-scheduled 90-day checkpoint)
+RulesEngineState += currentFocusLever (fiber/walks/sleep/stress), minutesSinceLastMeal, onboardingCompletedDate, hasSeenMilestoneReview (bool), lastCheckpointNudgeDate, lastMilestoneIntervalShown (90/180/365), hasRespondedToOutcomesPing (bool), lastResetMomentShown (date), daysSinceLastLogAtLastCheck, lastProactiveMessageDate (enforces one-per-day arbitration), lastProactiveMessageType, consecutiveWeeksOverTarget, consecutiveWeeksUnderTarget
+StressCheckIn
+  id, timestamp, selfReportedLevel (simple 1-5 tap, optional, not required)
+GroceryListItem
+  id, foodId, addedFromNudge (bool), timestamp, checkedOff (bool)
+MealEntry += entryType (database-matched / eating-out-estimate) — eating-out entries are coarser, category-based (roughly veggie/protein/carb-heavy) rather than an exact food match, and respect estimateCalibration more explicitly
 
 # Phase 2 additions
 GlucoseReading
   id, mgdl, timestamp, source (Health Connect / manual)
-MealEntry += source (photo/voice/text)
+MealEntry += source (photo/voice/text) — photo logging populates logGroupId to link multiple foods from one plate
+RulesEngineState += lastAbsenceCheckInDate (separate from lastCheckpointNudgeDate — this is relationship-based, not milestone-based)
 ```
 
 ---
@@ -170,14 +235,22 @@ Going fully local-first and zero-cost means no server, no aggregate usage data, 
 
 ---
 
-## 9. Definition of done for Phase 0 (what "shipped" actually means)
+## 9. Known limitations (not blocking launch, worth tracking)
 
-- [ ] Risk test onboarding + three goals set (weight, activity incl. non-step option, fiber)
+- Food database is US-only (USDA FoodData Central) — no localization yet
+- No re-engagement design for someone who stops logging for weeks
+- No feedback mechanism beyond the initial 12 closed testers once Phase 0 ships wider — the zero-analytics tradeoff solves the "before launch" problem, not the "six months in" problem
+- Local data has no backup/export yet — real risk given the 90-day milestone feature depends on data continuity; prioritize an export/import feature (Phase 1, alongside the milestone view) sooner rather than later
+
+## 10. Definition of done for Phase 0 (what "shipped" actually means)
+
+- [ ] Onboarding complete: entry choice, activity and fiber goals set, weight goal offered as a real optional choice (not default), dietary restrictions captured
 - [ ] Health Connect connected, reading steps/sleep/weight
 - [ ] Meal, weight, and activity logging works via text/manual entry
-- [ ] Fiber-gap nudge fires correctly against real logged data
-- [ ] Progress screen shows fiber, weight, and consistency trends
+- [ ] Fiber-gap nudge fires correctly against real logged data, and food-swap suggestions respect logged dietary restrictions
+- [ ] Progress screen shows fiber, activity, and consistency trends (weight trend shown only if a weight goal was set)
 - [ ] Privacy policy live, Play Store listing complete, no forced accounts anywhere
+- [ ] A quiet, non-judgmental support resource is reachable from Settings or Learn
 - [ ] Build in closed testing with 12 real testers, and you've personally talked to at least a few of them about what they logged and ignored
 
 Everything past this line is Phase 1 or 2. This is the line that means you have a real, live, honest product.
