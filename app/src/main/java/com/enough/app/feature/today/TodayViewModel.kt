@@ -274,6 +274,11 @@ class TodayViewModel(
         }
     }
 
+    /** Record the aggregate "ever shared a card" signal on an explicit share tap (§7.6 Step 3). */
+    fun markCardShared() {
+        viewModelScope.launch { userPreferencesRepository.setEverSharedCard() }
+    }
+
     /** Remove a logged meal (e.g. an accidental quick-log tap). */
     fun deleteMeal(item: MealWithFood) {
         viewModelScope.launch { mealRepository.delete(item.meal) }

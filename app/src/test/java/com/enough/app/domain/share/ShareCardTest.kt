@@ -1,5 +1,6 @@
 package com.enough.app.domain.share
 
+import com.enough.app.data.model.FeltLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -33,5 +34,13 @@ class ShareCardTest {
         val data = ShareCard.build(List(7) { 0.0 }, daysLogged = 0, windowDays = 7, hideNumbers = false)
         assertFalse(data.hasData)
         assertNull(data.averageFiberG)
+    }
+
+    @Test
+    fun `the daily card carries the felt and is number-free by construction`() {
+        // Leading with feeling, never a gram count — the counter-position, and a
+        // structural guarantee no number can leak into a shared story.
+        assertEquals(FeltLevel.GOOD, ShareCard.daily(FeltLevel.GOOD).felt)
+        assertNull(ShareCard.daily(null).felt)
     }
 }

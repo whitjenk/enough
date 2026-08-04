@@ -21,8 +21,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,8 @@ import com.enough.app.domain.UnitConversions
 import com.enough.app.domain.nutrition.MealNutrition
 import com.enough.app.domain.rules.DailySwap
 import com.enough.app.domain.rules.Nudge
+import com.enough.app.feature.share.ShareCardLines
+import com.enough.app.feature.share.ShareCardRenderer
 import com.enough.app.ui.components.Mascot
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.roundToInt
@@ -53,6 +57,7 @@ fun TodayRoute(
     viewModel: TodayViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     TodayScreen(
         uiState = uiState,
         onAddMeal = onAddMeal,
@@ -61,6 +66,34 @@ fun TodayRoute(
         onDeleteMeal = viewModel::deleteMeal,
         onResetMomentShown = viewModel::onResetMomentShown,
         onCheckIn = viewModel::onCheckIn,
+        onShareToday = {
+            // Feeling-first, generated on this explicit tap, handed to the OS share
+            // sheet as a 9:16 story. Number-free by design — the counter-position.
+            val headline = context.getString(
+                when (uiState.todayFelt) {
+                    FeltLevel.GOOD -> R.string.share_daily_felt_good
+                    FeltLevel.STEADY -> R.string.share_daily_felt_steady
+                    FeltLevel.ROUGH -> R.string.share_daily_felt_rough
+                    null -> R.string.share_daily_felt_generic
+                },
+            )
+            val uri = ShareCardRenderer.renderStory(
+                context,
+                ShareCardLines(
+                    title = context.getString(R.string.share_daily_title),
+                    headline = headline,
+                    subline = context.getString(R.string.share_card_subline),
+                    footer = context.getString(R.string.share_card_footer),
+                ),
+            )
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(send, null))
+            viewModel.markCardShared()
+        },
     )
 }
 
@@ -74,6 +107,7 @@ fun TodayScreen(
     onDeleteMeal: (MealWithFood) -> Unit,
     onResetMomentShown: () -> Unit,
     onCheckIn: (FeltLevel) -> Unit,
+    onShareToday: () -> Unit = {},
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.today_title)) }) },
@@ -101,7 +135,13 @@ fun TodayScreen(
             uiState.dailySwap?.let { swap -> item { DailySwapCard(swap) } }
             // The felt check-in is a reflection, so it sits just below the day's
             // fiber and the one-idea swap — present, never the first thing pushed.
-            item { CheckInCard(selected = uiState.todayFelt, onCheckIn = onCheckIn) }
+            item {
+                CheckInCard(
+                    selected = uiState.todayFelt,
+                    onCheckIn = onCheckIn,
+                    onShareToday = onShareToday,
+                )
+            }
             item {
                 LoggingActions(
                     onAddMeal = onAddMeal,
@@ -232,7 +272,11 @@ private fun ResetMomentCard(onLogSomething: () -> Unit, onShown: () -> Unit) {
  * note-to-self, never a nudge to log.
  */
 @Composable
-private fun CheckInCard(selected: FeltLevel?, onCheckIn: (FeltLevel) -> Unit) {
+private fun CheckInCard(
+    selected: FeltLevel?,
+    onCheckIn: (FeltLevel) -> Unit,
+    onShareToday: () -> Unit,
+) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.today_checkin_header), style = MaterialTheme.typography.titleMedium)
@@ -252,6 +296,13 @@ private fun CheckInCard(selected: FeltLevel?, onCheckIn: (FeltLevel) -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // Only once the person has reflected — the emotional peak — offer an
+            // opt-in, feeling-first share. Never a popup, never before a check-in.
+            if (selected != null) {
+                TextButton(onClick = onShareToday, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                    Text(stringResource(R.string.today_checkin_share))
+                }
+            }
         }
     }
 }

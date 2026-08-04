@@ -190,6 +190,12 @@
     <string name="share_card_headline_empty">A fresh week ahead</string>
     <string name="share_card_subline">Small and steady. That\'s enough.</string>
     <string name="share_card_footer">Made with Enough</string>
+    <!-- Feeling-first daily story card: leads with how the day felt, not a number (SPEC §0.8) -->
+    <string name="share_daily_title">my fiber day</string>
+    <string name="share_daily_felt_good">Today felt good.</string>
+    <string name="share_daily_felt_steady">Today felt steady.</string>
+    <string name="share_daily_felt_rough">Today was a rough one — and that\'s okay.</string>
+    <string name="share_daily_felt_generic">Today, gently.</string>
 
     <!-- Today -->
     <string name="today_title">Today</string>
@@ -214,6 +220,7 @@
     <string name="today_checkin_header">How did today feel?</string>
     <string name="today_checkin_hint">Just a note to yourself — skip it any day.</string>
     <string name="today_checkin_done">Noted — just for you.</string>
+    <string name="today_checkin_share">Share today</string>
     <string name="felt_rough">A rough one</string>
     <string name="felt_steady">Steady</string>
     <string name="felt_good">Good</string>

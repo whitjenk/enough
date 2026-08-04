@@ -1,5 +1,6 @@
 package com.enough.app.domain.share
 
+import com.enough.app.data.model.FeltLevel
 import kotlin.math.roundToInt
 
 /**
@@ -25,6 +26,18 @@ object ShareCard {
         val daysLogged: Int?,
         val windowDays: Int,
     )
+
+    /**
+     * The feeling-first daily card (SPEC §7.6 Step 2, social variant). Deliberately
+     * **number-free by construction** — it leads with how the day *felt*, not a
+     * gram count, which is the whole counter-position: the trend flexes numbers,
+     * this shares a feeling. Because the type carries no number, it is trivially
+     * safe under hide-numbers and can never leak a value into a shared story.
+     */
+    data class DailyData(val felt: FeltLevel?)
+
+    /** Build the daily story card from today's optional felt check-in. */
+    fun daily(felt: FeltLevel?): DailyData = DailyData(felt)
 
     /**
      * @param fiberByDayValues the window's per-day fiber totals (zero-filled days included).

@@ -3,6 +3,8 @@ package com.enough.app.feature.today
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.ActivityEntry
 import com.enough.app.data.local.entity.Food
@@ -157,6 +159,41 @@ class TodayScreenRenderTest {
         // The literal "18g of 28g" is gone; the qualitative stand-in shows instead.
         composeRule.onNodeWithText("Numbers are hidden", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("of 28g", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `share today appears only after a check-in`() {
+        // No check-in yet: the feeling-first share affordance is absent.
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(isLoading = false),
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {}, onShareToday = {},
+                )
+            }
+        }
+        composeRule.onNodeWithText("Share today").assertDoesNotExist()
+    }
+
+    @Test
+    fun `share today shows at the check-in peak and fires`() {
+        var shared = false
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(
+                        todayFelt = com.enough.app.data.model.FeltLevel.GOOD,
+                        isLoading = false,
+                    ),
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    onShareToday = { shared = true },
+                )
+            }
+        }
+        composeRule.onNodeWithText("Share today").performScrollTo().performClick()
+        assertTrue(shared)
     }
 
     @Test
