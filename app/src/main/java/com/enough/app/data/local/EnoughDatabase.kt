@@ -38,7 +38,7 @@ import com.enough.app.data.local.entity.WeightEntry
         RulesEngineState::class,
         DailyCheckIn::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -182,6 +182,19 @@ abstract class EnoughDatabase : RoomDatabase() {
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `user_goal` ADD COLUMN `hideNumbersMode` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * v7 -> v8: the GLP-1 stance (SPEC §7.6 Step 4). Adds `user_goal.glp1Stance`
+         * (additive, default 'NOT') and seeds it from the legacy boolean so an
+         * existing "yes" carries over as ON. The old `takesGLP1Medication` column
+         * is left in place (a rebuild to drop it isn't worth the risk).
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `user_goal` ADD COLUMN `glp1Stance` TEXT NOT NULL DEFAULT 'NOT'")
+                db.execSQL("UPDATE `user_goal` SET `glp1Stance` = 'ON' WHERE `takesGLP1Medication` = 1")
             }
         }
     }

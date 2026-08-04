@@ -122,6 +122,13 @@
     <!-- Hide-numbers mode: show trends instead of exact weight/fiber numbers, everywhere including shares -->
     <string name="settings_hide_numbers_title">Hide numbers</string>
     <string name="settings_hide_numbers_desc">Show trends instead of exact weight and fiber numbers — here, and on anything you share.</string>
+    <!-- GLP-1 stance: tunes fiber tone (gentle / satiety-bridge). Tone only, not medical advice. -->
+    <string name="settings_glp1_title">GLP-1 medication</string>
+    <string name="settings_glp1_desc">On a GLP-1, or coming off one? Fiber tips stay gentle and appetite-aware. This only tunes tone — it isn\'t medical advice.</string>
+    <string name="settings_glp1_not">Not on one</string>
+    <string name="settings_glp1_on">On a GLP-1</string>
+    <string name="settings_glp1_coming_off">Coming off one</string>
+    <string name="settings_glp1_prefer_not">Prefer not to say</string>
     <!-- Help improve Enough: user-initiated, aggregate-only, nothing sent on its own -->
     <string name="settings_feedback_title">Help improve Enough</string>
     <string name="settings_feedback_desc">Nothing is ever sent on its own. You can look at an anonymous summary of your use — just counts, nothing that identifies you — and choose to share it if you want.</string>
@@ -197,6 +204,8 @@
     <string name="today_swap_body">%1$s (%2$s) is an easy ~%3$dg of fiber — or not, today can just be today.</string>
     <!-- Softer variant for people on a GLP-1: no number to hit, appetite-aware -->
     <string name="today_swap_body_gentle">%1$s (%2$s) adds a little fiber, if it feels right — no number to hit.</string>
+    <!-- Coming off a GLP-1: fiber framed as the satiety bridge, no number to hit -->
+    <string name="today_swap_body_bridge">%1$s (%2$s) is a gentle way to keep feeling full as your appetite shifts — no number to hit.</string>
     <!-- The "Enough" reset-day moment: warm, zero catch-up math, an easy out -->
     <string name="reset_moment_header">Today\'s a fresh start</string>
     <string name="reset_moment_body">No need to make up for anything. Log one small thing if you want — or let today just be today.</string>

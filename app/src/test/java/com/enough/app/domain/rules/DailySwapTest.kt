@@ -65,6 +65,15 @@ class DailySwapTest {
     }
 
     @Test
+    fun `coming off a GLP-1 uses gentle sizing and flags the bridge framing`() {
+        val comingOff = DailySwap.forDay(epochDay = 0, candidates = pool, comingOff = true)!!
+        // Coming-off implies gentle sizing (smallest add) and the bridge copy flag.
+        assertEquals("Broccoli", comingOff.food)
+        assertTrue(comingOff.gentle)
+        assertTrue(comingOff.bridge)
+    }
+
+    @Test
     fun `never surfaces a food that violates a restriction`() {
         // A nut allergy must exclude Almonds on every day of the rotation.
         (0L until 30L).forEach { day ->

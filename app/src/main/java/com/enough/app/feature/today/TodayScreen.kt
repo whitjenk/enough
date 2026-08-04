@@ -276,13 +276,13 @@ private fun DailySwapCard(swap: DailySwap.Swap) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.today_swap_header), style = MaterialTheme.typography.titleMedium)
+            val bodyRes = when {
+                swap.bridge -> R.string.today_swap_body_bridge
+                swap.gentle -> R.string.today_swap_body_gentle
+                else -> R.string.today_swap_body
+            }
             Text(
-                text = stringResource(
-                    if (swap.gentle) R.string.today_swap_body_gentle else R.string.today_swap_body,
-                    swap.food,
-                    swap.servingLabel,
-                    swap.fiberG,
-                ),
+                text = stringResource(bodyRes, swap.food, swap.servingLabel, swap.fiberG),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }

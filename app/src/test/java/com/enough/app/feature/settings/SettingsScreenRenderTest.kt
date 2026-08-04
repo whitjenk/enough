@@ -38,6 +38,7 @@ class SettingsScreenRenderTest {
                     onToggleSync = {},
                     onSetCalibration = { picked = it },
                     onToggleHideNumbers = {},
+                    onSetGlp1Stance = {},
                     onPrepareFeedback = {},
                     onShareFeedback = {},
                     onDeleteData = {},

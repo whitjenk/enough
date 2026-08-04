@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.enough.app.data.local.entity.PrediabetesRiskResult
 import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
+import com.enough.app.data.model.Glp1Stance
 import com.enough.app.data.model.RiskResultSource
 import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.GoalRepository
@@ -195,6 +196,9 @@ class OnboardingViewModel(
                     dietaryRestrictionOther = extras.dietaryOther.trim().takeIf { it.isNotEmpty() },
                     personalWhy = extras.personalWhy.trim().takeIf { it.isNotEmpty() },
                     takesGLP1Medication = extras.takesGLP1 == true,
+                    // Onboarding keeps the simple yes/no; the richer "coming off"
+                    // stance is refined later in Settings (SPEC §7.6 Step 4).
+                    glp1Stance = if (extras.takesGLP1 == true) Glp1Stance.ON else Glp1Stance.NOT,
                 ),
             )
 

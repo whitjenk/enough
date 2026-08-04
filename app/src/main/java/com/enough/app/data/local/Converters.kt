@@ -7,6 +7,7 @@ import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.data.model.DietaryTag
 import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.FeltLevel
+import com.enough.app.data.model.Glp1Stance
 import com.enough.app.data.model.MealEntryType
 import com.enough.app.data.model.MealSource
 import com.enough.app.data.model.NudgeType
@@ -80,6 +81,12 @@ class Converters {
 
     @TypeConverter
     fun nameToFeltLevel(value: String?): FeltLevel? = value?.let(FeltLevel::valueOf)
+
+    @TypeConverter
+    fun glp1StanceToName(value: Glp1Stance?): String? = value?.name
+
+    @TypeConverter
+    fun nameToGlp1Stance(value: String?): Glp1Stance? = value?.let(Glp1Stance::valueOf)
 
     /** Stored as a comma-separated list of enum names; empty set -> "". */
     @TypeConverter

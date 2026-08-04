@@ -3,6 +3,7 @@ package com.enough.app.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.Glp1Stance
 import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.CheckInRepository
 import com.enough.app.data.repository.GoalRepository
@@ -21,6 +22,7 @@ data class SettingsUiState(
     val healthConnectSyncEnabled: Boolean = true,
     val estimateCalibration: EstimateCalibration = EstimateCalibration.BALANCED,
     val hideNumbersMode: Boolean = false,
+    val glp1Stance: Glp1Stance = Glp1Stance.NOT,
     /** The anonymous "help improve" summary once the person asks to see it; null until then. */
     val feedback: FeedbackSummary? = null,
 )
@@ -53,6 +55,7 @@ class SettingsViewModel(
                 healthConnectSyncEnabled = syncEnabled,
                 estimateCalibration = goal?.estimateCalibration ?: EstimateCalibration.BALANCED,
                 hideNumbersMode = goal?.hideNumbersMode ?: false,
+                glp1Stance = goal?.glp1Stance ?: Glp1Stance.NOT,
                 feedback = feedbackSummary,
             )
         }.stateIn(
@@ -99,6 +102,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             val goal = goalRepository.getGoal() ?: return@launch
             goalRepository.saveGoal(goal.copy(hideNumbersMode = enabled))
+        }
+    }
+
+    /** Update the GLP-1 stance (drives fiber tone; SPEC §7.6 Step 4). No-op until a goal exists. */
+    fun setGlp1Stance(stance: Glp1Stance) {
+        viewModelScope.launch {
+            val goal = goalRepository.getGoal() ?: return@launch
+            goalRepository.saveGoal(goal.copy(glp1Stance = stance))
         }
     }
 

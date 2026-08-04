@@ -136,7 +136,8 @@ class TodayViewModel(
         val fiberSoFar = MealNutrition.fiberGrams(meals, calibration)
         val target = goal?.fiberGramsTarget ?: 0
         val restrictions = goal?.dietaryRestrictions ?: emptySet()
-        val gentle = goal?.takesGLP1Medication == true
+        val gentle = goal?.gentleFiber == true
+        val comingOff = goal?.comingOffGlp1 == true
         TodayUiState(
             goal = goal,
             meals = meals,
@@ -158,6 +159,7 @@ class TodayViewModel(
                 restrictions = restrictions,
                 otherRestriction = goal?.dietaryRestrictionOther,
                 gentle = gentle,
+                comingOff = comingOff,
             ),
             isLoading = false,
         )

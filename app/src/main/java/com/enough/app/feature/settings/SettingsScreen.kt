@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.Glp1Stance
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.feedback.FeedbackSummary
 import com.enough.app.ui.components.ChoiceList
@@ -58,6 +59,7 @@ fun SettingsRoute(
         onToggleSync = viewModel::setHealthConnectSyncEnabled,
         onSetCalibration = viewModel::setEstimateCalibration,
         onToggleHideNumbers = viewModel::setHideNumbersMode,
+        onSetGlp1Stance = viewModel::setGlp1Stance,
         onPrepareFeedback = viewModel::prepareFeedback,
         onShareFeedback = { text ->
             // User-initiated only: they tap share and pick the destination in the
@@ -80,6 +82,7 @@ fun SettingsScreen(
     onToggleSync: (Boolean) -> Unit,
     onSetCalibration: (EstimateCalibration) -> Unit,
     onToggleHideNumbers: (Boolean) -> Unit,
+    onSetGlp1Stance: (Glp1Stance) -> Unit,
     onPrepareFeedback: () -> Unit,
     onShareFeedback: (String) -> Unit,
     onDeleteData: () -> Unit,
@@ -101,6 +104,7 @@ fun SettingsScreen(
             SyncCard(enabled = uiState.healthConnectSyncEnabled, onToggle = onToggleSync)
             CalibrationCard(selected = uiState.estimateCalibration, onSelect = onSetCalibration)
             HideNumbersCard(enabled = uiState.hideNumbersMode, onToggle = onToggleHideNumbers)
+            Glp1StanceCard(selected = uiState.glp1Stance, onSelect = onSetGlp1Stance)
             FeedbackCard(
                 feedback = uiState.feedback,
                 onPrepare = onPrepareFeedback,
@@ -170,6 +174,30 @@ private fun HideNumbersCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
             }
             Spacer(Modifier.width(16.dp))
             Switch(checked = enabled, onCheckedChange = onToggle)
+        }
+    }
+}
+
+@Composable
+private fun Glp1StanceCard(
+    selected: Glp1Stance,
+    onSelect: (Glp1Stance) -> Unit,
+) {
+    val options = listOf(
+        ChoiceOption(Glp1Stance.NOT, stringResource(R.string.settings_glp1_not)),
+        ChoiceOption(Glp1Stance.ON, stringResource(R.string.settings_glp1_on)),
+        ChoiceOption(Glp1Stance.COMING_OFF, stringResource(R.string.settings_glp1_coming_off)),
+        ChoiceOption(Glp1Stance.PREFER_NOT_TO_SAY, stringResource(R.string.settings_glp1_prefer_not)),
+    )
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.settings_glp1_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.settings_glp1_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ChoiceList(options = options, selected = selected, onSelect = onSelect)
         }
     }
 }
@@ -302,6 +330,7 @@ private fun SettingsPreview() {
             onToggleSync = {},
             onSetCalibration = {},
             onToggleHideNumbers = {},
+            onSetGlp1Stance = {},
             onPrepareFeedback = {},
             onShareFeedback = {},
             onDeleteData = {},

@@ -25,6 +25,8 @@ object DailySwap {
         val servingLabel: String,
         val fiberG: Int,
         val gentle: Boolean,
+        /** The "coming off a GLP-1" framing: fiber as the satiety bridge (SPEC §7.6 Step 4). */
+        val bridge: Boolean = false,
     )
 
     /**
@@ -37,8 +39,10 @@ object DailySwap {
      * @param restrictions logged restrictions/allergies; unsafe foods are dropped
      *   first via [DietaryFilter] — never surface something the person can't eat
      * @param otherRestriction free-text restriction, honored best-effort
-     * @param gentle when true (GLP-1 medication), bias toward a smaller, easier
-     *   add and let the UI drop any number-to-hit framing
+     * @param gentle when true (on or coming off a GLP-1), bias toward a smaller,
+     *   easier add and let the UI drop any number-to-hit framing
+     * @param comingOff when true, use the "satiety bridge" framing (implies gentle
+     *   sizing); the UI renders a distinct, reassuring coming-off line
      */
     fun forDay(
         epochDay: Long,
@@ -46,7 +50,9 @@ object DailySwap {
         restrictions: Set<DietaryRestriction> = emptySet(),
         otherRestriction: String? = null,
         gentle: Boolean = false,
+        comingOff: Boolean = false,
     ): Swap? {
+        val gentleSizing = gentle || comingOff
         val safe = candidates
             .filter { it.fiberG >= NudgeGenerator.MIN_SUGGESTION_FIBER_G }
             .filter { DietaryFilter.isSafe(it, restrictions, otherRestriction) }
@@ -57,7 +63,7 @@ object DailySwap {
         // smaller-fiber end (an easier add for a reduced appetite); otherwise
         // lead with the bigger levers. Name breaks ties for full determinism.
         val ordered = safe.sortedWith(
-            if (gentle) {
+            if (gentleSizing) {
                 compareBy<Food> { it.fiberG }.thenBy { it.name }
             } else {
                 compareByDescending<Food> { it.fiberG }.thenBy { it.name }
@@ -68,7 +74,8 @@ object DailySwap {
             food = pick.name,
             servingLabel = pick.servingLabel,
             fiberG = pick.fiberG.roundToInt(),
-            gentle = gentle,
+            gentle = gentleSizing,
+            bridge = comingOff,
         )
     }
 }

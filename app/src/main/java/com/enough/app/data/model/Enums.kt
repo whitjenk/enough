@@ -56,6 +56,18 @@ enum class NudgeType { NONE, FIBER_GAP }
 enum class FeltLevel { ROUGH, STEADY, GOOD }
 
 /**
+ * The person's relationship to GLP-1 medication (SPEC §0.6 / §7.6 Step 4). A
+ * richer version of the old yes/no: the app already softens fiber suggestions on
+ * a GLP-1, but the timely, under-served moment is [COMING_OFF] — where fiber is
+ * framed as the satiety *bridge* that helps hold changes. Purely a tone/targeting
+ * signal; the app never offers medication-specific medical advice (SPEC §8).
+ *
+ * - [ON] / [COMING_OFF] both get the gentle, appetite-aware smaller increments.
+ * - [NOT] / [PREFER_NOT_TO_SAY] get the standard framing.
+ */
+enum class Glp1Stance { ON, COMING_OFF, NOT, PREFER_NOT_TO_SAY }
+
+/**
  * A dietary restriction or allergy the person logged in onboarding. Used to
  * filter food suggestions so a nudge never suggests something they can't eat.
  * "Other" is captured as free text on the goal, not as an enum value here.
