@@ -12,6 +12,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,6 +33,7 @@ import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.ActivityEntry
 import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.MealEntryType
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
@@ -57,6 +59,7 @@ fun TodayRoute(
         onLogActivity = onLogActivity,
         onDeleteMeal = viewModel::deleteMeal,
         onResetMomentShown = viewModel::onResetMomentShown,
+        onCheckIn = viewModel::onCheckIn,
     )
 }
 
@@ -69,6 +72,7 @@ fun TodayScreen(
     onLogActivity: () -> Unit,
     onDeleteMeal: (MealWithFood) -> Unit,
     onResetMomentShown: () -> Unit,
+    onCheckIn: (FeltLevel) -> Unit,
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.today_title)) }) },
@@ -94,6 +98,9 @@ fun TodayScreen(
             }
             item { FiberCard(uiState) }
             uiState.dailySwap?.let { swap -> item { DailySwapCard(swap) } }
+            // The felt check-in is a reflection, so it sits just below the day's
+            // fiber and the one-idea swap — present, never the first thing pushed.
+            item { CheckInCard(selected = uiState.todayFelt, onCheckIn = onCheckIn) }
             item {
                 LoggingActions(
                     onAddMeal = onAddMeal,
@@ -215,6 +222,44 @@ private fun ResetMomentCard(onLogSomething: () -> Unit, onShown: () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * The optional one-tap felt check-in — fiber's same-day payoff, the daily loop a
+ * calorie tracker can't offer (SPEC §0.8 / §7.6 Step 1). Genuinely skippable: no
+ * option is "wrong", nothing marks a day you didn't answer, and the copy stays a
+ * note-to-self, never a nudge to log.
+ */
+@Composable
+private fun CheckInCard(selected: FeltLevel?, onCheckIn: (FeltLevel) -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.today_checkin_header), style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FeltLevel.entries.forEach { level ->
+                    FilterChip(
+                        selected = selected == level,
+                        onClick = { onCheckIn(level) },
+                        label = { Text(stringResource(feltLabelRes(level))) },
+                    )
+                }
+            }
+            Text(
+                text = stringResource(
+                    if (selected == null) R.string.today_checkin_hint else R.string.today_checkin_done,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** String resource for a felt level's label, used by the Today check-in chips. */
+private fun feltLabelRes(level: FeltLevel): Int = when (level) {
+    FeltLevel.ROUGH -> R.string.felt_rough
+    FeltLevel.STEADY -> R.string.felt_steady
+    FeltLevel.GOOD -> R.string.felt_good
 }
 
 @Composable
@@ -421,6 +466,7 @@ private fun TodayPreview() {
             onLogActivity = {},
             onDeleteMeal = {},
             onResetMomentShown = {},
+            onCheckIn = {},
         )
     }
 }

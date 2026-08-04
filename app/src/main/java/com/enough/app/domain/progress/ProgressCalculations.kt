@@ -2,6 +2,7 @@ package com.enough.app.domain.progress
 
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.domain.nutrition.MealNutrition
 import java.time.Instant
 import java.time.LocalDate
@@ -72,4 +73,29 @@ object ProgressCalculations {
         now: Instant,
         zone: ZoneId,
     ): Int = loggedDaySeries(nDays, logInstants, now, zone).count { it }
+
+    /**
+     * The felt check-in for each of the last [nDays] calendar days (oldest first,
+     * ending today), or `null` for a day with no check-in. A missing day is just a
+     * `null` in the series — never a "missed" marker — so skipping the optional
+     * check-in carries no penalty (SPEC §7.6 Step 1). Independent of the logging
+     * consistency series above: a check-in is a reflection, not a log.
+     */
+    fun feltSeries(
+        nDays: Int,
+        feltByDay: Map<LocalDate, FeltLevel>,
+        now: Instant,
+        zone: ZoneId,
+    ): List<FeltLevel?> {
+        val today = now.atZone(zone).toLocalDate()
+        return (nDays - 1 downTo 0).map { back -> feltByDay[today.minusDays(back.toLong())] }
+    }
+
+    /** How many of the last [nDays] days had a check-in. Streak-free; skips don't count against anything. */
+    fun checkInDaysInLast(
+        nDays: Int,
+        feltByDay: Map<LocalDate, FeltLevel>,
+        now: Instant,
+        zone: ZoneId,
+    ): Int = feltSeries(nDays, feltByDay, now, zone).count { it != null }
 }

@@ -6,6 +6,7 @@ import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.data.model.DietaryTag
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.MealEntryType
 import com.enough.app.data.model.MealSource
 import com.enough.app.data.model.NudgeType
@@ -73,6 +74,12 @@ class Converters {
 
     @TypeConverter
     fun nameToNudgeType(value: String?): NudgeType? = value?.let(NudgeType::valueOf)
+
+    @TypeConverter
+    fun feltLevelToName(value: FeltLevel?): String? = value?.name
+
+    @TypeConverter
+    fun nameToFeltLevel(value: String?): FeltLevel? = value?.let(FeltLevel::valueOf)
 
     /** Stored as a comma-separated list of enum names; empty set -> "". */
     @TypeConverter

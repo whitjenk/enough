@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 import com.enough.app.data.local.EnoughDatabase
 import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.ActivityRepository
+import com.enough.app.data.repository.CheckInRepository
 import com.enough.app.data.repository.FoodRepository
 import com.enough.app.data.repository.GoalRepository
 import com.enough.app.data.repository.MealRepository
@@ -39,6 +40,7 @@ class AppContainer(context: Context) {
             EnoughDatabase.MIGRATION_2_3,
             EnoughDatabase.MIGRATION_3_4,
             EnoughDatabase.MIGRATION_4_5,
+            EnoughDatabase.MIGRATION_5_6,
         )
         .build()
 
@@ -62,6 +64,8 @@ class AppContainer(context: Context) {
 
     val rulesEngineStateRepository: RulesEngineStateRepository =
         RulesEngineStateRepository(database.rulesEngineStateDao())
+
+    val checkInRepository: CheckInRepository = CheckInRepository(database.dailyCheckInDao())
 
     val healthConnectManager: HealthConnectManager = HealthConnectManager(appContext)
 

@@ -46,6 +46,16 @@ enum class WeightTrendDirection { DOWN, FLAT, UP, UNKNOWN }
 enum class NudgeType { NONE, FIBER_GAP }
 
 /**
+ * A one-tap felt reflection for the day — fiber's *same-day* payoff (satiety,
+ * steadiness after meals), the daily loop a calorie tracker can't offer
+ * (SPEC §0.8 / IMPLEMENTATION_PLAN §7.6 Step 1). Deliberately three plain,
+ * self-referential levels: this is the person noticing their own day, never the
+ * app grading it — [ROUGH] is an honest report, not a failure, and nothing in
+ * the app penalizes it or the absence of any check-in at all.
+ */
+enum class FeltLevel { ROUGH, STEADY, GOOD }
+
+/**
  * A dietary restriction or allergy the person logged in onboarding. Used to
  * filter food suggestions so a nudge never suggests something they can't eat.
  * "Other" is captured as free text on the goal, not as an enum value here.

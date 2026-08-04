@@ -148,6 +148,11 @@
     <string name="progress_consistency_subtitle">Every day you show up counts. Missing one doesn\'t erase the rest.</string>
     <string name="cd_day_logged">Logged</string>
     <string name="cd_day_not_logged">Not logged</string>
+    <!-- Daily felt check-in reflection: gentle, non-scored, never a streak -->
+    <string name="progress_checkin_header">How you\'ve felt</string>
+    <string name="progress_checkin_value">You checked in on %1$d of the last %2$d days</string>
+    <string name="progress_checkin_empty">Check in on Today and a quiet 7-day view shows up here.</string>
+    <string name="cd_day_no_checkin">No check-in</string>
     <string name="progress_fiber_header">Fiber trend</string>
     <string name="progress_fiber_target_label">Target %1$dg a day</string>
     <string name="progress_fiber_today_value">%1$dg today</string>
@@ -183,6 +188,13 @@
     <string name="reset_moment_header">Today\'s a fresh start</string>
     <string name="reset_moment_body">No need to make up for anything. Log one small thing if you want — or let today just be today.</string>
     <string name="reset_moment_log_action">Log something small</string>
+    <!-- Optional one-tap felt check-in: fiber's same-day payoff, never required, never scored -->
+    <string name="today_checkin_header">How did today feel?</string>
+    <string name="today_checkin_hint">Just a note to yourself — skip it any day.</string>
+    <string name="today_checkin_done">Noted — just for you.</string>
+    <string name="felt_rough">A rough one</string>
+    <string name="felt_steady">Steady</string>
+    <string name="felt_good">Good</string>
     <string name="cd_mascot">Enough</string>
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>

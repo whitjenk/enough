@@ -69,7 +69,7 @@ class TodayScreenRenderTest {
                 TodayScreen(
                     state,
                     onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
-                    onDeleteMeal = {}, onResetMomentShown = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
                 )
             }
         }
@@ -101,7 +101,7 @@ class TodayScreenRenderTest {
                 TodayScreen(
                     state,
                     onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
-                    onDeleteMeal = {}, onResetMomentShown = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
                 )
             }
         }
@@ -110,6 +110,28 @@ class TodayScreenRenderTest {
         // actions, with its non-logging, exit-offering copy.
         composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
         composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `today renders the optional felt check-in with its skippable, non-scored copy`() {
+        // Minimal state (no swap) so the check-in card sits near the top of the
+        // small test viewport. Nothing selected yet -> the note-to-self hint shows.
+        val state = TodayUiState(isLoading = false)
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("How did today feel?").assertIsDisplayed()
+        composeRule.onNodeWithText("Steady").assertIsDisplayed()
+        // Framed as a note to yourself, never a nudge to log.
+        composeRule.onNodeWithText("skip it any day", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -132,7 +154,7 @@ class TodayScreenRenderTest {
                 TodayScreen(
                     state,
                     onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
-                    onDeleteMeal = {}, onResetMomentShown = { shownRecorded = true },
+                    onDeleteMeal = {}, onResetMomentShown = { shownRecorded = true }, onCheckIn = {},
                 )
             }
         }

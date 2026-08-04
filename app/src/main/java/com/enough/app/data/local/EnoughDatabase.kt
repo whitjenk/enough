@@ -6,6 +6,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.enough.app.data.local.dao.ActivityEntryDao
+import com.enough.app.data.local.dao.DailyCheckInDao
 import com.enough.app.data.local.dao.FoodDao
 import com.enough.app.data.local.dao.MealEntryDao
 import com.enough.app.data.local.dao.PrediabetesRiskResultDao
@@ -13,6 +14,7 @@ import com.enough.app.data.local.dao.RulesEngineStateDao
 import com.enough.app.data.local.dao.UserGoalDao
 import com.enough.app.data.local.dao.WeightEntryDao
 import com.enough.app.data.local.entity.ActivityEntry
+import com.enough.app.data.local.entity.DailyCheckIn
 import com.enough.app.data.local.entity.Food
 import com.enough.app.data.local.entity.MealEntry
 import com.enough.app.data.local.entity.PrediabetesRiskResult
@@ -34,8 +36,9 @@ import com.enough.app.data.local.entity.WeightEntry
         UserGoal::class,
         PrediabetesRiskResult::class,
         RulesEngineState::class,
+        DailyCheckIn::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -47,6 +50,7 @@ abstract class EnoughDatabase : RoomDatabase() {
     abstract fun userGoalDao(): UserGoalDao
     abstract fun prediabetesRiskResultDao(): PrediabetesRiskResultDao
     abstract fun rulesEngineStateDao(): RulesEngineStateDao
+    abstract fun dailyCheckInDao(): DailyCheckInDao
 
     companion object {
         const val NAME = "enough.db"
@@ -149,6 +153,24 @@ abstract class EnoughDatabase : RoomDatabase() {
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `food` ADD COLUMN `userCreated` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * v5 -> v6: the optional daily felt check-in (SPEC §0.8 / §7.6 Step 1).
+         * Adds a new `daily_check_in` table keyed by calendar day; purely additive,
+         * so nothing existing is touched. `date` is stored as an epoch day and
+         * `createdAt` as epoch millis (see [Converters]).
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `daily_check_in` (" +
+                        "`date` INTEGER NOT NULL, " +
+                        "`felt` TEXT NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`date`))",
+                )
             }
         }
     }

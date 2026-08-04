@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
@@ -63,6 +64,7 @@ fun ProgressScreen(uiState: ProgressUiState) {
             contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
         ) {
             item { ConsistencyCard(uiState) }
+            item { CheckInReflectionCard(uiState) }
             item { FiberTrendCard(uiState) }
             item { WeightCard(uiState) }
             item { MovementCard(uiState) }
@@ -120,6 +122,54 @@ private fun ConsistencyDot(logged: Boolean, contentDescription: String) {
             base.clip(CircleShape).border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
         )
     }
+}
+
+/**
+ * A gentle, non-scored reflection of the optional felt check-in (SPEC §7.6
+ * Step 1). Mirrors the consistency dots — a checked-in day is filled (shape, not
+ * color alone), a skipped day is hollow — and never ranks the levels or forms a
+ * streak. A day with no check-in is simply hollow, carrying no penalty.
+ */
+@Composable
+private fun CheckInReflectionCard(uiState: ProgressUiState) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.progress_checkin_header), style = MaterialTheme.typography.titleMedium)
+            if (uiState.checkInFeltSeries.all { it == null }) {
+                Text(
+                    text = stringResource(R.string.progress_checkin_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    text = stringResource(
+                        R.string.progress_checkin_value,
+                        uiState.checkInDaysLast7,
+                        uiState.windowDays,
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val noCheckIn = stringResource(R.string.cd_day_no_checkin)
+                    uiState.checkInFeltSeries.forEach { felt ->
+                        ConsistencyDot(
+                            logged = felt != null,
+                            contentDescription = felt?.let { stringResource(feltLabelRes(it)) } ?: noCheckIn,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** String resource for a felt level's label, used as the check-in dot's accessible description. */
+private fun feltLabelRes(level: FeltLevel): Int = when (level) {
+    FeltLevel.ROUGH -> R.string.felt_rough
+    FeltLevel.STEADY -> R.string.felt_steady
+    FeltLevel.GOOD -> R.string.felt_good
 }
 
 @Composable

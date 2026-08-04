@@ -9,9 +9,11 @@ import com.enough.app.data.local.entity.RulesEngineState
 import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.ActivityRepository
+import com.enough.app.data.repository.CheckInRepository
 import com.enough.app.data.repository.FoodRepository
 import com.enough.app.data.repository.GoalRepository
 import com.enough.app.data.repository.MealRepository
@@ -58,6 +60,7 @@ data class TodayUiState(
     val nudge: Nudge = Nudge.None,
     val dailySwap: DailySwap.Swap? = null,
     val showResetMoment: Boolean = false,
+    val todayFelt: FeltLevel? = null,
     val healthConnect: HealthConnectData = HealthConnectData(),
     val isLoading: Boolean = true,
 ) {
@@ -80,6 +83,7 @@ class TodayViewModel(
     private val rulesEngineStateRepository: RulesEngineStateRepository,
     private val healthConnectManager: HealthConnectManager,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val checkInRepository: CheckInRepository,
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
@@ -102,9 +106,14 @@ class TodayViewModel(
     val uiState: StateFlow<TodayUiState> = flow {
         val nowInstant = now()
         val today = DayRange.today(zone, nowInstant)
+        val todayDate = nowInstant.atZone(zone).toLocalDate()
         emitAll(
-            combine(observeBaseState(today), healthData) { base, health ->
-                base.copy(healthConnect = health)
+            combine(
+                observeBaseState(today),
+                healthData,
+                checkInRepository.observeForDate(todayDate),
+            ) { base, health, checkIn ->
+                base.copy(healthConnect = health, todayFelt = checkIn?.felt)
             }.map { enrichAndPersist(it, nowInstant, today) },
         )
     }.stateIn(
@@ -246,6 +255,17 @@ class TodayViewModel(
             userPreferencesRepository.setResetMomentShownEpochDay(
                 now().atZone(zone).toLocalDate().toEpochDay(),
             )
+        }
+    }
+
+    /**
+     * Record (or change) today's optional felt check-in. Keyed by today's calendar
+     * date, so re-tapping replaces it; there is no way to make this "wrong" and
+     * skipping it entirely costs nothing.
+     */
+    fun onCheckIn(felt: FeltLevel) {
+        viewModelScope.launch {
+            checkInRepository.setFelt(now().atZone(zone).toLocalDate(), felt, now())
         }
     }
 

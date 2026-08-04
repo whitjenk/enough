@@ -45,6 +45,7 @@ object AppViewModelProvider {
                 rulesEngineStateRepository = container.rulesEngineStateRepository,
                 healthConnectManager = container.healthConnectManager,
                 userPreferencesRepository = container.userPreferencesRepository,
+                checkInRepository = container.checkInRepository,
             )
         }
         initializer {
@@ -54,6 +55,7 @@ object AppViewModelProvider {
                 mealRepository = container.mealRepository,
                 activityRepository = container.activityRepository,
                 weightRepository = container.weightRepository,
+                checkInRepository = container.checkInRepository,
             )
         }
         initializer {
