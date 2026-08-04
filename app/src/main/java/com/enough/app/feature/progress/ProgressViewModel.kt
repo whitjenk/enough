@@ -42,6 +42,7 @@ data class ProgressUiState(
     val activityGoalType: ActivityGoalType? = null,
     val weeklyActivityMinutes: Int = 0,
     val activityGoalMinutes: Int? = null,
+    val hideNumbers: Boolean = false,
     val isLoading: Boolean = true,
 ) {
     companion object {
@@ -131,6 +132,7 @@ class ProgressViewModel(
                 weeklyActivityMinutes = weeklyMinutes,
                 activityGoalMinutes = goal?.takeIf { it.activityGoalType == ActivityGoalType.MINUTES }
                     ?.activityGoalValue,
+                hideNumbers = goal?.hideNumbersMode ?: false,
                 isLoading = false,
             )
         }

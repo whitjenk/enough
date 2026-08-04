@@ -35,6 +35,7 @@ import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.MealEntryType
+import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
 import com.enough.app.domain.nutrition.MealNutrition
@@ -262,6 +263,14 @@ private fun feltLabelRes(level: FeltLevel): Int = when (level) {
     FeltLevel.GOOD -> R.string.felt_good
 }
 
+/** Weight-trend sentence shown in hide-numbers mode instead of the literal weight (SPEC §23). */
+private fun weightTrendCopy(trend: WeightTrendDirection): Int = when (trend) {
+    WeightTrendDirection.DOWN -> R.string.progress_weight_trend_down
+    WeightTrendDirection.FLAT -> R.string.progress_weight_trend_flat
+    WeightTrendDirection.UP -> R.string.progress_weight_trend_up
+    WeightTrendDirection.UNKNOWN -> R.string.metric_hidden
+}
+
 @Composable
 private fun DailySwapCard(swap: DailySwap.Swap) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
@@ -285,7 +294,14 @@ private fun FiberCard(uiState: TodayUiState) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.today_fiber_headline), style = MaterialTheme.typography.titleMedium)
-            if (uiState.fiberTargetG > 0) {
+            if (uiState.hideNumbers) {
+                // Hide-numbers mode: no literal grams, just that today's being logged.
+                Text(
+                    text = stringResource(R.string.today_fiber_hidden),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (uiState.fiberTargetG > 0) {
                 Text(
                     text = stringResource(
                         R.string.today_fiber_progress,
@@ -331,7 +347,13 @@ private fun WeightCard(uiState: TodayUiState) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.today_weight_header), style = MaterialTheme.typography.titleMedium)
             val weight = uiState.latestWeight
-            if (weight != null) {
+            if (weight != null && uiState.hideNumbers) {
+                // Hide-numbers mode: the trend word instead of the literal weight.
+                Text(
+                    text = stringResource(weightTrendCopy(uiState.weightTrend)),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else if (weight != null) {
                 Text(
                     text = stringResource(
                         R.string.today_weight_value,

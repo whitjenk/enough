@@ -18,6 +18,7 @@ import java.time.ZoneId
 data class SettingsUiState(
     val healthConnectSyncEnabled: Boolean = true,
     val estimateCalibration: EstimateCalibration = EstimateCalibration.BALANCED,
+    val hideNumbersMode: Boolean = false,
     /** The anonymous "help improve" summary once the person asks to see it; null until then. */
     val feedback: FeedbackSummary? = null,
 )
@@ -48,6 +49,7 @@ class SettingsViewModel(
             SettingsUiState(
                 healthConnectSyncEnabled = syncEnabled,
                 estimateCalibration = goal?.estimateCalibration ?: EstimateCalibration.BALANCED,
+                hideNumbersMode = goal?.hideNumbersMode ?: false,
                 feedback = feedbackSummary,
             )
         }.stateIn(
@@ -80,6 +82,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             val goal = goalRepository.getGoal() ?: return@launch
             goalRepository.saveGoal(goal.copy(estimateCalibration = calibration))
+        }
+    }
+
+    /** Toggle hide-numbers mode. No-op until onboarding has created the goal row. */
+    fun setHideNumbersMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val goal = goalRepository.getGoal() ?: return@launch
+            goalRepository.saveGoal(goal.copy(hideNumbersMode = enabled))
         }
     }
 

@@ -135,6 +135,31 @@ class TodayScreenRenderTest {
     }
 
     @Test
+    fun `hide-numbers mode replaces the literal fiber value with a qualitative line`() {
+        val goal = UserGoal(
+            startWeightKg = null, targetWeightKg = null, weightLossPercent = null,
+            activityGoalType = ActivityGoalType.MINUTES, activityGoalValue = 150,
+            activityGoalCustomLabel = null, dailyCalorieEstimate = 2000, fiberGramsTarget = 28,
+            createdAt = Instant.EPOCH, hideNumbersMode = true,
+        )
+        val state = TodayUiState(goal = goal, fiberSoFarG = 18.0, isLoading = false)
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        // The literal "18g of 28g" is gone; the qualitative stand-in shows instead.
+        composeRule.onNodeWithText("Numbers are hidden", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("of 28g", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun `reset moment card shows and suppresses the fiber nudge`() {
         val state = TodayUiState(
             nudge = com.enough.app.domain.rules.Nudge.FiberGap(

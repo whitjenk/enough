@@ -38,7 +38,7 @@ import com.enough.app.data.local.entity.WeightEntry
         RulesEngineState::class,
         DailyCheckIn::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -171,6 +171,17 @@ abstract class EnoughDatabase : RoomDatabase() {
                         "`createdAt` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`date`))",
                 )
+            }
+        }
+
+        /**
+         * v6 -> v7: hide-numbers mode (SPEC §23, pulled forward for §7.6 Step 2).
+         * Adds `user_goal.hideNumbersMode`, a plain additive boolean column
+         * (stored as INTEGER, default 0 = off). Nothing existing is touched.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `user_goal` ADD COLUMN `hideNumbersMode` INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

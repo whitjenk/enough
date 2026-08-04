@@ -66,6 +66,9 @@ data class TodayUiState(
 ) {
     val fiberTargetG: Int get() = goal?.fiberGramsTarget ?: 0
     val calibration: EstimateCalibration get() = goal?.estimateCalibration ?: EstimateCalibration.BALANCED
+
+    /** Hide-numbers mode: show trend/qualitative signal instead of literal weight/fiber values (SPEC §23). */
+    val hideNumbers: Boolean get() = goal?.hideNumbersMode == true
 }
 
 /**

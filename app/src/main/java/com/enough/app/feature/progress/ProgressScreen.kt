@@ -185,12 +185,15 @@ private fun FiberTrendCard(uiState: ProgressUiState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                val todayFiber = uiState.fiberSeries.lastOrNull()?.fiberG?.roundToInt() ?: 0
-                Text(
-                    text = stringResource(R.string.progress_fiber_today_value, todayFiber),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                // Hide-numbers mode: keep the shape-only trend chart, drop the literal grams.
+                if (!uiState.hideNumbers) {
+                    val todayFiber = uiState.fiberSeries.lastOrNull()?.fiberG?.roundToInt() ?: 0
+                    Text(
+                        text = stringResource(R.string.progress_fiber_today_value, todayFiber),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 FiberBarChart(
                     values = uiState.fiberSeries.map { it.fiberG },
                     targetG = uiState.fiberTargetG,
@@ -201,7 +204,7 @@ private fun FiberTrendCard(uiState: ProgressUiState) {
                         .height(120.dp),
                     chartDescription = stringResource(R.string.cd_fiber_chart, uiState.windowDays),
                 )
-                if (uiState.fiberTargetG > 0) {
+                if (uiState.fiberTargetG > 0 && !uiState.hideNumbers) {
                     Text(
                         text = stringResource(R.string.progress_fiber_target_label, uiState.fiberTargetG),
                         style = MaterialTheme.typography.bodySmall,
@@ -263,21 +266,24 @@ private fun WeightCard(uiState: ProgressUiState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                Text(
-                    text = stringResource(R.string.progress_weight_current, UnitConversions.kgToLb(current).roundToInt()),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (uiState.startWeightKg != null && uiState.targetWeightKg != null) {
+                // Hide-numbers mode: keep the trend sentence, drop the literal pounds.
+                if (!uiState.hideNumbers) {
                     Text(
-                        text = stringResource(
-                            R.string.progress_weight_start_target,
-                            UnitConversions.kgToLb(uiState.startWeightKg).roundToInt(),
-                            UnitConversions.kgToLb(uiState.targetWeightKg).roundToInt(),
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = stringResource(R.string.progress_weight_current, UnitConversions.kgToLb(current).roundToInt()),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
                     )
+                    if (uiState.startWeightKg != null && uiState.targetWeightKg != null) {
+                        Text(
+                            text = stringResource(
+                                R.string.progress_weight_start_target,
+                                UnitConversions.kgToLb(uiState.startWeightKg).roundToInt(),
+                                UnitConversions.kgToLb(uiState.targetWeightKg).roundToInt(),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 Text(
                     text = stringResource(weightTrendCopy(uiState.weightTrend)),

@@ -119,6 +119,9 @@
     <string name="settings_calibration_low">Lean lower</string>
     <string name="settings_calibration_balanced">Balanced</string>
     <string name="settings_calibration_high">Lean higher</string>
+    <!-- Hide-numbers mode: show trends instead of exact weight/fiber numbers, everywhere including shares -->
+    <string name="settings_hide_numbers_title">Hide numbers</string>
+    <string name="settings_hide_numbers_desc">Show trends instead of exact weight and fiber numbers — here, and on anything you share.</string>
     <!-- Help improve Enough: user-initiated, aggregate-only, nothing sent on its own -->
     <string name="settings_feedback_title">Help improve Enough</string>
     <string name="settings_feedback_desc">Nothing is ever sent on its own. You can look at an anonymous summary of your use — just counts, nothing that identifies you — and choose to share it if you want.</string>
@@ -199,6 +202,9 @@
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>
     <string name="today_fiber_no_target">Set up your goals to see your fiber target.</string>
+    <!-- Hide-numbers mode: qualitative stand-ins for the literal weight/fiber values -->
+    <string name="today_fiber_hidden">You\'re logging today. Numbers are hidden.</string>
+    <string name="metric_hidden">Numbers hidden</string>
     <string name="today_meals_header">Meals</string>
     <string name="today_no_meals">No meals logged yet today. Whenever you\'re ready.</string>
     <string name="today_meal_secondary">%1$s · about %2$dg fiber</string>

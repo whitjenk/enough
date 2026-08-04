@@ -57,6 +57,7 @@ fun SettingsRoute(
         uiState = uiState,
         onToggleSync = viewModel::setHealthConnectSyncEnabled,
         onSetCalibration = viewModel::setEstimateCalibration,
+        onToggleHideNumbers = viewModel::setHideNumbersMode,
         onPrepareFeedback = viewModel::prepareFeedback,
         onShareFeedback = { text ->
             // User-initiated only: they tap share and pick the destination in the
@@ -78,6 +79,7 @@ fun SettingsScreen(
     uiState: SettingsUiState,
     onToggleSync: (Boolean) -> Unit,
     onSetCalibration: (EstimateCalibration) -> Unit,
+    onToggleHideNumbers: (Boolean) -> Unit,
     onPrepareFeedback: () -> Unit,
     onShareFeedback: (String) -> Unit,
     onDeleteData: () -> Unit,
@@ -98,6 +100,7 @@ fun SettingsScreen(
         ) {
             SyncCard(enabled = uiState.healthConnectSyncEnabled, onToggle = onToggleSync)
             CalibrationCard(selected = uiState.estimateCalibration, onSelect = onSetCalibration)
+            HideNumbersCard(enabled = uiState.hideNumbersMode, onToggle = onToggleHideNumbers)
             FeedbackCard(
                 feedback = uiState.feedback,
                 onPrepare = onPrepareFeedback,
@@ -140,6 +143,27 @@ private fun SyncCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
                 Text(stringResource(R.string.settings_hc_sync_title), style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = stringResource(R.string.settings_hc_sync_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Switch(checked = enabled, onCheckedChange = onToggle)
+        }
+    }
+}
+
+@Composable
+private fun HideNumbersCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Row(
+            Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.settings_hide_numbers_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.settings_hide_numbers_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -274,6 +298,7 @@ private fun SettingsPreview() {
             uiState = SettingsUiState(healthConnectSyncEnabled = true),
             onToggleSync = {},
             onSetCalibration = {},
+            onToggleHideNumbers = {},
             onPrepareFeedback = {},
             onShareFeedback = {},
             onDeleteData = {},

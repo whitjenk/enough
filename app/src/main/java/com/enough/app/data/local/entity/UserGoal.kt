@@ -43,6 +43,13 @@ data class UserGoal(
     val personalWhy: String? = null,
     val takesGLP1Medication: Boolean = false,
     val estimateCalibration: EstimateCalibration = EstimateCalibration.BALANCED,
+    /**
+     * When true, surfaces show trend/qualitative signal instead of literal weight
+     * and fiber numbers — on the home screen and, crucially, on anything the
+     * person shares (SPEC §23, pulled forward as the guardrail for the §7.6 Step 2
+     * shareable card so a hidden number can never leak into a share).
+     */
+    val hideNumbersMode: Boolean = false,
 ) {
     /** True when the person opted into a weight goal (all weight fields set). */
     val hasWeightGoal: Boolean

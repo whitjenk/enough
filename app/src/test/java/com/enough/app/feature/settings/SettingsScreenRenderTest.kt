@@ -37,6 +37,7 @@ class SettingsScreenRenderTest {
                     uiState = SettingsUiState(estimateCalibration = EstimateCalibration.BALANCED),
                     onToggleSync = {},
                     onSetCalibration = { picked = it },
+                    onToggleHideNumbers = {},
                     onPrepareFeedback = {},
                     onShareFeedback = {},
                     onDeleteData = {},
