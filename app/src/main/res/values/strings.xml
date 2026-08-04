@@ -222,6 +222,8 @@
     <string name="add_meal_no_results">No matches yet — try another word.</string>
     <!-- Custom food: "can't find it? add it" -->
     <string name="add_meal_add_custom">Add \"%1$s\"</string>
+    <!-- Blank-query affordance: a packaged item off the label (e.g. a specific protein pasta) -->
+    <string name="add_meal_add_custom_blank">Have something with a label? Add your own food</string>
     <string name="add_meal_add_custom_more">Don\'t see it? Add \"%1$s\"</string>
     <string name="add_meal_custom_title">Add your own food</string>
     <string name="add_meal_custom_name">Name</string>

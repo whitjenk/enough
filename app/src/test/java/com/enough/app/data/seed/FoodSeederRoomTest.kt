@@ -37,8 +37,8 @@ class FoodSeederRoomTest {
         db.close()
     }
 
-    // 197 curated foods from foods.json plus the synthetic coarse-category foods.
-    private val expectedTotal = 197 + CategoryFoods.ALL.size
+    // 246 curated foods from foods.json plus the synthetic coarse-category foods.
+    private val expectedTotal = 246 + CategoryFoods.ALL.size
 
     @Test
     fun `seeding populates the food table with the expected count`() = runBlocking {

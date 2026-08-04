@@ -211,7 +211,14 @@ private fun FoodResults(
     onAddCustom: () -> Unit,
 ) {
     when {
-        uiState.query.isBlank() -> HintText(stringResource(R.string.add_meal_empty_prompt))
+        uiState.query.isBlank() -> Column {
+            HintText(stringResource(R.string.add_meal_empty_prompt))
+            // Discoverable even before searching: a packaged item read off its
+            // label (e.g. a specific protein pasta) is saved once, then re-loggable.
+            TextButton(onClick = onAddCustom) {
+                Text(stringResource(R.string.add_meal_add_custom_blank))
+            }
+        }
         uiState.results.isEmpty() && !uiState.isSearching -> Column {
             HintText(stringResource(R.string.add_meal_no_results))
             TextButton(onClick = onAddCustom) {
