@@ -12,30 +12,34 @@ Character limits are Play's: app name ≤ 30, short description ≤ 80, full des
 ## App name (≤ 30 chars)
 
 ```
-Enough: fiber-first health
+Enough: fiber, gently
 ```
-(26 chars. Fallback if a shorter name is wanted: `Enough` — 6 chars.)
+(21 chars. The tail carries the counter-position — the calm, un-anxious fiber app —
+and makes the otherwise un-searchable name discoverable. Fallback: `Enough` — 6 chars.)
 
 ---
 
 ## Short description (≤ 80 chars)
 
 ```
-One small fiber goal a day. No account, no calorie counting, all on your phone.
+The fiber app that won't make you crazy about it. No account, all on your phone.
 ```
-(78 chars.)
+(79 chars. Leads with the counter-position inside the "fibermaxing" moment — SPEC §0.8.)
 
 ---
 
 ## Full description (≤ 4000 chars)
 
 ```
-Enough helps you improve weight and metabolic health with one small, specific action a day — starting with fiber instead of calories.
+Fiber is having a moment — and most of it is exhausting. Hit 40g, chase the perfect gut, never miss a day. Enough is the opposite of that. It helps you improve weight and metabolic health with one small, specific action a day, starting with fiber instead of calories, at a pace that won't make you crazy.
 
 Most healthy-eating apps hand you a calorie budget and a countdown. Enough doesn't. It's built on the approach used in the CDC's diabetes prevention program, and it turns "eat healthier and move more" into a single doable thing you can act on today.
 
 WHY FIBER
-Most adults get about half the fiber that's generally recommended. Fiber supports healthy blood sugar and gut health, helps you feel full, and is one of the gentlest changes you can make — no cutting, no counting calories, no off-limits foods. Enough gives you a daily fiber target (based on the widely used 14g per 1,000 calories guideline) and one easy suggestion to get a little closer.
+Most adults get about half the fiber that's generally recommended. Fiber supports healthy blood sugar and gut health, and it helps you feel full — often the same day. It's one of the gentlest changes you can make: no cutting, no counting calories, no off-limits foods. Enough gives you a daily fiber target (based on the widely used 14g per 1,000 calories guideline) and one easy suggestion to get a little closer.
+
+NOTICE HOW YOU FEEL
+Fiber pays off fast. A quick, optional daily check-in lets you note how the day felt — steady, full, energized — so you get something real today, not just a number to chase for months.
 
 BUILT TO BE EASY, NOT DEMANDING
 - Log a meal in one tap with rough categories, or search an exact food when you want to.
@@ -43,8 +47,11 @@ BUILT TO BE EASY, NOT DEMANDING
 - See your progress as a calm trend, not a punishing streak. Missing a day never erases what you've done.
 - The weight-loss goal is completely optional. You can focus on fiber and activity only, and that's a real, fully supported choice — not a buried setting.
 
+FOR THE GLP-1 ERA — INCLUDING COMING OFF
+On a GLP-1, or coming off one? Enough keeps fiber suggestions gentle and appetite-aware, and frames fiber as the satiety bridge that helps hold your changes as things shift. It's a supportive food-first companion, never medication advice.
+
 RESPECTS HOW YOU EAT
-Tell Enough about dietary restrictions or allergies once — vegetarian, vegan, gluten-free, dairy-free, nut allergy, or your own — and food suggestions respect them from then on. If you're on a GLP-1 medication, suggestions stay gentle and small rather than pushing you to hit a number despite reduced appetite.
+Tell Enough about dietary restrictions or allergies once — vegetarian, vegan, gluten-free, dairy-free, nut allergy, or your own — and food suggestions respect them from then on.
 
 NOTHING TO HIDE
 Everything stays on your phone. No account required, no login, no subscription, nothing sold, no ads. There is no server — the app can't send your data anywhere, and you can verify that. If you connect Health Connect, Enough reads steps, sleep, and weight to show alongside your logs; that access is read-only and you can turn it off anytime. "Delete my data" actually wipes everything on your device.
@@ -68,4 +75,33 @@ Enough is free. The app provides general wellness information and is not medical
 - **Graphics still needed (not copy):** 512×512 app icon, feature graphic (1024×500), and at least
   2–8 phone screenshots. Keep any on-screenshot text inside the same §8 guardrails.
 - A lawyer's quick read before real testers is worth it (SPEC §8).
-```
+
+---
+
+## First-run voice (in-app)
+
+The counter-position now lives in the very first screen: the onboarding welcome reads
+*"…at your own pace. No streaks, no pressure to be perfect."* (`onboarding_welcome_body`). Keep any
+future first-run copy in this register — calm and forgiving, never optimizing — so the promise the
+store makes is the first thing the app keeps.
+
+---
+
+## Organic-social creative concepts (the shareable card is the hero)
+
+These ride the "fibermaxing" conversation by counter-positioning inside it (SPEC §0.8). The in-app
+opt-in share card (§7.6 Step 2) is the hero asset — it's the zero-CAC surface, so the creative points
+at it. All three stay inside the §8 guardrails: no clinical claims, no comparison, no shame.
+
+1. **"The calm one."** Split screen: a frantic fibermaxing checklist (40g! every day! don't break the
+   streak!) vs. the Enough card — one gentle line, "small and steady, that's enough." Caption: *the
+   fiber app that won't make you crazy about it.*
+2. **"Notice how you feel."** Short clip of the daily felt check-in → the week's share card. Copy leans
+   on fiber's same-day payoff (fuller, steadier), not a number. Caption: *fiber, but for how you
+   actually feel.*
+3. **"Coming off the shot."** Speaks to the GLP-1-transition segment: fiber as the satiety bridge as
+   appetite returns. Card shows the gentle, no-number-to-hit swap. Caption: *the food-first fiber
+   companion for the GLP-1 era — including coming off it.* (Tone/support only; never medication advice.)
+
+Hero asset = the user's own generated card, so the creative is literally the product's viral loop, not
+a mock. Do not fabricate testimonials or numbers.

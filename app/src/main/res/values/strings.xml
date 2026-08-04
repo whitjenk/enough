@@ -13,7 +13,7 @@
 
     <!-- Onboarding: welcome / entry choice -->
     <string name="onboarding_welcome_title">Welcome to Enough</string>
-    <string name="onboarding_welcome_body">One small, doable thing a day — starting with fiber. Everything stays on your phone. No account, nothing sold.</string>
+    <string name="onboarding_welcome_body">One small, doable thing a day — starting with fiber, at your own pace. No streaks, no pressure to be perfect. Everything stays on your phone: no account, nothing sold.</string>
     <string name="onboarding_entry_default">Just here to build better habits</string>
     <string name="onboarding_entry_default_desc">Go straight to setting your goals. No quiz.</string>
     <string name="onboarding_entry_risk">Curious about your risk factors?</string>
