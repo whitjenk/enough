@@ -88,6 +88,8 @@ fun ProgressRoute(
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(send, null))
+            // Record the aggregate "ever shared a card" signal (§7.6 Step 3).
+            viewModel.markCardShared()
         },
     )
 }

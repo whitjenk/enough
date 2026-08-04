@@ -41,27 +41,40 @@ class FeedbackSummaryTest {
             meal(fiber = 5.0, daysAgo = 1),  // day B: two meals, 5 + 8 = 13g (misses)
             meal(fiber = 8.0, daysAgo = 1),
         )
-        val summary = FeedbackSummary.from(meals, goal(fiberTarget = 15, weightGoal = false), zone)
+        val summary = FeedbackSummary.from(
+            meals, goal(fiberTarget = 15, weightGoal = false), zone,
+            everCheckedIn = true, everSharedCard = false,
+        )
 
         assertEquals(2, summary.daysLogged)
         assertEquals(3, summary.mealsLogged)
         assertEquals(1, summary.daysHitFiberTarget) // only day A cleared 15g
         assertEquals(15, summary.fiberTargetG)
         assertEquals(false, summary.hasWeightGoal)
+        assertEquals(true, summary.everCheckedIn)
+        assertEquals(false, summary.everSharedCard)
     }
 
     @Test
     fun `reflects a set weight goal`() {
-        val summary = FeedbackSummary.from(emptyList(), goal(fiberTarget = 28, weightGoal = true), zone)
+        val summary = FeedbackSummary.from(
+            emptyList(), goal(fiberTarget = 28, weightGoal = true), zone,
+            everCheckedIn = false, everSharedCard = true,
+        )
         assertEquals(0, summary.daysLogged)
         assertEquals(0, summary.mealsLogged)
         assertEquals(0, summary.daysHitFiberTarget)
         assertEquals(true, summary.hasWeightGoal)
+        assertEquals(false, summary.everCheckedIn)
+        assertEquals(true, summary.everSharedCard)
     }
 
     @Test
     fun `no goal yields zero target-hit days rather than dividing by a zero target`() {
-        val summary = FeedbackSummary.from(listOf(meal(10.0, 0)), goal = null, zone = zone)
+        val summary = FeedbackSummary.from(
+            listOf(meal(10.0, 0)), goal = null, zone = zone,
+            everCheckedIn = false, everSharedCard = false,
+        )
         assertEquals(1, summary.daysLogged)
         assertEquals(0, summary.daysHitFiberTarget)
         assertEquals(0, summary.fiberTargetG)

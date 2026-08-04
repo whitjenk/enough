@@ -25,12 +25,18 @@ data class FeedbackSummary(
     val daysHitFiberTarget: Int,
     val fiberTargetG: Int,
     val hasWeightGoal: Boolean,
+    /** Whether the person ever used the felt check-in — an Option C signal (§7.6 Step 3). */
+    val everCheckedIn: Boolean,
+    /** Whether the person ever shared a card — the other Option C signal (§7.6 Step 3). */
+    val everSharedCard: Boolean,
 ) {
     companion object {
         fun from(
             meals: List<MealWithFood>,
             goal: UserGoal?,
             zone: ZoneId,
+            everCheckedIn: Boolean,
+            everSharedCard: Boolean,
         ): FeedbackSummary {
             val calibration = goal?.estimateCalibration ?: EstimateCalibration.BALANCED
             val target = goal?.fiberGramsTarget ?: 0
@@ -41,6 +47,8 @@ data class FeedbackSummary(
                 daysHitFiberTarget = if (target > 0) fiberByDay.count { it.value >= target } else 0,
                 fiberTargetG = target,
                 hasWeightGoal = goal?.hasWeightGoal == true,
+                everCheckedIn = everCheckedIn,
+                everSharedCard = everSharedCard,
             )
         }
     }

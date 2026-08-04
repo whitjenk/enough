@@ -31,6 +31,14 @@ class UserPreferencesRepository(
     val resetMomentShownEpochDay: Flow<Long?> =
         dataStore.data.map { it[RESET_MOMENT_SHOWN_EPOCH_DAY] }
 
+    /**
+     * Whether the person has ever shared a card (SPEC §7.6 Step 3). A single
+     * aggregate boolean — no count, no timestamp — so it can feed the anonymous
+     * feedback summary without ever revealing when or how often.
+     */
+    val everSharedCard: Flow<Boolean> =
+        dataStore.data.map { it[EVER_SHARED_CARD] ?: false }
+
     suspend fun setOnboardingCompleted(completed: Boolean) {
         dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
     }
@@ -43,6 +51,10 @@ class UserPreferencesRepository(
         dataStore.edit { it[RESET_MOMENT_SHOWN_EPOCH_DAY] = epochDay }
     }
 
+    suspend fun setEverSharedCard() {
+        dataStore.edit { it[EVER_SHARED_CARD] = true }
+    }
+
     /** Wipe all preferences (used by "Delete my data"). */
     suspend fun clear() {
         dataStore.edit { it.clear() }
@@ -52,5 +64,6 @@ class UserPreferencesRepository(
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val HEALTH_CONNECT_SYNC_ENABLED = booleanPreferencesKey("health_connect_sync_enabled")
         val RESET_MOMENT_SHOWN_EPOCH_DAY = longPreferencesKey("reset_moment_shown_epoch_day")
+        val EVER_SHARED_CARD = booleanPreferencesKey("ever_shared_card")
     }
 }

@@ -16,4 +16,7 @@ class CheckInRepository(private val dao: DailyCheckInDao) {
 
     suspend fun setFelt(date: LocalDate, felt: FeltLevel, at: Instant) =
         dao.upsert(DailyCheckIn(date = date, felt = felt, createdAt = at))
+
+    /** Whether the person has ever used the felt check-in (an aggregate signal, no dates). */
+    suspend fun everCheckedIn(): Boolean = dao.count() > 0
 }

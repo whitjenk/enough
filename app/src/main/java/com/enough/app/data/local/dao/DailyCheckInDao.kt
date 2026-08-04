@@ -23,6 +23,9 @@ interface DailyCheckInDao {
     @Query("SELECT * FROM daily_check_in ORDER BY date DESC")
     suspend fun getAll(): List<DailyCheckIn>
 
+    @Query("SELECT COUNT(*) FROM daily_check_in")
+    suspend fun count(): Int
+
     @Query("DELETE FROM daily_check_in")
     suspend fun deleteAll()
 }

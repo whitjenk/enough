@@ -56,6 +56,7 @@ object AppViewModelProvider {
                 activityRepository = container.activityRepository,
                 weightRepository = container.weightRepository,
                 checkInRepository = container.checkInRepository,
+                userPreferencesRepository = container.userPreferencesRepository,
             )
         }
         initializer {
@@ -74,6 +75,7 @@ object AppViewModelProvider {
                 userPreferencesRepository = container.userPreferencesRepository,
                 goalRepository = container.goalRepository,
                 mealRepository = container.mealRepository,
+                checkInRepository = container.checkInRepository,
                 wipeAllUserData = container::wipeAllUserData,
             )
         }

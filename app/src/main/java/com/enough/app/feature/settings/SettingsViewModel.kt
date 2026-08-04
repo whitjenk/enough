@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.preferences.UserPreferencesRepository
+import com.enough.app.data.repository.CheckInRepository
 import com.enough.app.data.repository.GoalRepository
 import com.enough.app.data.repository.MealRepository
 import com.enough.app.domain.feedback.FeedbackSummary
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -34,6 +36,7 @@ class SettingsViewModel(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val goalRepository: GoalRepository,
     private val mealRepository: MealRepository,
+    private val checkInRepository: CheckInRepository,
     private val wipeAllUserData: suspend () -> Unit,
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) : ViewModel() {
@@ -64,7 +67,13 @@ class SettingsViewModel(
      */
     fun prepareFeedback() {
         viewModelScope.launch {
-            feedback.value = FeedbackSummary.from(mealRepository.allMeals(), goalRepository.getGoal(), zone)
+            feedback.value = FeedbackSummary.from(
+                meals = mealRepository.allMeals(),
+                goal = goalRepository.getGoal(),
+                zone = zone,
+                everCheckedIn = checkInRepository.everCheckedIn(),
+                everSharedCard = userPreferencesRepository.everSharedCard.first(),
+            )
         }
     }
 

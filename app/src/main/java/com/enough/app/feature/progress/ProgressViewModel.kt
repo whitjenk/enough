@@ -7,6 +7,7 @@ import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
+import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.ActivityRepository
 import com.enough.app.data.repository.CheckInRepository
 import com.enough.app.data.repository.GoalRepository
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -62,11 +64,20 @@ class ProgressViewModel(
     private val activityRepository: ActivityRepository,
     private val weightRepository: WeightRepository,
     private val checkInRepository: CheckInRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
 
     private val window = ProgressUiState.WINDOW_DAYS
+
+    /**
+     * Record that the person shared a card — a single aggregate boolean for the
+     * anonymous feedback summary (§7.6 Step 3). Set on the explicit share tap.
+     */
+    fun markCardShared() {
+        viewModelScope.launch { userPreferencesRepository.setEverSharedCard() }
+    }
 
     /**
      * "Now" is resolved at collection time (inside [flow]), not at construction,

@@ -216,7 +216,8 @@ private fun FeedbackCard(
                     Text(stringResource(R.string.settings_feedback_prepare))
                 }
             } else {
-                val yesNo = stringResource(if (feedback.hasWeightGoal) R.string.feedback_yes else R.string.feedback_no)
+                val yes = stringResource(R.string.feedback_yes)
+                val no = stringResource(R.string.feedback_no)
                 // The person sees exactly the text that will be shared — nothing more.
                 val shareText = stringResource(
                     R.string.feedback_share_text,
@@ -224,7 +225,9 @@ private fun FeedbackCard(
                     feedback.mealsLogged,
                     feedback.daysHitFiberTarget,
                     feedback.fiberTargetG,
-                    yesNo,
+                    if (feedback.hasWeightGoal) yes else no,
+                    if (feedback.everCheckedIn) yes else no,
+                    if (feedback.everSharedCard) yes else no,
                 )
                 Text(
                     text = shareText,
