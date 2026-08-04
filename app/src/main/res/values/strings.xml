@@ -13,7 +13,7 @@
 
     <!-- Onboarding: welcome / entry choice -->
     <string name="onboarding_welcome_title">Welcome to Enough</string>
-    <string name="onboarding_welcome_body">One small, doable thing a day — starting with fiber. Everything stays on your phone. No account, nothing sold.</string>
+    <string name="onboarding_welcome_body">One small, doable thing a day — starting with fiber, at your own pace. No streaks, no pressure to be perfect. Everything stays on your phone: no account, nothing sold.</string>
     <string name="onboarding_entry_default">Just here to build better habits</string>
     <string name="onboarding_entry_default_desc">Go straight to setting your goals. No quiz.</string>
     <string name="onboarding_entry_risk">Curious about your risk factors?</string>
@@ -119,6 +119,24 @@
     <string name="settings_calibration_low">Lean lower</string>
     <string name="settings_calibration_balanced">Balanced</string>
     <string name="settings_calibration_high">Lean higher</string>
+    <!-- Hide-numbers mode: show trends instead of exact weight/fiber numbers, everywhere including shares -->
+    <string name="settings_hide_numbers_title">Hide numbers</string>
+    <string name="settings_hide_numbers_desc">Show trends instead of exact weight and fiber numbers — here, and on anything you share.</string>
+    <!-- GLP-1 stance: tunes fiber tone (gentle / satiety-bridge). Tone only, not medical advice. -->
+    <string name="settings_glp1_title">GLP-1 medication</string>
+    <string name="settings_glp1_desc">On a GLP-1, or coming off one? Fiber tips stay gentle and appetite-aware. This only tunes tone — it isn\'t medical advice.</string>
+    <string name="settings_glp1_not">Not on one</string>
+    <string name="settings_glp1_on">On a GLP-1</string>
+    <string name="settings_glp1_coming_off">Coming off one</string>
+    <string name="settings_glp1_prefer_not">Prefer not to say</string>
+    <!-- Help improve Enough: user-initiated, aggregate-only, nothing sent on its own -->
+    <string name="settings_feedback_title">Help improve Enough</string>
+    <string name="settings_feedback_desc">Nothing is ever sent on its own. You can look at an anonymous summary of your use — just counts, nothing that identifies you — and choose to share it if you want.</string>
+    <string name="settings_feedback_prepare">See the summary</string>
+    <string name="settings_feedback_share">Share this summary</string>
+    <string name="feedback_yes">yes</string>
+    <string name="feedback_no">no</string>
+    <string name="feedback_share_text">Enough — anonymous summary (nothing here identifies me).\nDays I logged a meal: %1$d\nMeals logged: %2$d\nDays I reached my fiber goal: %3$d of %1$d\nFiber goal: %4$dg/day\nWeight goal set: %5$s\nUsed the daily check-in: %6$s\nShared a card: %7$s</string>
     <string name="settings_support_title">Going through a rough patch?</string>
     <string name="settings_support_desc">Progress isn\'t a straight line, and missing a day doesn\'t undo what you\'ve built. One small thing, whenever you\'re ready, is enough. If things feel heavy — with your health or otherwise — it\'s okay to lean on your doctor or someone you trust.</string>
     <string name="settings_privacy_title">Privacy</string>
@@ -140,6 +158,11 @@
     <string name="progress_consistency_subtitle">Every day you show up counts. Missing one doesn\'t erase the rest.</string>
     <string name="cd_day_logged">Logged</string>
     <string name="cd_day_not_logged">Not logged</string>
+    <!-- Daily felt check-in reflection: gentle, non-scored, never a streak -->
+    <string name="progress_checkin_header">How you\'ve felt</string>
+    <string name="progress_checkin_value">You checked in on %1$d of the last %2$d days</string>
+    <string name="progress_checkin_empty">Check in on Today and a quiet 7-day view shows up here.</string>
+    <string name="cd_day_no_checkin">No check-in</string>
     <string name="progress_fiber_header">Fiber trend</string>
     <string name="progress_fiber_target_label">Target %1$dg a day</string>
     <string name="progress_fiber_today_value">%1$dg today</string>
@@ -157,6 +180,22 @@
     <string name="progress_movement_minutes">%1$d of %2$d minutes</string>
     <string name="progress_movement_minutes_no_goal">%1$d minutes logged</string>
     <string name="progress_movement_days">Moved on %1$d of the last %2$d days</string>
+    <!-- Opt-in shareable card: user taps to share; nothing leaves the phone otherwise. No comparison. -->
+    <string name="progress_share_title">Share your week</string>
+    <string name="progress_share_desc">Make a little card of your week. Nothing leaves your phone unless you send it.</string>
+    <string name="progress_share_button">Share this week</string>
+    <string name="share_card_title">My fiber week</string>
+    <string name="share_card_headline_avg">About %1$dg of fiber a day</string>
+    <string name="share_card_headline_hidden">A steady week of showing up</string>
+    <string name="share_card_headline_empty">A fresh week ahead</string>
+    <string name="share_card_subline">Small and steady. That\'s enough.</string>
+    <string name="share_card_footer">Made with Enough</string>
+    <!-- Feeling-first daily story card: leads with how the day felt, not a number (SPEC §0.8) -->
+    <string name="share_daily_title">my fiber day</string>
+    <string name="share_daily_felt_good">Today felt good.</string>
+    <string name="share_daily_felt_steady">Today felt steady.</string>
+    <string name="share_daily_felt_rough">Today was a rough one — and that\'s okay.</string>
+    <string name="share_daily_felt_generic">Today, gently.</string>
 
     <!-- Today -->
     <string name="today_title">Today</string>
@@ -166,13 +205,38 @@
     <!-- Softer variant for people on a GLP-1: no target framing, appetite-aware -->
     <string name="nudge_fiber_gap_gentle">You\'re at %1$dg of fiber today. No pressure at all — if it feels right, a little %2$s (%3$s) adds about %4$dg.</string>
     <string name="nudge_on_track">You\'re at %1$dg of fiber today, right around your %2$dg goal. That\'s enough.</string>
+    <!-- Today's one swap: a zero-input daily idea, never a nudge to log; always leaves an out -->
+    <string name="today_swap_header">One idea for today</string>
+    <string name="today_swap_body">%1$s (%2$s) is an easy ~%3$dg of fiber — or not, today can just be today.</string>
+    <!-- Softer variant for people on a GLP-1: no number to hit, appetite-aware -->
+    <string name="today_swap_body_gentle">%1$s (%2$s) adds a little fiber, if it feels right — no number to hit.</string>
+    <!-- Coming off a GLP-1: fiber framed as the satiety bridge, no number to hit -->
+    <string name="today_swap_body_bridge">%1$s (%2$s) is a gentle way to keep feeling full as your appetite shifts — no number to hit.</string>
+    <!-- The "Enough" reset-day moment: warm, zero catch-up math, an easy out -->
+    <string name="reset_moment_header">Today\'s a fresh start</string>
+    <string name="reset_moment_body">No need to make up for anything. Log one small thing if you want — or let today just be today.</string>
+    <string name="reset_moment_log_action">Log something small</string>
+    <!-- Optional one-tap felt check-in: fiber's same-day payoff, never required, never scored -->
+    <string name="today_checkin_header">How did today feel?</string>
+    <string name="today_checkin_hint">Just a note to yourself — skip it any day.</string>
+    <string name="today_checkin_done">Noted — just for you.</string>
+    <string name="today_checkin_share">Share today</string>
+    <string name="felt_rough">A rough one</string>
+    <string name="felt_steady">Steady</string>
+    <string name="felt_good">Good</string>
     <string name="cd_mascot">Enough</string>
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>
     <string name="today_fiber_no_target">Set up your goals to see your fiber target.</string>
+    <!-- Hide-numbers mode: qualitative stand-ins for the literal weight/fiber values -->
+    <string name="today_fiber_hidden">You\'re logging today. Numbers are hidden.</string>
+    <string name="metric_hidden">Numbers hidden</string>
     <string name="today_meals_header">Meals</string>
     <string name="today_no_meals">No meals logged yet today. Whenever you\'re ready.</string>
     <string name="today_meal_secondary">%1$s · about %2$dg fiber</string>
+    <!-- Coarse quick-log entries are estimates: an honest range, not a precise number -->
+    <string name="today_meal_secondary_estimate">Estimate · about %1$d–%2$dg fiber</string>
+    <string name="today_meal_remove">Remove</string>
     <string name="today_servings_format">%1$s servings</string>
     <string name="today_weight_header">Latest weight</string>
     <string name="today_weight_value">%1$d lb</string>
@@ -193,10 +257,28 @@
 
     <!-- Add meal -->
     <string name="add_meal_title">Add a meal</string>
+    <!-- Coarse quick-log (the default, low-friction path) -->
+    <string name="add_meal_quick_header">Quick log</string>
+    <string name="add_meal_recent_header">Recent</string>
+    <string name="add_meal_search_header">Search an exact food</string>
     <string name="add_meal_search_hint">Search foods</string>
     <string name="add_meal_empty_prompt">Type to search the food list.</string>
     <string name="add_meal_no_results">No matches yet — try another word.</string>
+    <!-- Custom food: "can't find it? add it" -->
+    <string name="add_meal_add_custom">Add \"%1$s\"</string>
+    <!-- Blank-query affordance: a packaged item off the label (e.g. a specific protein pasta) -->
+    <string name="add_meal_add_custom_blank">Have something with a label? Add your own food</string>
+    <string name="add_meal_add_custom_more">Don\'t see it? Add \"%1$s\"</string>
+    <string name="add_meal_custom_title">Add your own food</string>
+    <string name="add_meal_custom_name">Name</string>
+    <string name="add_meal_custom_serving">Serving (e.g. 1 bottle)</string>
+    <string name="add_meal_custom_fiber">Fiber (grams)</string>
+    <string name="add_meal_custom_fiber_hint">It\'s on the nutrition label. Use 0 if there\'s none.</string>
+    <string name="add_meal_custom_save">Save and log it</string>
+    <string name="add_meal_custom_cancel">Cancel</string>
     <string name="add_meal_nutrition_per_serving">%1$.1fg fiber · %2$.1fg carbs · %3$.1fg protein per %4$s</string>
+    <!-- Custom foods only capture fiber; don't present the defaulted carbs/protein as data -->
+    <string name="add_meal_nutrition_fiber_only">%1$.1fg fiber per %2$s</string>
     <string name="add_meal_servings_label">Servings</string>
     <string name="add_meal_selected_fiber">This adds about %1$.1fg of fiber.</string>
     <string name="cd_clear_search">Clear search</string>

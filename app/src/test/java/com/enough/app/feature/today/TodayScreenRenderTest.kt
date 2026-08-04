@@ -1,8 +1,10 @@
 package com.enough.app.feature.today
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.ActivityEntry
 import com.enough.app.data.local.entity.Food
@@ -13,6 +15,7 @@ import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.MealSource
 import com.enough.app.ui.theme.EnoughTheme
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,7 +68,11 @@ class TodayScreenRenderTest {
 
         composeRule.setContent {
             EnoughTheme(dynamicColor = false) {
-                TodayScreen(state, onAddMeal = {}, onLogWeight = {}, onLogActivity = {})
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
             }
         }
 
@@ -77,5 +84,149 @@ class TodayScreenRenderTest {
         composeRule.onNodeWithText("6g of 28g").assertIsDisplayed()
         // The daily fiber nudge card renders its supportive, specific message.
         composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `today renders the one-idea daily swap card when a swap is present`() {
+        val state = TodayUiState(
+            dailySwap = com.enough.app.domain.rules.DailySwap.Swap(
+                food = "Chia seeds",
+                servingLabel = "2 tbsp",
+                fiberG = 10,
+                gentle = false,
+            ),
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        // The zero-input daily value renders near the top, above the logging
+        // actions, with its non-logging, exit-offering copy.
+        composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
+        composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `today renders the optional felt check-in with its skippable, non-scored copy`() {
+        // Minimal state (no swap) so the check-in card sits near the top of the
+        // small test viewport. Nothing selected yet -> the note-to-self hint shows.
+        val state = TodayUiState(isLoading = false)
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("How did today feel?").assertIsDisplayed()
+        composeRule.onNodeWithText("Steady").assertIsDisplayed()
+        // Framed as a note to yourself, never a nudge to log.
+        composeRule.onNodeWithText("skip it any day", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `hide-numbers mode replaces the literal fiber value with a qualitative line`() {
+        val goal = UserGoal(
+            startWeightKg = null, targetWeightKg = null, weightLossPercent = null,
+            activityGoalType = ActivityGoalType.MINUTES, activityGoalValue = 150,
+            activityGoalCustomLabel = null, dailyCalorieEstimate = 2000, fiberGramsTarget = 28,
+            createdAt = Instant.EPOCH, hideNumbersMode = true,
+        )
+        val state = TodayUiState(goal = goal, fiberSoFarG = 18.0, isLoading = false)
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        // The literal "18g of 28g" is gone; the qualitative stand-in shows instead.
+        composeRule.onNodeWithText("Numbers are hidden", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("of 28g", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `share today appears only after a check-in`() {
+        // No check-in yet: the feeling-first share affordance is absent.
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(isLoading = false),
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {}, onShareToday = {},
+                )
+            }
+        }
+        composeRule.onNodeWithText("Share today").assertDoesNotExist()
+    }
+
+    @Test
+    fun `share today shows at the check-in peak and fires`() {
+        var shared = false
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(
+                        todayFelt = com.enough.app.data.model.FeltLevel.GOOD,
+                        isLoading = false,
+                    ),
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    onShareToday = { shared = true },
+                )
+            }
+        }
+        composeRule.onNodeWithText("Share today").performScrollTo().performClick()
+        assertTrue(shared)
+    }
+
+    @Test
+    fun `reset moment card shows and suppresses the fiber nudge`() {
+        val state = TodayUiState(
+            nudge = com.enough.app.domain.rules.Nudge.FiberGap(
+                fiberSoFarG = 4,
+                gapG = 24,
+                suggestionFood = "Kidney beans",
+                suggestionServingLabel = "1/2 cup",
+                suggestionFiberG = 8,
+            ),
+            showResetMoment = true,
+            isLoading = false,
+        )
+
+        var shownRecorded = false
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = { shownRecorded = true }, onCheckIn = {},
+                )
+            }
+        }
+
+        // The reset moment renders its warm, no-catch-up copy...
+        composeRule.onNodeWithText("Today's a fresh start").assertIsDisplayed()
+        // ...and the routine fiber nudge is suppressed so the two don't contradict.
+        composeRule.onNodeWithText("Kidney beans", substring = true).assertDoesNotExist()
+        // Composing the card is what records "shown" (not the state computation),
+        // so the once-per-rough-patch budget is only spent on a moment truly seen.
+        assertTrue(shownRecorded)
     }
 }

@@ -7,6 +7,16 @@ import kotlinx.serialization.Serializable
 enum class MealSource { TEXT, MANUAL }
 
 /**
+ * How precise a logged meal's nutrients are.
+ *
+ * [DATABASE_MATCHED] is an exact bundled food (text search / recent re-log).
+ * [COARSE_ESTIMATE] is a low-friction category quick-log ("veggie-heavy meal")
+ * backed by a representative synthetic food — inherently a rough estimate, so the
+ * UI shows an honest range rather than a fake-precise gram number (SPEC §7.5/§15).
+ */
+enum class MealEntryType { DATABASE_MATCHED, COARSE_ESTIMATE }
+
+/**
  * The kind of weekly activity goal the person chose in onboarding.
  *
  * Deliberately not step-only: the accessibility fix in SPEC.md §5 requires a
@@ -34,6 +44,28 @@ enum class WeightTrendDirection { DOWN, FLAT, UP, UNKNOWN }
 
 /** The kind of nudge shown. Phase 0 only generates fiber-gap nudges. */
 enum class NudgeType { NONE, FIBER_GAP }
+
+/**
+ * A one-tap felt reflection for the day — fiber's *same-day* payoff (satiety,
+ * steadiness after meals), the daily loop a calorie tracker can't offer
+ * (SPEC §0.8 / IMPLEMENTATION_PLAN §7.6 Step 1). Deliberately three plain,
+ * self-referential levels: this is the person noticing their own day, never the
+ * app grading it — [ROUGH] is an honest report, not a failure, and nothing in
+ * the app penalizes it or the absence of any check-in at all.
+ */
+enum class FeltLevel { ROUGH, STEADY, GOOD }
+
+/**
+ * The person's relationship to GLP-1 medication (SPEC §0.6 / §7.6 Step 4). A
+ * richer version of the old yes/no: the app already softens fiber suggestions on
+ * a GLP-1, but the timely, under-served moment is [COMING_OFF] — where fiber is
+ * framed as the satiety *bridge* that helps hold changes. Purely a tone/targeting
+ * signal; the app never offers medication-specific medical advice (SPEC §8).
+ *
+ * - [ON] / [COMING_OFF] both get the gentle, appetite-aware smaller increments.
+ * - [NOT] / [PREFER_NOT_TO_SAY] get the standard framing.
+ */
+enum class Glp1Stance { ON, COMING_OFF, NOT, PREFER_NOT_TO_SAY }
 
 /**
  * A dietary restriction or allergy the person logged in onboarding. Used to

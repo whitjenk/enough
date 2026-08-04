@@ -37,13 +37,16 @@ class FoodSeederRoomTest {
         db.close()
     }
 
+    // 246 curated foods from foods.json plus the synthetic coarse-category foods.
+    private val expectedTotal = 246 + CategoryFoods.ALL.size
+
     @Test
     fun `seeding populates the food table with the expected count`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val inserted = FoodSeeder().seedIfEmpty(context, db.foodDao())
 
-        assertEquals(172, inserted)
-        assertEquals(172, db.foodDao().count())
+        assertEquals(expectedTotal, inserted)
+        assertEquals(expectedTotal, db.foodDao().count())
     }
 
     @Test
@@ -54,9 +57,9 @@ class FoodSeederRoomTest {
         val firstRun = seeder.seedIfEmpty(context, db.foodDao())
         val secondRun = seeder.seedIfEmpty(context, db.foodDao())
 
-        assertEquals(172, firstRun)
+        assertEquals(expectedTotal, firstRun)
         assertEquals(0, secondRun)
-        assertEquals(172, db.foodDao().count())
+        assertEquals(expectedTotal, db.foodDao().count())
     }
 
     @Test

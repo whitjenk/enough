@@ -3,8 +3,10 @@ package com.enough.app.domain.progress
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.Food
 import com.enough.app.data.local.entity.MealEntry
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.MealSource
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
@@ -77,5 +79,47 @@ class ProgressCalculationsTest {
     fun `empty history yields zero days logged and an all-zero series`() {
         assertEquals(0, ProgressCalculations.daysLoggedInLast(7, emptyList(), now, zone))
         assertEquals(0.0, ProgressCalculations.fiberSeries(7, emptyList(), now, zone).sumOf { it.fiberG }, 1e-9)
+    }
+
+    @Test
+    fun `felt series is oldest-first and a skipped day is null, never a missed marker`() {
+        val feltByDay = mapOf(
+            today to FeltLevel.GOOD,
+            today.minusDays(3) to FeltLevel.ROUGH,
+        )
+        val series = ProgressCalculations.feltSeries(7, feltByDay, now, zone)
+
+        assertEquals(7, series.size)
+        assertEquals(FeltLevel.GOOD, series.last()) // today
+        assertEquals(FeltLevel.ROUGH, series[3]) // three days ago
+        assertNull(series[5]) // a skipped day is simply null
+        // Only the days that were actually checked in count — skips don't count against anything.
+        assertEquals(2, ProgressCalculations.checkInDaysInLast(7, feltByDay, now, zone))
+    }
+
+    @Test
+    fun `check-ins are independent of the logging consistency series`() {
+        // A day with only a felt check-in (no meal/activity/weight) is NOT counted
+        // as a "logged" day, and a logged day with no check-in is NOT counted as a
+        // check-in day: the two loops never contaminate each other, so skipping the
+        // optional check-in can't change the consistency view either way.
+        val checkInOnlyDay = today.minusDays(1)
+        val feltByDay = mapOf(checkInOnlyDay to FeltLevel.STEADY)
+        val logInstants = listOf(today.atTime(9, 0).atZone(zone).toInstant()) // a real log, different day
+
+        assertEquals(1, ProgressCalculations.daysLoggedInLast(7, logInstants, now, zone))
+        assertEquals(1, ProgressCalculations.checkInDaysInLast(7, feltByDay, now, zone))
+        // The logged-day series has today true, the check-in-only day false.
+        val logged = ProgressCalculations.loggedDaySeries(7, logInstants, now, zone)
+        assertEquals(true, logged.last()) // today, logged a meal
+        assertEquals(false, logged[5]) // yesterday, only a check-in — not a "logged" day
+    }
+
+    @Test
+    fun `empty check-ins yield a null series and a zero count`() {
+        val series = ProgressCalculations.feltSeries(7, emptyMap(), now, zone)
+        assertEquals(7, series.size)
+        assertEquals(true, series.all { it == null })
+        assertEquals(0, ProgressCalculations.checkInDaysInLast(7, emptyMap(), now, zone))
     }
 }

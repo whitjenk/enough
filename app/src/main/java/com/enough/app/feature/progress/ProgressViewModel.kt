@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
+import com.enough.app.data.preferences.UserPreferencesRepository
 import com.enough.app.data.repository.ActivityRepository
+import com.enough.app.data.repository.CheckInRepository
 import com.enough.app.data.repository.GoalRepository
 import com.enough.app.data.repository.MealRepository
 import com.enough.app.data.repository.WeightRepository
@@ -21,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -30,6 +34,8 @@ data class ProgressUiState(
     val fiberTargetG: Int = 0,
     val loggedDaySeries: List<Boolean> = emptyList(),
     val daysLoggedLast7: Int = 0,
+    val checkInFeltSeries: List<FeltLevel?> = emptyList(),
+    val checkInDaysLast7: Int = 0,
     val windowDays: Int = WINDOW_DAYS,
     val currentWeightKg: Double? = null,
     val startWeightKg: Double? = null,
@@ -38,6 +44,7 @@ data class ProgressUiState(
     val activityGoalType: ActivityGoalType? = null,
     val weeklyActivityMinutes: Int = 0,
     val activityGoalMinutes: Int? = null,
+    val hideNumbers: Boolean = false,
     val isLoading: Boolean = true,
 ) {
     companion object {
@@ -56,11 +63,21 @@ class ProgressViewModel(
     private val mealRepository: MealRepository,
     private val activityRepository: ActivityRepository,
     private val weightRepository: WeightRepository,
+    private val checkInRepository: CheckInRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
 
     private val window = ProgressUiState.WINDOW_DAYS
+
+    /**
+     * Record that the person shared a card — a single aggregate boolean for the
+     * anonymous feedback summary (§7.6 Step 3). Set on the explicit share tap.
+     */
+    fun markCardShared() {
+        viewModelScope.launch { userPreferencesRepository.setEverSharedCard() }
+    }
 
     /**
      * "Now" is resolved at collection time (inside [flow]), not at construction,
@@ -82,13 +99,16 @@ class ProgressViewModel(
         val windowStartMillis =
             todayRange.start.minus(Duration.ofDays((window - 1).toLong())).toEpochMilli()
         val windowEndMillis = todayRange.endMillis
+        val todayDate = now.atZone(zone).toLocalDate()
+        val windowStartDate = todayDate.minusDays((window - 1).toLong())
 
         return combine(
             goalRepository.goal,
             mealRepository.observeBetween(windowStartMillis, windowEndMillis),
             activityRepository.observeBetween(windowStartMillis, windowEndMillis),
             weightRepository.all,
-        ) { goal, meals, activities, weights ->
+            checkInRepository.observeBetween(windowStartDate, todayDate),
+        ) { goal, meals, activities, weights, checkIns ->
             val logInstants =
                 meals.map { it.meal.timestamp } +
                     activities.map { it.timestamp } +
@@ -98,6 +118,9 @@ class ProgressViewModel(
                 .filter { it.unit == ActivityUnit.MINUTES }
                 .sumOf { it.amount }
             val loggedSeries = ProgressCalculations.loggedDaySeries(window, logInstants, now, zone)
+
+            val feltByDay = checkIns.associate { it.date to it.felt }
+            val feltSeries = ProgressCalculations.feltSeries(window, feltByDay, now, zone)
 
             ProgressUiState(
                 fiberSeries = ProgressCalculations.fiberSeries(
@@ -110,6 +133,8 @@ class ProgressViewModel(
                 fiberTargetG = goal?.fiberGramsTarget ?: 0,
                 loggedDaySeries = loggedSeries,
                 daysLoggedLast7 = loggedSeries.count { it },
+                checkInFeltSeries = feltSeries,
+                checkInDaysLast7 = feltSeries.count { it != null },
                 currentWeightKg = weights.lastOrNull()?.weightKg,
                 startWeightKg = goal?.startWeightKg,
                 targetWeightKg = goal?.targetWeightKg,
@@ -118,6 +143,7 @@ class ProgressViewModel(
                 weeklyActivityMinutes = weeklyMinutes,
                 activityGoalMinutes = goal?.takeIf { it.activityGoalType == ActivityGoalType.MINUTES }
                     ?.activityGoalValue,
+                hideNumbers = goal?.hideNumbersMode ?: false,
                 isLoading = false,
             )
         }

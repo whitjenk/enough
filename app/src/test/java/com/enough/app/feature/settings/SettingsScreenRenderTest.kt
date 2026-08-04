@@ -1,7 +1,7 @@
 package com.enough.app.feature.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -37,6 +37,10 @@ class SettingsScreenRenderTest {
                     uiState = SettingsUiState(estimateCalibration = EstimateCalibration.BALANCED),
                     onToggleSync = {},
                     onSetCalibration = { picked = it },
+                    onToggleHideNumbers = {},
+                    onSetGlp1Stance = {},
+                    onPrepareFeedback = {},
+                    onShareFeedback = {},
                     onDeleteData = {},
                     onOpenPrivacyPolicy = {},
                 )

@@ -6,6 +6,9 @@ import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.data.model.DietaryTag
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.FeltLevel
+import com.enough.app.data.model.Glp1Stance
+import com.enough.app.data.model.MealEntryType
 import com.enough.app.data.model.MealSource
 import com.enough.app.data.model.NudgeType
 import com.enough.app.data.model.RiskResultSource
@@ -38,6 +41,12 @@ class Converters {
     fun nameToMealSource(value: String?): MealSource? = value?.let(MealSource::valueOf)
 
     @TypeConverter
+    fun mealEntryTypeToName(value: MealEntryType?): String? = value?.name
+
+    @TypeConverter
+    fun nameToMealEntryType(value: String?): MealEntryType? = value?.let(MealEntryType::valueOf)
+
+    @TypeConverter
     fun activityGoalTypeToName(value: ActivityGoalType?): String? = value?.name
 
     @TypeConverter
@@ -66,6 +75,18 @@ class Converters {
 
     @TypeConverter
     fun nameToNudgeType(value: String?): NudgeType? = value?.let(NudgeType::valueOf)
+
+    @TypeConverter
+    fun feltLevelToName(value: FeltLevel?): String? = value?.name
+
+    @TypeConverter
+    fun nameToFeltLevel(value: String?): FeltLevel? = value?.let(FeltLevel::valueOf)
+
+    @TypeConverter
+    fun glp1StanceToName(value: Glp1Stance?): String? = value?.name
+
+    @TypeConverter
+    fun nameToGlp1Stance(value: String?): Glp1Stance? = value?.let(Glp1Stance::valueOf)
 
     /** Stored as a comma-separated list of enum names; empty set -> "". */
     @TypeConverter

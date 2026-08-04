@@ -14,6 +14,13 @@ class MealRepository(private val dao: MealEntryDao) {
     fun observeBetween(startMillis: Long, endMillis: Long): Flow<List<MealWithFood>> =
         dao.observeBetween(startMillis, endMillis)
 
+    /** One-shot read of a day's meals (e.g. to score a completed day). */
+    suspend fun mealsForDay(range: DayRange): List<MealWithFood> =
+        dao.getBetween(range.startMillis, range.endMillis)
+
+    /** One-shot read of all logged meals (e.g. to build an aggregate summary). */
+    suspend fun allMeals(): List<MealWithFood> = dao.getAll()
+
     suspend fun add(entry: MealEntry): Long = dao.insert(entry)
 
     suspend fun delete(entry: MealEntry) = dao.delete(entry)

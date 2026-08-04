@@ -16,12 +16,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -35,10 +37,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.Intent
 import com.enough.app.R
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
+import com.enough.app.domain.share.ShareCard
+import com.enough.app.feature.share.ShareCardLines
+import com.enough.app.feature.share.ShareCardRenderer
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -48,12 +55,48 @@ fun ProgressRoute(
     viewModel: ProgressViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    ProgressScreen(uiState)
+    val context = LocalContext.current
+    ProgressScreen(
+        uiState = uiState,
+        onShareWeek = {
+            // User-initiated only: the card is generated on this tap and handed to
+            // the OS share sheet. Nothing is shared unless the person picks a target.
+            val data = ShareCard.build(
+                fiberByDayValues = uiState.fiberSeries.map { it.fiberG },
+                daysLogged = uiState.daysLoggedLast7,
+                windowDays = uiState.windowDays,
+                hideNumbers = uiState.hideNumbers,
+            )
+            val headline = when {
+                data.hideNumbers -> context.getString(R.string.share_card_headline_hidden)
+                data.averageFiberG != null ->
+                    context.getString(R.string.share_card_headline_avg, data.averageFiberG)
+                else -> context.getString(R.string.share_card_headline_empty)
+            }
+            val uri = ShareCardRenderer.render(
+                context,
+                ShareCardLines(
+                    title = context.getString(R.string.share_card_title),
+                    headline = headline,
+                    subline = context.getString(R.string.share_card_subline),
+                    footer = context.getString(R.string.share_card_footer),
+                ),
+            )
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(send, null))
+            // Record the aggregate "ever shared a card" signal (§7.6 Step 3).
+            viewModel.markCardShared()
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressScreen(uiState: ProgressUiState) {
+fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.progress_title)) }) },
     ) { padding ->
@@ -63,9 +106,11 @@ fun ProgressScreen(uiState: ProgressUiState) {
             contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
         ) {
             item { ConsistencyCard(uiState) }
+            item { CheckInReflectionCard(uiState) }
             item { FiberTrendCard(uiState) }
             item { WeightCard(uiState) }
             item { MovementCard(uiState) }
+            item { ShareWeekCard(onShareWeek = onShareWeek) }
         }
     }
 }
@@ -122,6 +167,54 @@ private fun ConsistencyDot(logged: Boolean, contentDescription: String) {
     }
 }
 
+/**
+ * A gentle, non-scored reflection of the optional felt check-in (SPEC §7.6
+ * Step 1). Mirrors the consistency dots — a checked-in day is filled (shape, not
+ * color alone), a skipped day is hollow — and never ranks the levels or forms a
+ * streak. A day with no check-in is simply hollow, carrying no penalty.
+ */
+@Composable
+private fun CheckInReflectionCard(uiState: ProgressUiState) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.progress_checkin_header), style = MaterialTheme.typography.titleMedium)
+            if (uiState.checkInFeltSeries.all { it == null }) {
+                Text(
+                    text = stringResource(R.string.progress_checkin_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    text = stringResource(
+                        R.string.progress_checkin_value,
+                        uiState.checkInDaysLast7,
+                        uiState.windowDays,
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val noCheckIn = stringResource(R.string.cd_day_no_checkin)
+                    uiState.checkInFeltSeries.forEach { felt ->
+                        ConsistencyDot(
+                            logged = felt != null,
+                            contentDescription = felt?.let { stringResource(feltLabelRes(it)) } ?: noCheckIn,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** String resource for a felt level's label, used as the check-in dot's accessible description. */
+private fun feltLabelRes(level: FeltLevel): Int = when (level) {
+    FeltLevel.ROUGH -> R.string.felt_rough
+    FeltLevel.STEADY -> R.string.felt_steady
+    FeltLevel.GOOD -> R.string.felt_good
+}
+
 @Composable
 private fun FiberTrendCard(uiState: ProgressUiState) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
@@ -135,12 +228,15 @@ private fun FiberTrendCard(uiState: ProgressUiState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                val todayFiber = uiState.fiberSeries.lastOrNull()?.fiberG?.roundToInt() ?: 0
-                Text(
-                    text = stringResource(R.string.progress_fiber_today_value, todayFiber),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                // Hide-numbers mode: keep the shape-only trend chart, drop the literal grams.
+                if (!uiState.hideNumbers) {
+                    val todayFiber = uiState.fiberSeries.lastOrNull()?.fiberG?.roundToInt() ?: 0
+                    Text(
+                        text = stringResource(R.string.progress_fiber_today_value, todayFiber),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 FiberBarChart(
                     values = uiState.fiberSeries.map { it.fiberG },
                     targetG = uiState.fiberTargetG,
@@ -151,7 +247,7 @@ private fun FiberTrendCard(uiState: ProgressUiState) {
                         .height(120.dp),
                     chartDescription = stringResource(R.string.cd_fiber_chart, uiState.windowDays),
                 )
-                if (uiState.fiberTargetG > 0) {
+                if (uiState.fiberTargetG > 0 && !uiState.hideNumbers) {
                     Text(
                         text = stringResource(R.string.progress_fiber_target_label, uiState.fiberTargetG),
                         style = MaterialTheme.typography.bodySmall,
@@ -213,21 +309,24 @@ private fun WeightCard(uiState: ProgressUiState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                Text(
-                    text = stringResource(R.string.progress_weight_current, UnitConversions.kgToLb(current).roundToInt()),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (uiState.startWeightKg != null && uiState.targetWeightKg != null) {
+                // Hide-numbers mode: keep the trend sentence, drop the literal pounds.
+                if (!uiState.hideNumbers) {
                     Text(
-                        text = stringResource(
-                            R.string.progress_weight_start_target,
-                            UnitConversions.kgToLb(uiState.startWeightKg).roundToInt(),
-                            UnitConversions.kgToLb(uiState.targetWeightKg).roundToInt(),
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = stringResource(R.string.progress_weight_current, UnitConversions.kgToLb(current).roundToInt()),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
                     )
+                    if (uiState.startWeightKg != null && uiState.targetWeightKg != null) {
+                        Text(
+                            text = stringResource(
+                                R.string.progress_weight_start_target,
+                                UnitConversions.kgToLb(uiState.startWeightKg).roundToInt(),
+                                UnitConversions.kgToLb(uiState.targetWeightKg).roundToInt(),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 Text(
                     text = stringResource(weightTrendCopy(uiState.weightTrend)),
@@ -268,6 +367,29 @@ private fun MovementCard(uiState: ProgressUiState) {
                 )
             }
             Text(text = text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/**
+ * The opt-in share affordance (SPEC §7.6 Step 2): a plain button that generates a
+ * card and opens the OS share sheet only on an explicit tap. Never auto-suggested,
+ * never a popup; the copy states the "nothing leaves your phone unless you send it"
+ * promise directly.
+ */
+@Composable
+private fun ShareWeekCard(onShareWeek: () -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.progress_share_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.progress_share_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(onClick = onShareWeek) {
+                Text(stringResource(R.string.progress_share_button))
+            }
         }
     }
 }

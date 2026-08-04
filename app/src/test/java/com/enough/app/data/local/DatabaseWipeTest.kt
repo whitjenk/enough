@@ -3,6 +3,7 @@ package com.enough.app.data.local
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.enough.app.data.local.entity.ActivityEntry
+import com.enough.app.data.local.entity.DailyCheckIn
 import com.enough.app.data.local.entity.Food
 import com.enough.app.data.local.entity.MealEntry
 import com.enough.app.data.local.entity.PrediabetesRiskResult
@@ -11,6 +12,7 @@ import com.enough.app.data.local.entity.UserGoal
 import com.enough.app.data.local.entity.WeightEntry
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
+import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.MealSource
 import com.enough.app.data.model.NudgeType
 import com.enough.app.data.model.RiskResultSource
@@ -25,6 +27,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * Verifies "Delete my data" actually clears every local table, not just hides
@@ -68,6 +71,7 @@ class DatabaseWipeTest {
                 activityMinutesThisWeek = 30, fiberGapToday = 22.0, lastNudgeType = NudgeType.FIBER_GAP, updatedAt = now,
             ),
         )
+        db.dailyCheckInDao().upsert(DailyCheckIn(date = LocalDate.of(2026, 8, 3), felt = FeltLevel.STEADY, createdAt = now))
 
         db.clearAllTables()
 
@@ -78,5 +82,6 @@ class DatabaseWipeTest {
         assertNull(db.userGoalDao().get())
         assertEquals(0, db.prediabetesRiskResultDao().getAll().size)
         assertNull(db.rulesEngineStateDao().get())
+        assertEquals(0, db.dailyCheckInDao().getAll().size)
     }
 }

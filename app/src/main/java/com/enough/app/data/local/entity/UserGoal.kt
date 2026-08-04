@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.data.model.EstimateCalibration
+import com.enough.app.data.model.Glp1Stance
 import java.time.Instant
 
 /**
@@ -41,12 +42,33 @@ data class UserGoal(
     val dietaryRestrictionOther: String? = null,
     /** Optional free-text answer to "what's making you want to do this?". */
     val personalWhy: String? = null,
+    /**
+     * Legacy yes/no GLP-1 flag (still written by onboarding). Superseded for tone
+     * decisions by [glp1Stance]; kept as a column to avoid a destructive rebuild.
+     */
     val takesGLP1Medication: Boolean = false,
     val estimateCalibration: EstimateCalibration = EstimateCalibration.BALANCED,
+    /**
+     * When true, surfaces show trend/qualitative signal instead of literal weight
+     * and fiber numbers — on the home screen and, crucially, on anything the
+     * person shares (SPEC §23, pulled forward as the guardrail for the §7.6 Step 2
+     * shareable card so a hidden number can never leak into a share).
+     */
+    val hideNumbersMode: Boolean = false,
+    /** The person's GLP-1 relationship — drives fiber tone (SPEC §7.6 Step 4). */
+    val glp1Stance: Glp1Stance = Glp1Stance.NOT,
 ) {
     /** True when the person opted into a weight goal (all weight fields set). */
     val hasWeightGoal: Boolean
         get() = startWeightKg != null && targetWeightKg != null && weightLossPercent != null
+
+    /** Gentle, appetite-aware fiber suggestions — for anyone on or coming off a GLP-1. */
+    val gentleFiber: Boolean
+        get() = glp1Stance == Glp1Stance.ON || glp1Stance == Glp1Stance.COMING_OFF
+
+    /** The "coming off" moment, where fiber is framed as the satiety bridge. */
+    val comingOffGlp1: Boolean
+        get() = glp1Stance == Glp1Stance.COMING_OFF
 
     companion object {
         const val SINGLETON_ID = 1

@@ -26,4 +26,18 @@ data class Food(
     val fiberG: Double,
     val proteinG: Double,
     val dietaryTags: Set<DietaryTag> = emptySet(),
+    /**
+     * True for real foods a person can pick in search (curated bundled foods and
+     * ones the person adds themselves). False for the synthetic coarse-category
+     * foods ("veggie-heavy meal", etc.) that back the low-friction quick-log —
+     * those are only offered as logging chips, never surfaced in search.
+     */
+    val selectable: Boolean = true,
+    /**
+     * True for a food the person added themselves ("can't find it? add it").
+     * Searchable and re-loggable, but kept out of the nudge/swap suggestion pool:
+     * its fiber is user-entered and it has no verified dietary tags, so it's fine
+     * to log but not something the app should proactively recommend.
+     */
+    val userCreated: Boolean = false,
 )
