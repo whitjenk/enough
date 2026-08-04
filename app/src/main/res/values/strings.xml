@@ -173,6 +173,16 @@
     <string name="progress_movement_minutes">%1$d of %2$d minutes</string>
     <string name="progress_movement_minutes_no_goal">%1$d minutes logged</string>
     <string name="progress_movement_days">Moved on %1$d of the last %2$d days</string>
+    <!-- Opt-in shareable card: user taps to share; nothing leaves the phone otherwise. No comparison. -->
+    <string name="progress_share_title">Share your week</string>
+    <string name="progress_share_desc">Make a little card of your week. Nothing leaves your phone unless you send it.</string>
+    <string name="progress_share_button">Share this week</string>
+    <string name="share_card_title">My fiber week</string>
+    <string name="share_card_headline_avg">About %1$dg of fiber a day</string>
+    <string name="share_card_headline_hidden">A steady week of showing up</string>
+    <string name="share_card_headline_empty">A fresh week ahead</string>
+    <string name="share_card_subline">Small and steady. That\'s enough.</string>
+    <string name="share_card_footer">Made with Enough</string>
 
     <!-- Today -->
     <string name="today_title">Today</string>

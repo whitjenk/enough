@@ -16,12 +16,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -35,11 +37,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.Intent
 import com.enough.app.R
 import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
+import com.enough.app.domain.share.ShareCard
+import com.enough.app.feature.share.ShareCardLines
+import com.enough.app.feature.share.ShareCardRenderer
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -49,12 +55,46 @@ fun ProgressRoute(
     viewModel: ProgressViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    ProgressScreen(uiState)
+    val context = LocalContext.current
+    ProgressScreen(
+        uiState = uiState,
+        onShareWeek = {
+            // User-initiated only: the card is generated on this tap and handed to
+            // the OS share sheet. Nothing is shared unless the person picks a target.
+            val data = ShareCard.build(
+                fiberByDayValues = uiState.fiberSeries.map { it.fiberG },
+                daysLogged = uiState.daysLoggedLast7,
+                windowDays = uiState.windowDays,
+                hideNumbers = uiState.hideNumbers,
+            )
+            val headline = when {
+                data.hideNumbers -> context.getString(R.string.share_card_headline_hidden)
+                data.averageFiberG != null ->
+                    context.getString(R.string.share_card_headline_avg, data.averageFiberG)
+                else -> context.getString(R.string.share_card_headline_empty)
+            }
+            val uri = ShareCardRenderer.render(
+                context,
+                ShareCardLines(
+                    title = context.getString(R.string.share_card_title),
+                    headline = headline,
+                    subline = context.getString(R.string.share_card_subline),
+                    footer = context.getString(R.string.share_card_footer),
+                ),
+            )
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(send, null))
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressScreen(uiState: ProgressUiState) {
+fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.progress_title)) }) },
     ) { padding ->
@@ -68,6 +108,7 @@ fun ProgressScreen(uiState: ProgressUiState) {
             item { FiberTrendCard(uiState) }
             item { WeightCard(uiState) }
             item { MovementCard(uiState) }
+            item { ShareWeekCard(onShareWeek = onShareWeek) }
         }
     }
 }
@@ -324,6 +365,29 @@ private fun MovementCard(uiState: ProgressUiState) {
                 )
             }
             Text(text = text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/**
+ * The opt-in share affordance (SPEC §7.6 Step 2): a plain button that generates a
+ * card and opens the OS share sheet only on an explicit tap. Never auto-suggested,
+ * never a popup; the copy states the "nothing leaves your phone unless you send it"
+ * promise directly.
+ */
+@Composable
+private fun ShareWeekCard(onShareWeek: () -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.progress_share_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.progress_share_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(onClick = onShareWeek) {
+                Text(stringResource(R.string.progress_share_button))
+            }
         }
     }
 }

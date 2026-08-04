@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- The opt-in share card is written here, then shared via a content URI. -->
+    <cache-path name="shares" path="shares/" />
+</paths>
