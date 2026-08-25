@@ -247,15 +247,17 @@
     <string name="today_servings_format">%1$s servings</string>
     <string name="today_weight_header">Latest weight</string>
     <string name="today_weight_value">%1$d lb</string>
-    <string name="today_weight_none">No weight logged yet.</string>
+    <!-- Sits in the value column of a quiet stat row, so it stays short and neutral -->
+    <string name="today_weight_none">Not logged yet</string>
     <string name="today_activity_header">Movement today</string>
     <string name="today_activity_none">No movement logged yet today.</string>
     <string name="today_add_meal">Add a meal</string>
     <string name="today_log_weight">Log weight</string>
     <string name="today_log_activity">Log movement</string>
-    <string name="today_hc_header">From Health Connect</string>
-    <string name="today_hc_steps">%1$s steps today</string>
-    <string name="today_hc_sleep">%1$dh %2$dm of sleep last night</string>
+    <!-- Health Connect readings as quiet label/value rows in the grouped stats section -->
+    <string name="today_hc_steps_label">Steps today</string>
+    <string name="today_hc_sleep_label">Sleep last night</string>
+    <string name="today_hc_sleep_value">%1$dh %2$dm</string>
 
     <!-- Activity units (for display) -->
     <string name="activity_value_minutes">%1$d min</string>

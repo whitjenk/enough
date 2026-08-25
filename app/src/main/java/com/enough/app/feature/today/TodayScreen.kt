@@ -15,6 +15,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,6 +44,7 @@ import com.enough.app.domain.UnitConversions
 import com.enough.app.domain.nutrition.MealNutrition
 import com.enough.app.domain.rules.DailySwap
 import com.enough.app.domain.rules.Nudge
+import com.enough.app.domain.rules.TodayMessage
 import com.enough.app.feature.share.ShareCardLines
 import com.enough.app.feature.share.ShareCardRenderer
 import com.enough.app.ui.components.FiberRing
@@ -124,18 +126,22 @@ fun TodayScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            // The reset-day moment outranks the routine fiber nudge: when it
-            // shows, the nudge is suppressed so the two never contradict on a
-            // rough day (a light inline arbitration ahead of Phase 1's layer).
-            if (uiState.showResetMoment) {
-                item { ResetMomentCard(onLogSomething = onAddMeal, onShown = onResetMomentShown) }
-            } else {
-                item { NudgeCard(uiState.nudge) }
-            }
+            // Tier 1 — the hero. The ring is the only extraLarge card on the
+            // screen; everything below it is deliberately quieter.
             item { FiberCard(uiState) }
-            uiState.dailySwap?.let { swap -> item { DailySwapCard(swap) } }
-            // The felt check-in is a reflection, so it sits just below the day's
-            // fiber and the one-idea swap — present, never the first thing pushed.
+            // Tier 2 — exactly ONE thing the app says today (reset > nudge >
+            // swap), chosen by the pure arbiter so the three can't stack into a
+            // wall of advice or contradict each other on a rough day.
+            when (val message = uiState.todayMessage) {
+                TodayMessage.Reset -> item {
+                    ResetMomentCard(onLogSomething = onAddMeal, onShown = onResetMomentShown)
+                }
+                is TodayMessage.FiberNudge -> item { NudgeCard(message.nudge) }
+                is TodayMessage.Swap -> item { DailySwapCard(message.swap) }
+                TodayMessage.None -> Unit
+            }
+            // Tier 3 — the person's own input, not the app talking. Keeps its own
+            // quiet slot rather than competing with the messages above (§7.6 S1/S2).
             item {
                 CheckInCard(
                     selected = uiState.todayFelt,
@@ -150,8 +156,9 @@ fun TodayScreen(
                     onLogActivity = onLogActivity,
                 )
             }
-            item { WeightCard(uiState) }
-            item { HealthConnectCard(uiState.healthConnect) }
+            // Tier 4 — today's numbers as quiet grouped rows, not equal-weight
+            // cards competing with the ring.
+            item { QuietStatsSection(uiState) }
             item { MealsHeader() }
             if (uiState.meals.isEmpty()) {
                 item { EmptyHint(stringResource(R.string.today_no_meals)) }
@@ -194,7 +201,8 @@ private fun NudgeCard(nudge: Nudge) {
     val onTrack = nudge is Nudge.OnTrack
     Card(
         Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
+        // `large`, not `extraLarge` — the ring is the screen's only hero (§7.7 item 2).
+        shape = MaterialTheme.shapes.large,
         colors = if (onTrack) {
             CardDefaults.cardColors(
                 containerColor = EnoughTheme.successColors.successContainer,
@@ -233,7 +241,8 @@ private fun ResetMomentCard(onLogSomething: () -> Unit, onShown: () -> Unit) {
     // reserved for goal-met) with the mascot for warmth.
     Card(
         Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
+        // `large`, not `extraLarge` — the ring is the screen's only hero (§7.7 item 2).
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -278,7 +287,13 @@ private fun CheckInCard(
     onCheckIn: (FeltLevel) -> Unit,
     onShareToday: () -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+    // A quieter surface than the message cards above it: this is the person's own
+    // input, not the app speaking, and its chips already give it enough presence.
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.today_checkin_header), style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -401,57 +416,75 @@ private fun LoggingActions(
     }
 }
 
+/**
+ * Weight and the optional Health Connect readings, grouped into one quiet
+ * surface of label/value rows (§7.7 item 2). These were three equal-weight cards
+ * competing with the fiber ring; they're supporting context, so they recede
+ * through size and grouping rather than through a different color.
+ */
 @Composable
-private fun WeightCard(uiState: TodayUiState) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.today_weight_header), style = MaterialTheme.typography.titleMedium)
+private fun QuietStatsSection(uiState: TodayUiState) {
+    val data = uiState.healthConnect
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
             val weight = uiState.latestWeight
-            if (weight != null && uiState.hideNumbers) {
-                // Hide-numbers mode: the trend word instead of the literal weight.
-                Text(
-                    text = stringResource(weightTrendCopy(uiState.weightTrend)),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            } else if (weight != null) {
-                Text(
-                    text = stringResource(
+            QuietStatRow(
+                label = stringResource(R.string.today_weight_header),
+                value = when {
+                    // Hide-numbers mode: the trend word instead of the literal weight.
+                    weight != null && uiState.hideNumbers ->
+                        stringResource(weightTrendCopy(uiState.weightTrend))
+                    weight != null -> stringResource(
                         R.string.today_weight_value,
                         UnitConversions.kgToLb(weight.weightKg).roundToInt(),
-                    ),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    )
+                    else -> stringResource(R.string.today_weight_none)
+                },
+                muted = weight == null,
+            )
+            data.stepsToday?.let { steps ->
+                QuietStatRow(
+                    label = stringResource(R.string.today_hc_steps_label),
+                    value = "%,d".format(steps),
                 )
-            } else {
-                Text(
-                    text = stringResource(R.string.today_weight_none),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            }
+            data.sleepMinutesLastNight?.let { minutes ->
+                QuietStatRow(
+                    label = stringResource(R.string.today_hc_sleep_label),
+                    value = stringResource(R.string.today_hc_sleep_value, minutes / 60, minutes % 60),
                 )
             }
         }
     }
 }
 
+/** One label/value line in the quiet stats group. */
 @Composable
-private fun HealthConnectCard(data: HealthConnectData) {
-    if (!data.hasAny) return
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.today_hc_header), style = MaterialTheme.typography.titleMedium)
-            data.stepsToday?.let { steps ->
-                Text(
-                    text = stringResource(R.string.today_hc_steps, "%,d".format(steps)),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-            data.sleepMinutesLastNight?.let { minutes ->
-                Text(
-                    text = stringResource(R.string.today_hc_sleep, minutes / 60, minutes % 60),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-        }
+private fun QuietStatRow(label: String, value: String, muted: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (muted) FontWeight.Normal else FontWeight.Medium,
+            color = if (muted) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
     }
 }
 
@@ -534,7 +567,23 @@ private fun formatServings(value: Double): String =
 private fun TodayPreview() {
     com.enough.app.ui.theme.EnoughTheme(dynamicColor = false) {
         TodayScreen(
+            // Exercises the full hierarchy: hero ring with a real target, one
+            // arbitrated message (the swap, since no nudge is set), the quiet
+            // check-in, and the grouped stat rows.
             uiState = TodayUiState(
+                goal = com.enough.app.data.local.entity.UserGoal(
+                    startWeightKg = 82.0,
+                    targetWeightKg = 78.0,
+                    weightLossPercent = 5.0,
+                    activityGoalType = com.enough.app.data.model.ActivityGoalType.MINUTES,
+                    activityGoalValue = 150,
+                    activityGoalCustomLabel = null,
+                    dailyCalorieEstimate = 2000,
+                    fiberGramsTarget = 28,
+                    createdAt = java.time.Instant.EPOCH,
+                ),
+                fiberSoFarG = 18.0,
+                healthConnect = HealthConnectData(stepsToday = 6432, sleepMinutesLastNight = 437),
                 isLoading = false,
                 dailySwap = DailySwap.Swap(
                     food = "Lentils",

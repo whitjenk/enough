@@ -212,6 +212,44 @@ class TodayScreenRenderTest {
     }
 
     @Test
+    fun `only one today message renders when the nudge and the swap are both eligible`() {
+        // §7.7 item 2: the three messages arbitrate to one on screen rather than
+        // stacking. A specific nudge about today outranks the generic swap.
+        val state = TodayUiState(
+            nudge = com.enough.app.domain.rules.Nudge.FiberGap(
+                fiberSoFarG = 6,
+                gapG = 22,
+                suggestionFood = "Lentils",
+                suggestionServingLabel = "1/2 cup cooked",
+                suggestionFiberG = 8,
+            ),
+            dailySwap = com.enough.app.domain.rules.DailySwap.Swap(
+                food = "Chia seeds",
+                servingLabel = "2 tbsp",
+                fiberG = 10,
+                gentle = false,
+            ),
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Lentils", substring = true))
+        composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
+        // The swap card is not merely below the fold — it isn't in the tree at all.
+        composeRule.onNodeWithText("One idea for today").assertDoesNotExist()
+        composeRule.onNodeWithText("Chia seeds", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun `reset moment card shows and suppresses the fiber nudge`() {
         val state = TodayUiState(
             nudge = com.enough.app.domain.rules.Nudge.FiberGap(
@@ -236,7 +274,10 @@ class TodayScreenRenderTest {
             }
         }
 
-        // The reset moment renders its warm, no-catch-up copy...
+        // The reset moment renders its warm, no-catch-up copy (below the hero
+        // ring, so scroll it into view in the small test viewport)...
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("Today's a fresh start"))
         composeRule.onNodeWithText("Today's a fresh start").assertIsDisplayed()
         // ...and the routine fiber nudge is suppressed so the two don't contradict.
         composeRule.onNodeWithText("Kidney beans", substring = true).assertDoesNotExist()

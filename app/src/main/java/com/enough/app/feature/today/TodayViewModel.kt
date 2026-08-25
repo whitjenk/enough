@@ -26,6 +26,8 @@ import com.enough.app.domain.rules.Nudge
 import com.enough.app.domain.rules.NudgeGenerator
 import com.enough.app.domain.rules.ResetMoment
 import com.enough.app.domain.rules.RulesEngine
+import com.enough.app.domain.rules.TodayMessage
+import com.enough.app.domain.rules.TodayMessageArbiter
 import com.enough.app.health.HealthConnectManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,6 +71,13 @@ data class TodayUiState(
 
     /** Hide-numbers mode: show trend/qualitative signal instead of literal weight/fiber values (SPEC §23). */
     val hideNumbers: Boolean get() = goal?.hideNumbersMode == true
+
+    /**
+     * The one message Today speaks with, picked by the pure arbiter rather than
+     * by the composable — reset > nudge > swap, never stacked (§7.7 item 2).
+     */
+    val todayMessage: TodayMessage
+        get() = TodayMessageArbiter.select(showResetMoment, nudge, dailySwap)
 }
 
 /**
