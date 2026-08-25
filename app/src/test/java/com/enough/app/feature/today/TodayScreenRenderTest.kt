@@ -212,6 +212,32 @@ class TodayScreenRenderTest {
     }
 
     @Test
+    fun `meal logging is the primary action and weight and movement stay secondary`() {
+        // §7.7 item 3: the #1 task sits in the thumb-reachable FAB rather than
+        // being one of three equal mid-screen buttons. The FAB is labelled, so it
+        // needs no separate contentDescription to be reachable.
+        var addedMeal = false
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(isLoading = false),
+                    onAddMeal = { addedMeal = true }, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        // The FAB is pinned to the scaffold, so it's reachable without scrolling.
+        composeRule.onNodeWithText("Add a meal").assertIsDisplayed().performClick()
+        assertTrue(addedMeal)
+
+        // Weight and movement still exist as secondary entries, not equal thirds.
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Log weight"))
+        composeRule.onNodeWithText("Log weight").assertIsDisplayed()
+        composeRule.onNodeWithText("Log movement").assertIsDisplayed()
+    }
+
+    @Test
     fun `only one today message renders when the nudge and the swap are both eligible`() {
         // §7.7 item 2: the three messages arbitrate to one on screen rather than
         // stacking. A specific nudge about today outranks the generic swap.

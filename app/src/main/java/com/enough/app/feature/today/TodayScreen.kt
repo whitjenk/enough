@@ -2,6 +2,7 @@ package com.enough.app.feature.today
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,8 +12,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -114,10 +117,21 @@ fun TodayScreen(
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.today_title)) }) },
+        // The #1 task (and the named churn driver) gets the thumb-reachable
+        // primary slot instead of being one of three equal mid-screen buttons
+        // (§7.7 item 3). Extended and labelled — the app uses no icon library, and
+        // a visible label needs no separate contentDescription.
+        floatingActionButton = {
+            ExtendedFloatingActionButton(onClick = onAddMeal) {
+                Text(stringResource(R.string.today_add_meal))
+            }
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
+            // Bottom inset so the FAB never sits on top of the last row.
+            contentPadding = PaddingValues(bottom = 88.dp),
         ) {
             item {
                 Text(
@@ -150,8 +164,7 @@ fun TodayScreen(
                 )
             }
             item {
-                LoggingActions(
-                    onAddMeal = onAddMeal,
+                SecondaryLoggingActions(
                     onLogWeight = onLogWeight,
                     onLogActivity = onLogActivity,
                 )
@@ -315,7 +328,7 @@ private fun CheckInCard(
             // Only once the person has reflected — the emotional peak — offer an
             // opt-in, feeling-first share. Never a popup, never before a check-in.
             if (selected != null) {
-                TextButton(onClick = onShareToday, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                TextButton(onClick = onShareToday, contentPadding = PaddingValues(0.dp)) {
                     Text(stringResource(R.string.today_checkin_share))
                 }
             }
@@ -397,20 +410,21 @@ private fun FiberCard(uiState: TodayUiState) {
     }
 }
 
+/**
+ * Weight and movement as *secondary* entries (§7.7 item 3). Meal logging is the
+ * primary action and lives in the FAB, so these two step down to outlined
+ * buttons rather than competing as equal filled-tonal thirds.
+ */
 @Composable
-private fun LoggingActions(
-    onAddMeal: () -> Unit,
+private fun SecondaryLoggingActions(
     onLogWeight: () -> Unit,
     onLogActivity: () -> Unit,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        FilledTonalButton(onClick = onAddMeal, modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.today_add_meal))
-        }
-        FilledTonalButton(onClick = onLogWeight, modifier = Modifier.weight(1f)) {
+        OutlinedButton(onClick = onLogWeight, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.today_log_weight))
         }
-        FilledTonalButton(onClick = onLogActivity, modifier = Modifier.weight(1f)) {
+        OutlinedButton(onClick = onLogActivity, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.today_log_activity))
         }
     }
