@@ -1,10 +1,15 @@
 package com.enough.app.feature.today
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.ActivityEntry
 import com.enough.app.data.local.entity.Food
@@ -76,12 +81,18 @@ class TodayScreenRenderTest {
             }
         }
 
-        // Confirms the screen composes without crashing and the fiber headline
+        // Confirms the screen composes without crashing and the fiber ring
         // renders with the correct derived value/format. (Meal/activity rows are
         // below the fold in the small test viewport and, being in a LazyColumn,
         // aren't composed here; their row logic is covered by unit tests.)
         composeRule.onNodeWithText("Fiber today").assertIsDisplayed()
-        composeRule.onNodeWithText("6g of 28g").assertIsDisplayed()
+        // The hero ring exposes exactly one spoken statement for the whole ring
+        // (its inner number/label Texts are cleared from the semantics tree so a
+        // screen reader hears one clear value, not three fragments). The tall ring
+        // can sit below the small test viewport, so scroll it into view.
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasContentDescription("6 of 28 grams of fiber today"))
+        composeRule.onNodeWithContentDescription("6 of 28 grams of fiber today").assertIsDisplayed()
         // The daily fiber nudge card renders its supportive, specific message.
         composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
     }
@@ -108,8 +119,10 @@ class TodayScreenRenderTest {
             }
         }
 
-        // The zero-input daily value renders near the top, above the logging
-        // actions, with its non-logging, exit-offering copy.
+        // The zero-input daily value renders above the logging actions, with its
+        // non-logging, exit-offering copy. (Below the fiber ring in the small test
+        // viewport, so scroll it into view first.)
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("One idea for today"))
         composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
         composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
     }
@@ -130,6 +143,7 @@ class TodayScreenRenderTest {
             }
         }
 
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("How did today feel?"))
         composeRule.onNodeWithText("How did today feel?").assertIsDisplayed()
         composeRule.onNodeWithText("Steady").assertIsDisplayed()
         // Framed as a note to yourself, never a nudge to log.
@@ -192,6 +206,7 @@ class TodayScreenRenderTest {
                 )
             }
         }
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Share today"))
         composeRule.onNodeWithText("Share today").performScrollTo().performClick()
         assertTrue(shared)
     }

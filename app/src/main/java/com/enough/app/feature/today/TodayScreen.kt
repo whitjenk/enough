@@ -45,6 +45,7 @@ import com.enough.app.domain.rules.DailySwap
 import com.enough.app.domain.rules.Nudge
 import com.enough.app.feature.share.ShareCardLines
 import com.enough.app.feature.share.ShareCardRenderer
+import com.enough.app.ui.components.FiberRing
 import com.enough.app.ui.components.Mascot
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.roundToInt
@@ -155,7 +156,7 @@ fun TodayScreen(
             if (uiState.meals.isEmpty()) {
                 item { EmptyHint(stringResource(R.string.today_no_meals)) }
             } else {
-                items(uiState.meals, key = { it.meal.id }) { meal ->
+                items(uiState.meals, key = { "meal-${it.meal.id}" }) { meal ->
                     MealRow(
                         item = meal,
                         calibration = uiState.calibration,
@@ -167,7 +168,7 @@ fun TodayScreen(
             if (uiState.activities.isEmpty()) {
                 item { EmptyHint(stringResource(R.string.today_activity_none)) }
             } else {
-                items(uiState.activities, key = { it.id }) { activity -> ActivityRow(activity) }
+                items(uiState.activities, key = { "activity-${it.id}" }) { activity -> ActivityRow(activity) }
             }
         }
     }
@@ -343,31 +344,39 @@ private fun DailySwapCard(swap: DailySwap.Swap) {
 @Composable
 private fun FiberCard(uiState: TodayUiState) {
     Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.today_fiber_headline), style = MaterialTheme.typography.titleMedium)
+        Column(
+            Modifier.fillMaxWidth().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                stringResource(R.string.today_fiber_headline),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.align(Alignment.Start),
+            )
             if (uiState.hideNumbers) {
-                // Hide-numbers mode: no literal grams, just that today's being logged.
+                // Hide-numbers mode: no ring, no literal grams — just that today's
+                // being logged. Keeps a hidden number from ever reaching the screen.
                 Text(
                     text = stringResource(R.string.today_fiber_hidden),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else if (uiState.fiberTargetG > 0) {
-                Text(
-                    text = stringResource(
-                        R.string.today_fiber_progress,
-                        uiState.fiberSoFarG.roundToInt(),
-                        uiState.fiberTargetG,
-                    ),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Start),
                 )
             } else {
-                Text(
-                    text = stringResource(R.string.today_fiber_no_target),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // The hero: an animated ring (handles the no-target and over-target
+                // states itself). A zero target renders a neutral, unfilled track.
+                FiberRing(
+                    fiberSoFarG = uiState.fiberSoFarG.roundToInt(),
+                    fiberTargetG = uiState.fiberTargetG,
                 )
+                if (uiState.fiberTargetG <= 0) {
+                    Text(
+                        text = stringResource(R.string.today_fiber_no_target),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

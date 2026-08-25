@@ -228,6 +228,13 @@
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>
     <string name="today_fiber_no_target">Set up your goals to see your fiber target.</string>
+    <!-- Fiber ring center: the small label under the live gram number -->
+    <string name="today_fiber_ring_target">of %1$dg</string>
+    <string name="today_fiber_ring_grams">grams</string>
+    <!-- Fiber ring accessibility: one spoken statement for the whole ring -->
+    <string name="cd_fiber_ring">%1$d of %2$d grams of fiber today</string>
+    <string name="cd_fiber_ring_met">%1$d of %2$d grams of fiber today — target reached</string>
+    <string name="cd_fiber_ring_no_target">%1$d grams of fiber logged today</string>
     <!-- Hide-numbers mode: qualitative stand-ins for the literal weight/fiber values -->
     <string name="today_fiber_hidden">You\'re logging today. Numbers are hidden.</string>
     <string name="metric_hidden">Numbers hidden</string>
