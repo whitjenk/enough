@@ -228,11 +228,24 @@
     <string name="today_fiber_headline">Fiber today</string>
     <string name="today_fiber_progress">%1$dg of %2$dg</string>
     <string name="today_fiber_no_target">Set up your goals to see your fiber target.</string>
+    <!-- Fiber ring center: the small label under the live gram number -->
+    <string name="today_fiber_ring_target">of %1$dg</string>
+    <string name="today_fiber_ring_grams">grams</string>
+    <!-- Fiber ring accessibility: one spoken statement for the whole ring -->
+    <string name="cd_fiber_ring">%1$d of %2$d grams of fiber today</string>
+    <string name="cd_fiber_ring_met">%1$d of %2$d grams of fiber today — target reached</string>
+    <string name="cd_fiber_ring_no_target">%1$d grams of fiber logged today</string>
     <!-- Hide-numbers mode: qualitative stand-ins for the literal weight/fiber values -->
     <string name="today_fiber_hidden">You\'re logging today. Numbers are hidden.</string>
     <string name="metric_hidden">Numbers hidden</string>
     <string name="today_meals_header">Meals</string>
-    <string name="today_no_meals">No meals logged yet today. Whenever you\'re ready.</string>
+    <!-- First-action moment, not a flat "nothing here" line: warm, no catch-up
+         pressure, and it echoes the app's name rather than counting what's missing. -->
+    <string name="today_no_meals">Nothing logged yet — one thing is enough to start.</string>
+    <string name="today_no_meals_action">Add something</string>
+    <!-- Undo affordance after a one-tap quick-log, so a mis-tap is recoverable inline -->
+    <string name="today_meal_logged">Added</string>
+    <string name="today_meal_undo">Undo</string>
     <string name="today_meal_secondary">%1$s · about %2$dg fiber</string>
     <!-- Coarse quick-log entries are estimates: an honest range, not a precise number -->
     <string name="today_meal_secondary_estimate">Estimate · about %1$d–%2$dg fiber</string>
@@ -240,15 +253,17 @@
     <string name="today_servings_format">%1$s servings</string>
     <string name="today_weight_header">Latest weight</string>
     <string name="today_weight_value">%1$d lb</string>
-    <string name="today_weight_none">No weight logged yet.</string>
+    <!-- Sits in the value column of a quiet stat row, so it stays short and neutral -->
+    <string name="today_weight_none">Not logged yet</string>
     <string name="today_activity_header">Movement today</string>
     <string name="today_activity_none">No movement logged yet today.</string>
     <string name="today_add_meal">Add a meal</string>
     <string name="today_log_weight">Log weight</string>
     <string name="today_log_activity">Log movement</string>
-    <string name="today_hc_header">From Health Connect</string>
-    <string name="today_hc_steps">%1$s steps today</string>
-    <string name="today_hc_sleep">%1$dh %2$dm of sleep last night</string>
+    <!-- Health Connect readings as quiet label/value rows in the grouped stats section -->
+    <string name="today_hc_steps_label">Steps today</string>
+    <string name="today_hc_sleep_label">Sleep last night</string>
+    <string name="today_hc_sleep_value">%1$dh %2$dm</string>
 
     <!-- Activity units (for display) -->
     <string name="activity_value_minutes">%1$d min</string>

@@ -1,10 +1,15 @@
 package com.enough.app.feature.today
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import com.enough.app.data.local.dao.MealWithFood
 import com.enough.app.data.local.entity.ActivityEntry
 import com.enough.app.data.local.entity.Food
@@ -76,12 +81,18 @@ class TodayScreenRenderTest {
             }
         }
 
-        // Confirms the screen composes without crashing and the fiber headline
+        // Confirms the screen composes without crashing and the fiber ring
         // renders with the correct derived value/format. (Meal/activity rows are
         // below the fold in the small test viewport and, being in a LazyColumn,
         // aren't composed here; their row logic is covered by unit tests.)
         composeRule.onNodeWithText("Fiber today").assertIsDisplayed()
-        composeRule.onNodeWithText("6g of 28g").assertIsDisplayed()
+        // The hero ring exposes exactly one spoken statement for the whole ring
+        // (its inner number/label Texts are cleared from the semantics tree so a
+        // screen reader hears one clear value, not three fragments). The tall ring
+        // can sit below the small test viewport, so scroll it into view.
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasContentDescription("6 of 28 grams of fiber today"))
+        composeRule.onNodeWithContentDescription("6 of 28 grams of fiber today").assertIsDisplayed()
         // The daily fiber nudge card renders its supportive, specific message.
         composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
     }
@@ -108,8 +119,10 @@ class TodayScreenRenderTest {
             }
         }
 
-        // The zero-input daily value renders near the top, above the logging
-        // actions, with its non-logging, exit-offering copy.
+        // The zero-input daily value renders above the logging actions, with its
+        // non-logging, exit-offering copy. (Below the fiber ring in the small test
+        // viewport, so scroll it into view first.)
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("One idea for today"))
         composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
         composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
     }
@@ -130,6 +143,7 @@ class TodayScreenRenderTest {
             }
         }
 
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("How did today feel?"))
         composeRule.onNodeWithText("How did today feel?").assertIsDisplayed()
         composeRule.onNodeWithText("Steady").assertIsDisplayed()
         // Framed as a note to yourself, never a nudge to log.
@@ -192,8 +206,73 @@ class TodayScreenRenderTest {
                 )
             }
         }
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Share today"))
         composeRule.onNodeWithText("Share today").performScrollTo().performClick()
         assertTrue(shared)
+    }
+
+    @Test
+    fun `meal logging is the primary action and weight and movement stay secondary`() {
+        // §7.7 item 3: the #1 task sits in the thumb-reachable FAB rather than
+        // being one of three equal mid-screen buttons. The FAB is labelled, so it
+        // needs no separate contentDescription to be reachable.
+        var addedMeal = false
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(isLoading = false),
+                    onAddMeal = { addedMeal = true }, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        // The FAB is pinned to the scaffold, so it's reachable without scrolling.
+        composeRule.onNodeWithText("Add a meal").assertIsDisplayed().performClick()
+        assertTrue(addedMeal)
+
+        // Weight and movement still exist as secondary entries, not equal thirds.
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Log weight"))
+        composeRule.onNodeWithText("Log weight").assertIsDisplayed()
+        composeRule.onNodeWithText("Log movement").assertIsDisplayed()
+    }
+
+    @Test
+    fun `only one today message renders when the nudge and the swap are both eligible`() {
+        // §7.7 item 2: the three messages arbitrate to one on screen rather than
+        // stacking. A specific nudge about today outranks the generic swap.
+        val state = TodayUiState(
+            nudge = com.enough.app.domain.rules.Nudge.FiberGap(
+                fiberSoFarG = 6,
+                gapG = 22,
+                suggestionFood = "Lentils",
+                suggestionServingLabel = "1/2 cup cooked",
+                suggestionFiberG = 8,
+            ),
+            dailySwap = com.enough.app.domain.rules.DailySwap.Swap(
+                food = "Chia seeds",
+                servingLabel = "2 tbsp",
+                fiberG = 10,
+                gentle = false,
+            ),
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Lentils", substring = true))
+        composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
+        // The swap card is not merely below the fold — it isn't in the tree at all.
+        composeRule.onNodeWithText("One idea for today").assertDoesNotExist()
+        composeRule.onNodeWithText("Chia seeds", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -221,7 +300,10 @@ class TodayScreenRenderTest {
             }
         }
 
-        // The reset moment renders its warm, no-catch-up copy...
+        // The reset moment renders its warm, no-catch-up copy (below the hero
+        // ring, so scroll it into view in the small test viewport)...
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("Today's a fresh start"))
         composeRule.onNodeWithText("Today's a fresh start").assertIsDisplayed()
         // ...and the routine fiber nudge is suppressed so the two don't contradict.
         composeRule.onNodeWithText("Kidney beans", substring = true).assertDoesNotExist()

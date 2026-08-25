@@ -25,5 +25,8 @@ class MealRepository(private val dao: MealEntryDao) {
 
     suspend fun delete(entry: MealEntry) = dao.delete(entry)
 
+    /** One entry by row id; null when it no longer exists. */
+    suspend fun findById(id: Long): MealEntry? = dao.findById(id)
+
     suspend fun latestTimestampMillis(): Long? = dao.latestTimestamp()
 }

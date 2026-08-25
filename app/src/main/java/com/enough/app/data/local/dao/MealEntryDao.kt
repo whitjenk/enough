@@ -49,6 +49,10 @@ interface MealEntryDao {
     @Query("SELECT * FROM meal_entry ORDER BY timestamp DESC")
     suspend fun getAll(): List<MealWithFood>
 
+    /** One row by id; null if it's already been removed (e.g. a repeated undo). */
+    @Query("SELECT * FROM meal_entry WHERE id = :id")
+    suspend fun findById(id: Long): MealEntry?
+
     @Query("SELECT MAX(timestamp) FROM meal_entry")
     suspend fun latestTimestamp(): Long?
 
