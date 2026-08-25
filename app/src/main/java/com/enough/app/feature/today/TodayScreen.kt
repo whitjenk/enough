@@ -85,14 +85,21 @@ fun TodayRoute(
     // so it can't reappear on the next recomposition or return to this screen.
     LaunchedEffect(undoMealId) {
         val id = undoMealId ?: return@LaunchedEffect
-        onUndoHandled()
-        val result = snackbarHostState.showSnackbar(
-            message = context.getString(R.string.today_meal_logged),
-            actionLabel = context.getString(R.string.today_meal_undo),
-            withDismissAction = false,
-            duration = SnackbarDuration.Short,
-        )
-        if (result == SnackbarResult.ActionPerformed) viewModel.undoMeal(id)
+        try {
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.today_meal_logged),
+                actionLabel = context.getString(R.string.today_meal_undo),
+                withDismissAction = false,
+                duration = SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed) viewModel.undoMeal(id)
+        } finally {
+            // Cleared only once the snackbar is done — clearing first would change
+            // this effect's own key and cancel it before anything showed. The
+            // `finally` also covers navigating away mid-snackbar, so a stale id
+            // can't re-trigger on the next return to Today.
+            onUndoHandled()
+        }
     }
 
     TodayScreen(
@@ -189,6 +196,15 @@ fun TodayScreen(
                     )
                 }
             }
+            // Sits above the check-in rather than below it so it clears the FAB's
+            // resting position — an extended FAB is wide, and on device it covered
+            // the "Log movement" button when this row sat lower.
+            item {
+                SecondaryLoggingActions(
+                    onLogWeight = onLogWeight,
+                    onLogActivity = onLogActivity,
+                )
+            }
             // Tier 3 — the person's own input, not the app talking. Keeps its own
             // quiet slot rather than competing with the messages above (§7.6 S1/S2).
             item {
@@ -196,12 +212,6 @@ fun TodayScreen(
                     selected = uiState.todayFelt,
                     onCheckIn = onCheckIn,
                     onShareToday = onShareToday,
-                )
-            }
-            item {
-                SecondaryLoggingActions(
-                    onLogWeight = onLogWeight,
-                    onLogActivity = onLogActivity,
                 )
             }
             // Tier 4 — today's numbers as quiet grouped rows, not equal-weight

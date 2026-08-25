@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -92,7 +93,12 @@ fun FiberRing(
         0f
     }
 
-    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    // `outlineVariant`, not a surface role: M3's filled Card is already
+    // surfaceContainerHighest, so a surface-toned track renders invisible on the
+    // very card the ring lives in (caught on device). outlineVariant is the role
+    // meant to stay visible against any surface, and stays neutral — never red
+    // or "failure"-toned for an unfilled ring (DESIGN.md).
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
     val fillColor = EnoughTheme.successColors.success
 
     val description = when {
@@ -145,7 +151,12 @@ fun FiberRing(
         }
         // Center: weight-not-color emphasis — the gram number is the heaviest,
         // largest thing here; the "of Yg" label recedes below it.
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Bounded to the ring's inner circle so a long value at a large font
+        // scale wraps inside the ring instead of spilling across the stroke.
+        Column(
+            modifier = Modifier.padding(horizontal = strokeWidth + 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text(
                 // The animated value counts up; the contentDescription above uses
                 // the settled one, so a screen reader never reads a mid-count number.
