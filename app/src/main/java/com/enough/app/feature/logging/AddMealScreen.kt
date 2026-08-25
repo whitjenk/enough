@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -41,12 +41,14 @@ import com.enough.app.di.AppViewModelProvider
 
 @Composable
 fun AddMealRoute(
-    onSaved: () -> Unit,
+    onSaved: (mealId: Long?) -> Unit,
     onBack: () -> Unit,
     viewModel: AddMealViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(uiState.saved) { if (uiState.saved) onSaved() }
+    // The id travels back with the navigation so Today can offer an undo for a
+    // mis-tap, rather than the log being recoverable only by hunting for the row.
+    LaunchedEffect(uiState.saved) { if (uiState.saved) onSaved(uiState.savedMealId) }
 
     AddMealScreen(
         uiState = uiState,
@@ -181,10 +183,7 @@ private fun QuickLogSections(
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         categories.forEach { category ->
-            AssistChip(
-                onClick = { onLogCategory(category) },
-                label = { Text(category.name) },
-            )
+            QuickAddButton(label = category.name, onClick = { onLogCategory(category) })
         }
     }
     if (recents.isNotEmpty()) {
@@ -195,12 +194,25 @@ private fun QuickLogSections(
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             recents.forEach { food ->
-                AssistChip(
-                    onClick = { onLogRecent(food) },
-                    label = { Text(food.name) },
-                )
+                QuickAddButton(label = food.name, onClick = { onLogRecent(food) })
             }
         }
+    }
+}
+
+/**
+ * A one-tap quick-log control (§7.7 item 6). These commit a meal immediately, so
+ * they use a filled-tonal button rather than an `AssistChip` — a chip reads as a
+ * passive suggestion, which misrepresents what tapping actually does. Compact
+ * padding keeps the chip-like density in the flow row.
+ */
+@Composable
+private fun QuickAddButton(label: String, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
     }
 }
 

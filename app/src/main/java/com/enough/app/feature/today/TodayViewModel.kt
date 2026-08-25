@@ -292,4 +292,15 @@ class TodayViewModel(
     fun deleteMeal(item: MealWithFood) {
         viewModelScope.launch { mealRepository.delete(item.meal) }
     }
+
+    /**
+     * Undo a just-logged meal by row id (§7.7 item 6). Looks the row up rather
+     * than trusting the caller's copy, and no-ops if it's already gone — an undo
+     * that arrives twice, or after a manual delete, must not throw.
+     */
+    fun undoMeal(mealId: Long) {
+        viewModelScope.launch {
+            mealRepository.findById(mealId)?.let { mealRepository.delete(it) }
+        }
+    }
 }

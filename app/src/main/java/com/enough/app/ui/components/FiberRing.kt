@@ -1,7 +1,7 @@
 package com.enough.app.ui.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -10,20 +10,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.enough.app.R
 import com.enough.app.ui.theme.EnoughTheme
+import kotlin.math.roundToInt
 
 /**
  * The fiber progress ring — the Today hero (DESIGN.md, §7.7 item 1). A single
@@ -50,25 +54,43 @@ fun FiberRing(
     modifier: Modifier = Modifier,
     diameter: Dp = 176.dp,
     strokeWidth: Dp = 18.dp,
+    hapticOnIncrease: Boolean = true,
 ) {
     val hasTarget = fiberTargetG > 0
     val met = hasTarget && fiberSoFarG >= fiberTargetG
-    val targetFraction = if (hasTarget) {
-        (fiberSoFarG.toFloat() / fiberTargetG).coerceIn(0f, 1f)
+
+    // One animated source of truth so the arc and the number move together: the
+    // ring fills as the grams count up, rather than drifting out of sync.
+    //
+    // Seeded at the current value, so returning to a screen that already had
+    // grams on it does NOT replay the fill — motion happens only on the thing
+    // that just changed (DESIGN.md), never on every app open.
+    val animatedGrams = remember { Animatable(fiberSoFarG.toFloat()) }
+    val haptics = LocalHapticFeedback.current
+
+    LaunchedEffect(fiberSoFarG) {
+        val previous = animatedGrams.targetValue
+        if (previous == fiberSoFarG.toFloat()) return@LaunchedEffect
+        // The payoff for a successful log: one gentle confirmation, and only on
+        // an increase — removing a mis-logged meal is a correction, not a reward.
+        if (hapticOnIncrease && fiberSoFarG > previous) {
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        }
+        animatedGrams.animateTo(
+            targetValue = fiberSoFarG.toFloat(),
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow,
+            ),
+        )
+    }
+
+    val displayedGrams = animatedGrams.value.roundToInt()
+    val animatedFraction = if (hasTarget) {
+        (animatedGrams.value / fiberTargetG).coerceIn(0f, 1f)
     } else {
         0f
     }
-
-    // Springy fill — the DESIGN.md motion signature. Only the arc animates; the
-    // number stays live (the celebratory count-up is §7.7 item 4).
-    val animatedFraction by animateFloatAsState(
-        targetValue = targetFraction,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-        ),
-        label = "fiber-ring-fill",
-    )
 
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
     val fillColor = EnoughTheme.successColors.success
@@ -82,7 +104,11 @@ fun FiberRing(
     Box(
         modifier = modifier
             .size(diameter)
-            .clearAndSetSemantics { contentDescription = description },
+            // Merge into one node and give it the single spoken label, so a
+            // screen reader hears "18 of 28 grams of fiber today" rather than
+            // "18" then "of 28g". Merging (rather than clearing) keeps the
+            // rendered text in the unmerged tree, where tests can still see it.
+            .semantics(mergeDescendants = true) { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.size(diameter)) {
@@ -121,7 +147,9 @@ fun FiberRing(
         // largest thing here; the "of Yg" label recedes below it.
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = fiberSoFarG.toString(),
+                // The animated value counts up; the contentDescription above uses
+                // the settled one, so a screen reader never reads a mid-count number.
+                text = displayedGrams.toString(),
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (met) fillColor else MaterialTheme.colorScheme.onSurface,

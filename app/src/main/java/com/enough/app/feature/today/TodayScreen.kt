@@ -1,5 +1,12 @@
 package com.enough.app.feature.today
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +25,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,6 +36,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,11 +73,31 @@ fun TodayRoute(
     onLogWeight: () -> Unit,
     onLogActivity: () -> Unit,
     viewModel: TodayViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    undoMealId: Long? = null,
+    onUndoHandled: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // A meal was just logged: offer to take it back. Prevention over cure for an
+    // accidental one-tap quick-log (§7.7 item 6). Cleared as soon as it's shown
+    // so it can't reappear on the next recomposition or return to this screen.
+    LaunchedEffect(undoMealId) {
+        val id = undoMealId ?: return@LaunchedEffect
+        onUndoHandled()
+        val result = snackbarHostState.showSnackbar(
+            message = context.getString(R.string.today_meal_logged),
+            actionLabel = context.getString(R.string.today_meal_undo),
+            withDismissAction = false,
+            duration = SnackbarDuration.Short,
+        )
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoMeal(id)
+    }
+
     TodayScreen(
         uiState = uiState,
+        snackbarHostState = snackbarHostState,
         onAddMeal = onAddMeal,
         onLogWeight = onLogWeight,
         onLogActivity = onLogActivity,
@@ -114,9 +146,11 @@ fun TodayScreen(
     onResetMomentShown: () -> Unit,
     onCheckIn: (FeltLevel) -> Unit,
     onShareToday: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.today_title)) }) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         // The #1 task (and the named churn driver) gets the thumb-reachable
         // primary slot instead of being one of three equal mid-screen buttons
         // (§7.7 item 3). Extended and labelled — the app uses no icon library, and
@@ -146,13 +180,14 @@ fun TodayScreen(
             // Tier 2 — exactly ONE thing the app says today (reset > nudge >
             // swap), chosen by the pure arbiter so the three can't stack into a
             // wall of advice or contradict each other on a rough day.
-            when (val message = uiState.todayMessage) {
-                TodayMessage.Reset -> item {
-                    ResetMomentCard(onLogSomething = onAddMeal, onShown = onResetMomentShown)
+            if (uiState.todayMessage != TodayMessage.None) {
+                item {
+                    TodayMessageSlot(
+                        message = uiState.todayMessage,
+                        onAddMeal = onAddMeal,
+                        onResetMomentShown = onResetMomentShown,
+                    )
                 }
-                is TodayMessage.FiberNudge -> item { NudgeCard(message.nudge) }
-                is TodayMessage.Swap -> item { DailySwapCard(message.swap) }
-                TodayMessage.None -> Unit
             }
             // Tier 3 — the person's own input, not the app talking. Keeps its own
             // quiet slot rather than competing with the messages above (§7.6 S1/S2).
@@ -174,7 +209,7 @@ fun TodayScreen(
             item { QuietStatsSection(uiState) }
             item { MealsHeader() }
             if (uiState.meals.isEmpty()) {
-                item { EmptyHint(stringResource(R.string.today_no_meals)) }
+                item { FirstMealPrompt(onAddMeal = onAddMeal) }
             } else {
                 items(uiState.meals, key = { "meal-${it.meal.id}" }) { meal ->
                     MealRow(
@@ -190,6 +225,45 @@ fun TodayScreen(
             } else {
                 items(uiState.activities, key = { "activity-${it.id}" }) { activity -> ActivityRow(activity) }
             }
+        }
+    }
+}
+
+/**
+ * The single "today" message, with the app's springy entrance applied to the one
+ * thing that actually changed (§7.7 item 7). [AnimatedContent] does not animate
+ * its first content, so opening the app is still motionless — the transition
+ * runs only when the message genuinely swaps (a nudge becoming the reset moment,
+ * say), which is exactly DESIGN.md's "no motion on data the person didn't just
+ * interact with."
+ */
+@Composable
+private fun TodayMessageSlot(
+    message: TodayMessage,
+    onAddMeal: () -> Unit,
+    onResetMomentShown: () -> Unit,
+) {
+    AnimatedContent(
+        targetState = message,
+        transitionSpec = {
+            val enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
+                scaleIn(
+                    initialScale = 0.96f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+                )
+            enter togetherWith fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium))
+        },
+        label = "today-message",
+    ) { current ->
+        when (current) {
+            TodayMessage.Reset ->
+                ResetMomentCard(onLogSomething = onAddMeal, onShown = onResetMomentShown)
+            is TodayMessage.FiberNudge -> NudgeCard(current.nudge)
+            is TodayMessage.Swap -> DailySwapCard(current.swap)
+            TodayMessage.None -> Unit
         }
     }
 }
@@ -561,6 +635,32 @@ private fun ActivityRow(activity: ActivityEntry) {
         style = MaterialTheme.typography.bodyLarge,
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
     )
+}
+
+/**
+ * The empty meals state as a first-action moment rather than a gray dead end
+ * (§7.7 item 5). The first session decides retention, so a day with nothing
+ * logged gets a warm invitation and one clear way to act — reachable here as
+ * well as from the FAB, since this is where the person is already looking.
+ * No catch-up framing and nothing that counts what's missing.
+ */
+@Composable
+private fun FirstMealPrompt(onAddMeal: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = stringResource(R.string.today_no_meals),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            FilledTonalButton(onClick = onAddMeal) {
+                Text(stringResource(R.string.today_no_meals_action))
+            }
+        }
+    }
 }
 
 @Composable

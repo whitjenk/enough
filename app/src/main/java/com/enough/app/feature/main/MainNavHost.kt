@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,6 +38,9 @@ object Routes {
     const val LOG_WEIGHT = "log_weight"
     const val LOG_ACTIVITY = "log_activity"
 }
+
+/** Saved-state key carrying a just-logged meal id back to Today for undo. */
+private const val UNDO_MEAL_ID_KEY = "undo_meal_id"
 
 private data class TopLevelDestination(val route: String, val labelRes: Int)
 
@@ -73,18 +77,31 @@ fun MainNavHost(navController: NavHostController = rememberNavController()) {
             startDestination = Routes.TODAY,
             modifier = Modifier.padding(padding),
         ) {
-            composable(Routes.TODAY) {
+            composable(Routes.TODAY) { entry ->
+                // Set by AddMeal on the way back; consumed once by Today.
+                val undoMealId by entry.savedStateHandle
+                    .getStateFlow<Long?>(UNDO_MEAL_ID_KEY, null)
+                    .collectAsStateWithLifecycle()
                 TodayRoute(
                     onAddMeal = { navController.navigate(Routes.ADD_MEAL) },
                     onLogWeight = { navController.navigate(Routes.LOG_WEIGHT) },
                     onLogActivity = { navController.navigate(Routes.LOG_ACTIVITY) },
+                    undoMealId = undoMealId,
+                    onUndoHandled = { entry.savedStateHandle[UNDO_MEAL_ID_KEY] = null },
                 )
             }
             composable(Routes.PROGRESS) { ProgressRoute() }
             composable(Routes.SETTINGS) { SettingsRoute() }
             composable(Routes.ADD_MEAL) {
                 AddMealRoute(
-                    onSaved = { navController.popBackStack() },
+                    onSaved = { mealId ->
+                        // Hand the new row's id to Today so it can offer an undo
+                        // snackbar for a mis-tapped quick-log (§7.7 item 6).
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(UNDO_MEAL_ID_KEY, mealId)
+                        navController.popBackStack()
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }

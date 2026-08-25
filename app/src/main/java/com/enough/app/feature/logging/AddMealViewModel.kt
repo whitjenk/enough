@@ -30,6 +30,12 @@ data class AddMealUiState(
     val customFiberText: String = "",
     val customServingText: String = "1 serving",
     val saved: Boolean = false,
+    /**
+     * Row id of the meal just written, carried back to Today so a mis-tapped
+     * quick-log can be undone from a snackbar there (§7.7 item 6). Null for a
+     * save that hasn't happened yet.
+     */
+    val savedMealId: Long? = null,
 ) {
     val servings: Double? = servingsText.toDecimalOrNull()?.takeIf { it > 0 }
     val canSave: Boolean get() = selectedFood != null && servings != null
@@ -96,7 +102,7 @@ class AddMealViewModel(
         if (savePending) return
         savePending = true
         viewModelScope.launch {
-            mealRepository.add(
+            val id = mealRepository.add(
                 MealEntry(
                     foodId = food.id,
                     servingsMultiplier = 1.0,
@@ -105,7 +111,7 @@ class AddMealViewModel(
                     entryType = entryType,
                 ),
             )
-            _uiState.update { it.copy(saved = true) }
+            _uiState.update { it.copy(saved = true, savedMealId = id) }
         }
     }
 
@@ -178,7 +184,7 @@ class AddMealViewModel(
         if (savePending) return
         savePending = true
         viewModelScope.launch {
-            mealRepository.add(
+            val id = mealRepository.add(
                 MealEntry(
                     foodId = food.id,
                     servingsMultiplier = servings,
@@ -187,7 +193,7 @@ class AddMealViewModel(
                     entryType = MealEntryType.DATABASE_MATCHED,
                 ),
             )
-            _uiState.update { it.copy(saved = true) }
+            _uiState.update { it.copy(saved = true, savedMealId = id) }
         }
     }
 
