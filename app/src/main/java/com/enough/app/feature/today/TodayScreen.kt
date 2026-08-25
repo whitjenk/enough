@@ -19,7 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
@@ -41,6 +42,7 @@ import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -160,11 +162,17 @@ fun TodayScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // The #1 task (and the named churn driver) gets the thumb-reachable
         // primary slot instead of being one of three equal mid-screen buttons
-        // (§7.7 item 3). Extended and labelled — the app uses no icon library, and
-        // a visible label needs no separate contentDescription.
+        // (§7.7 item 3). A compact circular FAB, not the extended one it started
+        // as: extended is wide enough to sit on top of a whole row of content at
+        // its resting position, which it visibly did (§7.9). The label is traded
+        // for a contentDescription and a single hand-drawn "+" vector — cheaper
+        // than an icon dependency, and "+" needs no teaching.
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = onAddMeal) {
-                Text(stringResource(R.string.today_add_meal))
+            FloatingActionButton(onClick = onAddMeal) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_add),
+                    contentDescription = stringResource(R.string.today_add_meal),
+                )
             }
         },
     ) { padding ->
@@ -172,7 +180,7 @@ fun TodayScreen(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             // Bottom inset so the FAB never sits on top of the last row.
-            contentPadding = PaddingValues(bottom = 88.dp),
+            contentPadding = PaddingValues(bottom = 80.dp),
         ) {
             item {
                 Text(

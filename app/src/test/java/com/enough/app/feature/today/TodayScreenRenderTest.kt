@@ -216,8 +216,9 @@ class TodayScreenRenderTest {
     @Test
     fun `meal logging is the primary action and weight and movement stay secondary`() {
         // §7.7 item 3: the #1 task sits in the thumb-reachable FAB rather than
-        // being one of three equal mid-screen buttons. The FAB is labelled, so it
-        // needs no separate contentDescription to be reachable.
+        // being one of three equal mid-screen buttons. The FAB is icon-only since
+        // §7.9, so its contentDescription is the ONLY thing a screen reader has —
+        // asserting on it here is the accessibility guarantee, not a lookup detail.
         var addedMeal = false
         composeRule.setContent {
             EnoughTheme(dynamicColor = false) {
@@ -230,7 +231,7 @@ class TodayScreenRenderTest {
         }
 
         // The FAB is pinned to the scaffold, so it's reachable without scrolling.
-        composeRule.onNodeWithText("Add a meal").assertIsDisplayed().performClick()
+        composeRule.onNodeWithContentDescription("Add a meal").assertIsDisplayed().performClick()
         assertTrue(addedMeal)
 
         // Weight and movement still exist as secondary entries, not equal thirds.
