@@ -295,25 +295,13 @@ private fun NudgeCard(nudge: Nudge) {
     // Reserve the success role for the goal-met moment. A gap is supportive, not
     // a "you did it" — and never red/gray-as-failure — so it uses a neutral
     // surface with the green mascot for warmth.
+    // Only the goal-met moment keeps a container, and it's the warm success one.
+    // An ordinary nudge is just the buddy talking, so it sits on the background
+    // like speech rather than in a grey box (2026-08-24 warmth pass).
     val onTrack = nudge is Nudge.OnTrack
-    Card(
-        Modifier.fillMaxWidth(),
-        // `large`, not `extraLarge` — the ring is the screen's only hero (§7.7 item 2).
-        shape = MaterialTheme.shapes.large,
-        colors = if (onTrack) {
-            CardDefaults.cardColors(
-                containerColor = EnoughTheme.successColors.successContainer,
-                contentColor = EnoughTheme.successColors.onSuccessContainer,
-            )
-        } else {
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            )
-        },
-    ) {
+    val content: @Composable () -> Unit = {
         Row(
-            Modifier.padding(20.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -324,6 +312,16 @@ private fun NudgeCard(nudge: Nudge) {
             )
             Text(text = message, style = MaterialTheme.typography.bodyLarge)
         }
+    }
+    if (onTrack) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            color = EnoughTheme.successColors.successContainer,
+            contentColor = EnoughTheme.successColors.onSuccessContainer,
+        ) { content() }
+    } else {
+        content()
     }
 }
 
@@ -386,35 +384,32 @@ private fun CheckInCard(
 ) {
     // A quieter surface than the message cards above it: this is the person's own
     // input, not the app speaking, and its chips already give it enough presence.
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.today_checkin_header), style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FeltLevel.entries.forEach { level ->
-                    FilterChip(
-                        selected = selected == level,
-                        onClick = { onCheckIn(level) },
-                        label = { Text(stringResource(feltLabelRes(level))) },
-                    )
-                }
+        Text(stringResource(R.string.today_checkin_header), style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FeltLevel.entries.forEach { level ->
+                FilterChip(
+                    selected = selected == level,
+                    onClick = { onCheckIn(level) },
+                    label = { Text(stringResource(feltLabelRes(level))) },
+                )
             }
-            Text(
-                text = stringResource(
-                    if (selected == null) R.string.today_checkin_hint else R.string.today_checkin_done,
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            // Only once the person has reflected — the emotional peak — offer an
-            // opt-in, feeling-first share. Never a popup, never before a check-in.
-            if (selected != null) {
-                TextButton(onClick = onShareToday, contentPadding = PaddingValues(0.dp)) {
-                    Text(stringResource(R.string.today_checkin_share))
-                }
+        }
+        Text(
+            text = stringResource(
+                if (selected == null) R.string.today_checkin_hint else R.string.today_checkin_done,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // Only once the person has reflected — the emotional peak — offer an
+        // opt-in, feeling-first share. Never a popup, never before a check-in.
+        if (selected != null) {
+            TextButton(onClick = onShareToday, contentPadding = PaddingValues(0.dp)) {
+                Text(stringResource(R.string.today_checkin_share))
             }
         }
     }
@@ -437,58 +432,69 @@ private fun weightTrendCopy(trend: WeightTrendDirection): Int = when (trend) {
 
 @Composable
 private fun DailySwapCard(swap: DailySwap.Swap) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.today_swap_header), style = MaterialTheme.typography.titleMedium)
-            val bodyRes = when {
-                swap.bridge -> R.string.today_swap_body_bridge
-                swap.gentle -> R.string.today_swap_body_gentle
-                else -> R.string.today_swap_body
-            }
-            Text(
-                text = stringResource(bodyRes, swap.food, swap.servingLabel, swap.fiberG),
-                style = MaterialTheme.typography.bodyLarge,
-            )
+    // Same shape as a nudge — both are the buddy saying one thing, so they look
+    // like one voice instead of two different widgets.
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Mascot(
+            color = EnoughTheme.successColors.success,
+            contentDescription = stringResource(R.string.cd_mascot),
+        )
+        val bodyRes = when {
+            swap.bridge -> R.string.today_swap_body_bridge
+            swap.gentle -> R.string.today_swap_body_gentle
+            else -> R.string.today_swap_body
         }
+        Text(
+            text = stringResource(bodyRes, swap.food, swap.servingLabel, swap.fiberG),
+            style = MaterialTheme.typography.bodyLarge,
+        )
     }
 }
 
+/**
+ * The fiber hero. Deliberately **not** in a card: the ring is already a strong
+ * shape, and boxing it made the screen read as a stack of widgets rather than a
+ * page (2026-08-24 warmth pass). It sits directly on the app's warm background
+ * and carries the screen by size alone.
+ */
 @Composable
 private fun FiberCard(uiState: TodayUiState) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
-        Column(
-            Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            stringResource(R.string.today_fiber_headline),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.align(Alignment.Start),
+        )
+        if (uiState.hideNumbers) {
+            // Hide-numbers mode: no ring, no literal grams — just that today's
+            // being logged. Keeps a hidden number from ever reaching the screen.
             Text(
-                stringResource(R.string.today_fiber_headline),
-                style = MaterialTheme.typography.titleMedium,
+                text = stringResource(R.string.today_fiber_hidden),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.Start),
             )
-            if (uiState.hideNumbers) {
-                // Hide-numbers mode: no ring, no literal grams — just that today's
-                // being logged. Keeps a hidden number from ever reaching the screen.
+        } else {
+            // The hero: an animated ring (handles the no-target and over-target
+            // states itself). A zero target renders a neutral, unfilled track.
+            FiberRing(
+                fiberSoFarG = uiState.fiberSoFarG.roundToInt(),
+                fiberTargetG = uiState.fiberTargetG,
+            )
+            if (uiState.fiberTargetG <= 0) {
                 Text(
-                    text = stringResource(R.string.today_fiber_hidden),
+                    text = stringResource(R.string.today_fiber_no_target),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.Start),
                 )
-            } else {
-                // The hero: an animated ring (handles the no-target and over-target
-                // states itself). A zero target renders a neutral, unfilled track.
-                FiberRing(
-                    fiberSoFarG = uiState.fiberSoFarG.roundToInt(),
-                    fiberTargetG = uiState.fiberTargetG,
-                )
-                if (uiState.fiberTargetG <= 0) {
-                    Text(
-                        text = stringResource(R.string.today_fiber_no_target),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
     }
@@ -523,39 +529,33 @@ private fun SecondaryLoggingActions(
 @Composable
 private fun QuietStatsSection(uiState: TodayUiState) {
     val data = uiState.healthConnect
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-            val weight = uiState.latestWeight
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        val weight = uiState.latestWeight
+        QuietStatRow(
+            label = stringResource(R.string.today_weight_header),
+            value = when {
+                // Hide-numbers mode: the trend word instead of the literal weight.
+                weight != null && uiState.hideNumbers ->
+                    stringResource(weightTrendCopy(uiState.weightTrend))
+                weight != null -> stringResource(
+                    R.string.today_weight_value,
+                    UnitConversions.kgToLb(weight.weightKg).roundToInt(),
+                )
+                else -> stringResource(R.string.today_weight_none)
+            },
+            muted = weight == null,
+        )
+        data.stepsToday?.let { steps ->
             QuietStatRow(
-                label = stringResource(R.string.today_weight_header),
-                value = when {
-                    // Hide-numbers mode: the trend word instead of the literal weight.
-                    weight != null && uiState.hideNumbers ->
-                        stringResource(weightTrendCopy(uiState.weightTrend))
-                    weight != null -> stringResource(
-                        R.string.today_weight_value,
-                        UnitConversions.kgToLb(weight.weightKg).roundToInt(),
-                    )
-                    else -> stringResource(R.string.today_weight_none)
-                },
-                muted = weight == null,
+                label = stringResource(R.string.today_hc_steps_label),
+                value = "%,d".format(steps),
             )
-            data.stepsToday?.let { steps ->
-                QuietStatRow(
-                    label = stringResource(R.string.today_hc_steps_label),
-                    value = "%,d".format(steps),
-                )
-            }
-            data.sleepMinutesLastNight?.let { minutes ->
-                QuietStatRow(
-                    label = stringResource(R.string.today_hc_sleep_label),
-                    value = stringResource(R.string.today_hc_sleep_value, minutes / 60, minutes % 60),
-                )
-            }
+        }
+        data.sleepMinutesLastNight?.let { minutes ->
+            QuietStatRow(
+                label = stringResource(R.string.today_hc_sleep_label),
+                value = stringResource(R.string.today_hc_sleep_value, minutes / 60, minutes % 60),
+            )
         }
     }
 }
@@ -656,19 +656,16 @@ private fun ActivityRow(activity: ActivityEntry) {
  */
 @Composable
 private fun FirstMealPrompt(onAddMeal: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = stringResource(R.string.today_no_meals),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            FilledTonalButton(onClick = onAddMeal) {
-                Text(stringResource(R.string.today_no_meals_action))
-            }
+        Text(
+            text = stringResource(R.string.today_no_meals),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        FilledTonalButton(onClick = onAddMeal) {
+            Text(stringResource(R.string.today_no_meals_action))
         }
     }
 }

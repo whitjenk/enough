@@ -122,9 +122,11 @@ class TodayScreenRenderTest {
         // The zero-input daily value renders above the logging actions, with its
         // non-logging, exit-offering copy. (Below the fiber ring in the small test
         // viewport, so scroll it into view first.)
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("One idea for today"))
-        composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("Chia seeds", substring = true))
         composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
+        // The exit is the point of this copy — it must survive any re-layout.
+        composeRule.onNodeWithText("today can just be today", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -270,8 +272,7 @@ class TodayScreenRenderTest {
 
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Lentils", substring = true))
         composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
-        // The swap card is not merely below the fold — it isn't in the tree at all.
-        composeRule.onNodeWithText("One idea for today").assertDoesNotExist()
+        // The swap is not merely below the fold — it isn't in the tree at all.
         composeRule.onNodeWithText("Chia seeds", substring = true).assertDoesNotExist()
     }
 

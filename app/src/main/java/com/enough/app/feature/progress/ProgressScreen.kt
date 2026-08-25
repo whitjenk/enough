@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -105,20 +107,36 @@ fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
         ) {
+            // Sections separated by hairlines rather than boxed in cards, so the
+            // screen reads as one trend view instead of five widgets
+            // (2026-08-24 warmth pass — matches Today and Settings).
             item { ConsistencyCard(uiState) }
+            item { ProgressDivider() }
             item { CheckInReflectionCard(uiState) }
+            item { ProgressDivider() }
             item { FiberTrendCard(uiState) }
+            item { ProgressDivider() }
             item { WeightCard(uiState) }
+            item { ProgressDivider() }
             item { MovementCard(uiState) }
+            item { ProgressDivider() }
             item { ShareWeekCard(onShareWeek = onShareWeek) }
         }
     }
 }
 
 @Composable
+private fun ProgressDivider() {
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outlineVariant,
+        modifier = Modifier.padding(vertical = 4.dp),
+    )
+}
+
+@Composable
 private fun ConsistencyCard(uiState: ProgressUiState) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.progress_consistency_header), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(
@@ -175,8 +193,8 @@ private fun ConsistencyDot(logged: Boolean, contentDescription: String) {
  */
 @Composable
 private fun CheckInReflectionCard(uiState: ProgressUiState) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.progress_checkin_header), style = MaterialTheme.typography.titleMedium)
             if (uiState.checkInFeltSeries.all { it == null }) {
                 Text(
@@ -217,8 +235,8 @@ private fun feltLabelRes(level: FeltLevel): Int = when (level) {
 
 @Composable
 private fun FiberTrendCard(uiState: ProgressUiState) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.progress_fiber_header), style = MaterialTheme.typography.titleMedium)
             val hasData = uiState.fiberSeries.any { it.fiberG > 0.0 }
             if (!hasData) {
@@ -298,8 +316,8 @@ private fun FiberBarChart(
 
 @Composable
 private fun WeightCard(uiState: ProgressUiState) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(stringResource(R.string.progress_weight_header), style = MaterialTheme.typography.titleMedium)
             val current = uiState.currentWeightKg
             if (current == null) {
@@ -346,8 +364,8 @@ private fun weightTrendCopy(trend: WeightTrendDirection): Int = when (trend) {
 
 @Composable
 private fun MovementCard(uiState: ProgressUiState) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(stringResource(R.string.progress_movement_header), style = MaterialTheme.typography.titleMedium)
             val goalMinutes = uiState.activityGoalMinutes
             val text = when {
@@ -379,8 +397,8 @@ private fun MovementCard(uiState: ProgressUiState) {
  */
 @Composable
 private fun ShareWeekCard(onShareWeek: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.progress_share_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.progress_share_desc),

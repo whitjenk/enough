@@ -18,17 +18,26 @@ import androidx.compose.ui.platform.LocalContext
 private val LocalSuccessColors = staticCompositionLocalOf { LightSuccessColors }
 
 /**
- * App theme. Honors Material You dynamic color (Android 12+) so the app tints
- * toward the user's wallpaper — a real "belongs on my phone" win — and falls
- * back to the green-seed scheme everywhere else.
+ * App theme. Defaults to the warm green seed scheme from DESIGN.md.
  *
- * @param dynamicColor allow wallpaper-derived color when the device supports it.
- *   Exposed mainly so previews/tests can pin the deterministic seed scheme.
+ * **Dynamic color is deliberately OFF by default (2026-08-24), which is a
+ * considered deviation from DESIGN.md's "respect Material You" line.** Material
+ * You hands the app's entire emotional register to whatever wallpaper someone
+ * happens to have — on a stock device that produced a cold slate blue, which is
+ * the opposite of what this app is for. Warmth here is a product value, not a
+ * decoration: it is most of what makes the difference between "a calm companion"
+ * and "a health tracker". Losing the belongs-on-my-phone win is the cheaper
+ * trade, and it also means the Play listing screenshots match what people
+ * actually get — which matters more now that store search is the only passive
+ * acquisition surface there is.
+ *
+ * @param dynamicColor opt back into wallpaper-derived color. Kept as a parameter
+ *   so this is a one-line reversal, not a rewrite.
  */
 @Composable
 fun EnoughTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val useDynamic = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
