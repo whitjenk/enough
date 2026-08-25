@@ -640,22 +640,6 @@ private fun ExtrasStep(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-
-        SectionCard(stringResource(R.string.extras_glp1_header)) {
-            Text(
-                text = stringResource(R.string.extras_glp1_question),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Spacer(Modifier.height(8.dp))
-            ChoiceList(
-                options = listOf(
-                    ChoiceOption(true, stringResource(R.string.option_yes)),
-                    ChoiceOption(false, stringResource(R.string.option_no)),
-                ),
-                selected = form.takesGLP1,
-                onSelect = { onFormChange(form.copy(takesGLP1 = it)) },
-            )
-        }
     }
 }
 

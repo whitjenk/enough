@@ -89,8 +89,6 @@
     <string name="extras_why_header">What\'s making you want to do this?</string>
     <string name="extras_why_desc">Just for you — nobody else sees it.</string>
     <string name="extras_why_hint">Optional</string>
-    <string name="extras_glp1_header">Medication</string>
-    <string name="extras_glp1_question">Are you currently taking a GLP-1 medication (Ozempic, Wegovy, Zepbound, or similar)?</string>
 
     <!-- Onboarding: Health Connect -->
     <string name="hc_title">Connect Health Connect</string>

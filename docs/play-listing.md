@@ -47,11 +47,8 @@ BUILT TO BE EASY, NOT DEMANDING
 - See your progress as a calm trend, not a punishing streak. Missing a day never erases what you've done.
 - The weight-loss goal is completely optional. You can focus on fiber and activity only, and that's a real, fully supported choice — not a buried setting.
 
-FOR THE GLP-1 ERA — INCLUDING COMING OFF
-On a GLP-1, or coming off one? Enough keeps fiber suggestions gentle and appetite-aware, and frames fiber as the satiety bridge that helps hold your changes as things shift. It's a supportive food-first companion, never medication advice.
-
 RESPECTS HOW YOU EAT
-Tell Enough about dietary restrictions or allergies once — vegetarian, vegan, gluten-free, dairy-free, nut allergy, or your own — and food suggestions respect them from then on.
+Tell Enough about dietary restrictions or allergies once — vegetarian, vegan, gluten-free, dairy-free, nut allergy, or your own — and food suggestions respect them from then on. If you're on a GLP-1 or coming off one, you can say so in Settings and fiber tips stay gentle and appetite-aware.
 
 NOTHING TO HIDE
 Everything stays on your phone. No account required, no login, no subscription, nothing sold, no ads. There is no server — the app can't send your data anywhere, and you can verify that. If you connect Health Connect, Enough reads steps, sleep, and weight to show alongside your logs; that access is read-only and you can turn it off anytime. "Delete my data" actually wipes everything on your device.
@@ -63,6 +60,11 @@ Enough is free. The app provides general wellness information and is not medical
 ```
 
 ---
+
+**Revised 2026-08-24:** the standalone "FOR THE GLP-1 ERA" section was cut to a single line inside
+"Respects how you eat." It was a billboard for hypothesis H3, which is retired (`IMPLEMENTATION_PLAN.md`
+§7.6), and it made a medication angle the third thing a stranger read about a free app. The capability
+is unchanged — it just stopped leading.
 
 ## Notes for whoever finalizes the Play Console listing
 

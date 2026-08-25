@@ -235,10 +235,16 @@ class OnboardingViewModel(
                     dietaryRestrictions = extras.dietaryRestrictions,
                     dietaryRestrictionOther = extras.dietaryOther.trim().takeIf { it.isNotEmpty() },
                     personalWhy = extras.personalWhy.trim().takeIf { it.isNotEmpty() },
-                    takesGLP1Medication = extras.takesGLP1 == true,
+                    takesGLP1Medication = false,
                     // Onboarding keeps the simple yes/no; the richer "coming off"
                     // stance is refined later in Settings (SPEC §7.6 Step 4).
-                    glp1Stance = if (extras.takesGLP1 == true) Glp1Stance.ON else Glp1Stance.NOT,
+                    // Onboarding no longer asks about medication (2026-08-24):
+                    // a stranger being asked about GLP-1 use in the first two
+                    // minutes is an adoption blocker, and the richer stance
+                    // already lives in Settings where it can be changed as
+                    // things change. Everyone starts at NOT; nothing about the
+                    // suggestion tone is lost for anyone who sets it.
+                    glp1Stance = Glp1Stance.NOT,
                 ),
             )
 

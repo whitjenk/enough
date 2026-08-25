@@ -106,13 +106,11 @@ data class GoalsForm(
 /**
  * Optional extra questions gathered after goals (SPEC §3). Everything here is
  * skippable — the step is always completable regardless of what's filled in.
- * [takesGLP1] is null until the person explicitly answers.
  */
 data class ExtrasForm(
     val dietaryRestrictions: Set<DietaryRestriction> = emptySet(),
     val dietaryOther: String = "",
     val personalWhy: String = "",
-    val takesGLP1: Boolean? = null,
 ) {
     /** Toggle a restriction on/off, returning the updated form. */
     fun toggleRestriction(restriction: DietaryRestriction): ExtrasForm {

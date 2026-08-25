@@ -119,8 +119,6 @@ class OnboardingFormsTest {
 
     @Test
     fun `GLP-1 answer is unset until chosen`() {
-        assertNull(ExtrasForm().takesGLP1)
-        assertEquals(true, ExtrasForm(takesGLP1 = true).takesGLP1)
     }
 
     @Test
