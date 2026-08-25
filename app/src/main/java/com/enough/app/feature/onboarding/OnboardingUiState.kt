@@ -3,6 +3,7 @@ package com.enough.app.feature.onboarding
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.domain.UnitConversions
+import com.enough.app.domain.reminder.ReminderTimeOption
 import com.enough.app.domain.goals.GoalCalculator
 import com.enough.app.domain.risk.AgeBand
 import com.enough.app.domain.risk.RiskScore
@@ -14,7 +15,7 @@ import com.enough.app.health.HealthConnectAvailability
  * The steps of the onboarding flow. WELCOME is an entry choice: the default
  * "build better habits" path goes straight to GOALS; the optional "curious about
  * your risk" path visits RISK_TEST/RISK_RESULT first. Both converge on GOALS ->
- * HEALTH_CONNECT (SPEC §3).
+ * EXTRAS -> REMINDER -> HEALTH_CONNECT (SPEC §3, §7.8).
  */
 enum class OnboardingStep {
     WELCOME,
@@ -22,6 +23,7 @@ enum class OnboardingStep {
     RISK_RESULT,
     GOALS,
     EXTRAS,
+    REMINDER,
     HEALTH_CONNECT,
 }
 
@@ -131,6 +133,12 @@ data class HealthConnectUiState(
 
 data class OnboardingUiState(
     val step: OnboardingStep = OnboardingStep.WELCOME,
+    /**
+     * Which preset the daily-reminder offer currently shows (SPEC §7.8). Only a
+     * pending selection — nothing is persisted or scheduled unless the person
+     * actually accepts the offer.
+     */
+    val reminderTime: ReminderTimeOption = ReminderTimeOption.DEFAULT,
     /** True if the optional risk-test path was chosen at the entry screen. */
     val riskTestPathChosen: Boolean = false,
     val riskForm: RiskTestForm = RiskTestForm(),

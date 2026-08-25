@@ -1,6 +1,10 @@
 package com.enough.app.feature.settings
 
+import android.Manifest
+import android.os.Build
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -36,8 +41,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
+import com.enough.app.feature.reminder.ReminderNotifier
+import com.enough.app.domain.reminder.ReminderTimeOption
+import com.enough.app.feature.reminder.ReminderScheduler
 import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.Glp1Stance
 import com.enough.app.di.AppViewModelProvider
@@ -54,12 +63,57 @@ fun SettingsRoute(
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val privacyPolicyUrl = stringResource(R.string.privacy_policy_url)
+
+    // Re-read on every resume: the person may have changed Enough's notification
+    // access in system settings while the app was in the background.
+    var canPostNotifications by remember { mutableStateOf(ReminderNotifier.canPost(context)) }
+    LifecycleResumeEffect(Unit) {
+        canPostNotifications = ReminderNotifier.canPost(context)
+        onPauseOrDispose {}
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        canPostNotifications = granted
+        if (granted) {
+            viewModel.setReminderEnabled(true)
+            ReminderScheduler.schedule(context, uiState.reminderTime.minuteOfDay)
+        }
+    }
     SettingsScreen(
         uiState = uiState,
         onToggleSync = viewModel::setHealthConnectSyncEnabled,
         onSetCalibration = viewModel::setEstimateCalibration,
         onToggleHideNumbers = viewModel::setHideNumbersMode,
         onSetGlp1Stance = viewModel::setGlp1Stance,
+        notificationsBlocked = !canPostNotifications,
+        onToggleReminder = { enabled ->
+            when {
+                !enabled -> {
+                    viewModel.setReminderEnabled(false)
+                    ReminderScheduler.cancel(context)
+                }
+                // Turning reminders on from Settings has to ask for the OS
+                // permission too — someone who declined (or never saw) the
+                // onboarding offer would otherwise flip this switch, see it read
+                // "On", and never receive anything (no silent failures).
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !canPostNotifications ->
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                else -> {
+                    viewModel.setReminderEnabled(true)
+                    ReminderScheduler.schedule(context, uiState.reminderTime.minuteOfDay)
+                }
+            }
+        },
+        onSetReminderTime = { option ->
+            viewModel.setReminderTime(option)
+            // Re-arm at the new time straight away, so a change takes effect
+            // today rather than after the next launch.
+            if (uiState.reminderEnabled) {
+                ReminderScheduler.schedule(context, option.minuteOfDay)
+            }
+        },
         onPrepareFeedback = viewModel::prepareFeedback,
         onShareFeedback = { text ->
             // User-initiated only: they tap share and pick the destination in the
@@ -83,6 +137,9 @@ fun SettingsScreen(
     onSetCalibration: (EstimateCalibration) -> Unit,
     onToggleHideNumbers: (Boolean) -> Unit,
     onSetGlp1Stance: (Glp1Stance) -> Unit,
+    notificationsBlocked: Boolean,
+    onToggleReminder: (Boolean) -> Unit,
+    onSetReminderTime: (ReminderTimeOption) -> Unit,
     onPrepareFeedback: () -> Unit,
     onShareFeedback: (String) -> Unit,
     onDeleteData: () -> Unit,
@@ -105,6 +162,13 @@ fun SettingsScreen(
             CalibrationCard(selected = uiState.estimateCalibration, onSelect = onSetCalibration)
             HideNumbersCard(enabled = uiState.hideNumbersMode, onToggle = onToggleHideNumbers)
             Glp1StanceCard(selected = uiState.glp1Stance, onSelect = onSetGlp1Stance)
+            ReminderCard(
+                enabled = uiState.reminderEnabled,
+                notificationsBlocked = notificationsBlocked,
+                selectedTime = uiState.reminderTime,
+                onToggle = onToggleReminder,
+                onSelectTime = onSetReminderTime,
+            )
             FeedbackCard(
                 feedback = uiState.feedback,
                 onPrepare = onPrepareFeedback,
@@ -176,6 +240,72 @@ private fun HideNumbersCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
             Switch(checked = enabled, onCheckedChange = onToggle)
         }
     }
+}
+
+/**
+ * Daily-reminder control (SPEC §7.8). The time list only appears once reminders
+ * are on — there is nothing to schedule otherwise, and showing a disabled picker
+ * would read as a prompt to turn them on.
+ */
+@Composable
+private fun ReminderCard(
+    enabled: Boolean,
+    notificationsBlocked: Boolean,
+    selectedTime: ReminderTimeOption,
+    onToggle: (Boolean) -> Unit,
+    onSelectTime: (ReminderTimeOption) -> Unit,
+) {
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.settings_reminder_toggle),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = if (enabled) {
+                            stringResource(
+                                R.string.settings_reminder_on,
+                                stringResource(selectedTime.settingsLabelRes()),
+                            )
+                        } else {
+                            stringResource(R.string.settings_reminder_off)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
+                Switch(checked = enabled, onCheckedChange = onToggle)
+            }
+            if (notificationsBlocked) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_reminder_blocked),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (enabled) {
+                Spacer(Modifier.height(12.dp))
+                ChoiceList(
+                    options = ReminderTimeOption.entries.map { option ->
+                        ChoiceOption(option, stringResource(option.settingsLabelRes()))
+                    },
+                    selected = selectedTime,
+                    onSelect = onSelectTime,
+                )
+            }
+        }
+    }
+}
+
+private fun ReminderTimeOption.settingsLabelRes(): Int = when (this) {
+    ReminderTimeOption.MORNING -> R.string.reminder_time_morning
+    ReminderTimeOption.MIDDAY -> R.string.reminder_time_midday
+    ReminderTimeOption.AFTERNOON -> R.string.reminder_time_afternoon
+    ReminderTimeOption.EVENING -> R.string.reminder_time_evening
 }
 
 @Composable
@@ -331,6 +461,9 @@ private fun SettingsPreview() {
             onSetCalibration = {},
             onToggleHideNumbers = {},
             onSetGlp1Stance = {},
+            notificationsBlocked = false,
+            onToggleReminder = {},
+            onSetReminderTime = {},
             onPrepareFeedback = {},
             onShareFeedback = {},
             onDeleteData = {},

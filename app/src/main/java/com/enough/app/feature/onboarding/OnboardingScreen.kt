@@ -1,12 +1,16 @@
 package com.enough.app.feature.onboarding
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,9 +40,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
+import com.enough.app.feature.reminder.ReminderScheduler
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.DietaryRestriction
 import com.enough.app.di.AppViewModelProvider
+import com.enough.app.domain.reminder.ReminderTimeOption
 import com.enough.app.domain.risk.AgeBand
 import com.enough.app.domain.risk.RiskScore
 import com.enough.app.domain.risk.RiskScorer
@@ -61,10 +68,25 @@ fun OnboardingRoute(
     viewModel: OnboardingViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val permissionContract = remember { viewModel.permissionsRequestContract() }
     val permissionLauncher = rememberLauncherForActivityResult(permissionContract) {
         viewModel.onPermissionsResult()
     }
+
+    // The daily reminder needs POST_NOTIFICATIONS on Android 13+. Asked for only
+    // when the person has just said yes to reminders, so the system prompt has
+    // an obvious reason to be there; a denial is taken as final (SPEC §7.8).
+    fun enableReminder(granted: Boolean) {
+        viewModel.acceptReminder(granted)
+        if (granted) {
+            ReminderScheduler.schedule(context, uiState.reminderTime.minuteOfDay)
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> enableReminder(granted) }
 
     LaunchedEffect(uiState.isComplete) {
         if (uiState.isComplete) onComplete()
@@ -80,7 +102,16 @@ fun OnboardingRoute(
         onGoalsFormChange = viewModel::onGoalsFormChange,
         onGoalsContinue = viewModel::goToExtras,
         onExtrasFormChange = viewModel::onExtrasFormChange,
-        onExtrasContinue = viewModel::goToHealthConnect,
+        onExtrasContinue = viewModel::goToReminder,
+        onReminderTimeChange = viewModel::onReminderTimeChange,
+        onAcceptReminder = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                enableReminder(granted = true)
+            }
+        },
+        onDeclineReminder = viewModel::declineReminder,
         onConnectHealth = { permissionLauncher.launch(viewModel.healthConnectPermissions) },
         onFinish = viewModel::finishOnboarding,
         onBack = viewModel::back,
@@ -100,6 +131,9 @@ fun OnboardingScreen(
     onGoalsContinue: () -> Unit,
     onExtrasFormChange: (ExtrasForm) -> Unit,
     onExtrasContinue: () -> Unit,
+    onReminderTimeChange: (ReminderTimeOption) -> Unit,
+    onAcceptReminder: () -> Unit,
+    onDeclineReminder: () -> Unit,
     onConnectHealth: () -> Unit,
     onFinish: () -> Unit,
     onBack: () -> Unit,
@@ -130,6 +164,13 @@ fun OnboardingScreen(
             form = uiState.extrasForm,
             onFormChange = onExtrasFormChange,
             onContinue = onExtrasContinue,
+            onBack = onBack,
+        )
+        OnboardingStep.REMINDER -> ReminderStep(
+            selected = uiState.reminderTime,
+            onTimeChange = onReminderTimeChange,
+            onAccept = onAcceptReminder,
+            onDecline = onDeclineReminder,
             onBack = onBack,
         )
         OnboardingStep.HEALTH_CONNECT -> HealthConnectStep(
@@ -618,6 +659,90 @@ private fun ExtrasStep(
     }
 }
 
+/**
+ * The one-time daily-reminder offer (SPEC §7.8).
+ *
+ * Both answers are real buttons of comparable weight, and the decline carries an
+ * explicit promise that it won't be asked again — which the app keeps, via
+ * `reminderOfferShown`. The body says plainly that the reminder backs off on its
+ * own, because that is the unusual thing about it and the reason someone might
+ * reasonably say yes.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderStep(
+    selected: ReminderTimeOption,
+    onTimeChange: (ReminderTimeOption) -> Unit,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.onboarding_reminder_title)) },
+                navigationIcon = {
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
+                },
+            )
+        },
+        bottomBar = {
+            Surface {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(onClick = onAccept, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.onboarding_reminder_accept))
+                    }
+                    OutlinedButton(onClick = onDecline, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.onboarding_reminder_decline))
+                    }
+                    Text(
+                        text = stringResource(R.string.onboarding_reminder_decline_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.onboarding_reminder_body),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(R.string.onboarding_reminder_time_label),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            ChoiceList(
+                options = ReminderTimeOption.entries.map { option ->
+                    ChoiceOption(option, stringResource(option.labelRes()))
+                },
+                selected = selected,
+                onSelect = onTimeChange,
+            )
+        }
+    }
+}
+
+private fun ReminderTimeOption.labelRes(): Int = when (this) {
+    ReminderTimeOption.MORNING -> R.string.reminder_time_morning
+    ReminderTimeOption.MIDDAY -> R.string.reminder_time_midday
+    ReminderTimeOption.AFTERNOON -> R.string.reminder_time_afternoon
+    ReminderTimeOption.EVENING -> R.string.reminder_time_evening
+}
+
 @Composable
 private fun HealthConnectStep(
     state: HealthConnectUiState,
@@ -676,6 +801,7 @@ private fun WelcomePreview() {
             onStartDefault = {}, onStartRiskTest = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
             onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
             onExtrasFormChange = {}, onExtrasContinue = {},
+            onReminderTimeChange = {}, onAcceptReminder = {}, onDeclineReminder = {},
             onConnectHealth = {}, onFinish = {}, onBack = {},
         )
     }
@@ -693,6 +819,22 @@ private fun GoalsPreview() {
             onStartDefault = {}, onStartRiskTest = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
             onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
             onExtrasFormChange = {}, onExtrasContinue = {},
+            onReminderTimeChange = {}, onAcceptReminder = {}, onDeclineReminder = {},
+            onConnectHealth = {}, onFinish = {}, onBack = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ReminderPreview() {
+    EnoughTheme(dynamicColor = false) {
+        OnboardingScreen(
+            uiState = OnboardingUiState(step = OnboardingStep.REMINDER),
+            onStartDefault = {}, onStartRiskTest = {}, onRiskFormChange = {}, onSubmitRiskTest = {},
+            onRiskResultContinue = {}, onGoalsFormChange = {}, onGoalsContinue = {},
+            onExtrasFormChange = {}, onExtrasContinue = {},
+            onReminderTimeChange = {}, onAcceptReminder = {}, onDeclineReminder = {},
             onConnectHealth = {}, onFinish = {}, onBack = {},
         )
     }

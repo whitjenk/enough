@@ -9,6 +9,7 @@ import com.enough.app.data.repository.CheckInRepository
 import com.enough.app.data.repository.GoalRepository
 import com.enough.app.data.repository.MealRepository
 import com.enough.app.domain.feedback.FeedbackSummary
+import com.enough.app.domain.reminder.ReminderTimeOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,9 @@ data class SettingsUiState(
     val estimateCalibration: EstimateCalibration = EstimateCalibration.BALANCED,
     val hideNumbersMode: Boolean = false,
     val glp1Stance: Glp1Stance = Glp1Stance.NOT,
+    /** Daily reminder on/off and its time (SPEC §7.8). */
+    val reminderEnabled: Boolean = false,
+    val reminderTime: ReminderTimeOption = ReminderTimeOption.DEFAULT,
     /** The anonymous "help improve" summary once the person asks to see it; null until then. */
     val feedback: FeedbackSummary? = null,
 )
@@ -50,13 +54,17 @@ class SettingsViewModel(
             userPreferencesRepository.healthConnectSyncEnabled,
             goalRepository.goal,
             feedback,
-        ) { syncEnabled, goal, feedbackSummary ->
+            userPreferencesRepository.reminderEnabled,
+            userPreferencesRepository.reminderMinuteOfDay,
+        ) { syncEnabled, goal, feedbackSummary, reminderEnabled, reminderMinuteOfDay ->
             SettingsUiState(
                 healthConnectSyncEnabled = syncEnabled,
                 estimateCalibration = goal?.estimateCalibration ?: EstimateCalibration.BALANCED,
                 hideNumbersMode = goal?.hideNumbersMode ?: false,
                 glp1Stance = goal?.glp1Stance ?: Glp1Stance.NOT,
                 feedback = feedbackSummary,
+                reminderEnabled = reminderEnabled,
+                reminderTime = ReminderTimeOption.nearest(reminderMinuteOfDay),
             )
         }.stateIn(
             scope = viewModelScope,
@@ -102,6 +110,23 @@ class SettingsViewModel(
         viewModelScope.launch {
             val goal = goalRepository.getGoal() ?: return@launch
             goalRepository.saveGoal(goal.copy(hideNumbersMode = enabled))
+        }
+    }
+
+    /**
+     * Turn the daily reminder on or off, and persist the time (SPEC §7.8).
+     *
+     * Only the preference is written here; scheduling and cancelling the actual
+     * work needs a Context and is done by the screen, keeping Android out of the
+     * ViewModel.
+     */
+    fun setReminderEnabled(enabled: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setReminderEnabled(enabled) }
+    }
+
+    fun setReminderTime(option: ReminderTimeOption) {
+        viewModelScope.launch {
+            userPreferencesRepository.setReminderMinuteOfDay(option.minuteOfDay)
         }
     }
 
