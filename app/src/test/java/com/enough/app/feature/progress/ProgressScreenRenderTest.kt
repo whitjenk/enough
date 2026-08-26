@@ -1,6 +1,7 @@
 package com.enough.app.feature.progress
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performScrollToNode
@@ -117,5 +118,62 @@ class ProgressScreenRenderTest {
 
         composeRule.onNodeWithText("Moved on 1 of the last 7 days").assertIsDisplayed()
         composeRule.onNodeWithText("Moved on 3 of the last 7 days").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the chart labels every day and keeps empty days in the week`() {
+        // The rebuilt chart (§7.10 A6): a day with no fiber used to draw nothing
+        // at all, so a week with one logged day was a lone bar in empty space.
+        // Every day now holds its slot and carries a weekday label.
+        val today = LocalDate.of(2026, 7, 11) // a Saturday
+        val state = ProgressUiState(
+            windowDays = 7,
+            fiberSeries = listOf(0.0, 16.0, 24.0, 0.0, 36.0, 12.0, 20.0)
+                .mapIndexed { i, v -> DailyFiber(today.minusDays((6 - i).toLong()), v) },
+            fiberTargetG = 28,
+            loggedDaySeries = listOf(false, true, true, false, true, true, true),
+            daysLoggedLast7 = 5,
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) { ProgressScreen(state) }
+        }
+
+        // Scrolled to individually — the section is taller than the test viewport.
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("20g today"))
+        composeRule.onNodeWithText("20g today").assertIsDisplayed()
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Target 28g a day"))
+        composeRule.onNodeWithText("Target 28g a day").assertIsDisplayed()
+
+        // One spoken statement for the whole chart, not seven day letters read
+        // out before anything meaningful.
+        composeRule.onNodeWithContentDescription("Fiber logged each of the last 7 days")
+            .assertExists()
+    }
+
+    @Test
+    fun `a target nobody beat still leaves the target line room below the top`() {
+        // The old scale topped out at exactly max(target, best day), so whenever
+        // no day beat the target the line was drawn at y=0 — a full-width rule
+        // across the top that read as a divider rather than a reference line.
+        val today = LocalDate.of(2026, 7, 11)
+        val state = ProgressUiState(
+            windowDays = 7,
+            fiberSeries = List(7) { DailyFiber(today.minusDays((6 - it).toLong()), 10.0) },
+            fiberTargetG = 28,
+            loggedDaySeries = List(7) { true },
+            daysLoggedLast7 = 7,
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) { ProgressScreen(state) }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Fiber trend"))
+        composeRule.onNodeWithContentDescription("Fiber logged each of the last 7 days")
+            .assertExists()
     }
 }
