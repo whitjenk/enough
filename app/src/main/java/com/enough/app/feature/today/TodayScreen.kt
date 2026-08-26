@@ -640,7 +640,17 @@ private fun SecondaryLoggingActions(
 @Composable
 private fun QuietStatsSection(uiState: TodayUiState) {
     val data = uiState.healthConnect
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+    Column(
+        // Same FAB lane the secondary actions reserve (§7.10 A3). These rows are
+        // static text rather than controls, so the FAB sitting on them is not a
+        // reachability problem — but the values are right-aligned, so on a short
+        // day "Not logged yet" rendered as "Not logge" with the FAB over the
+        // rest, which just reads as broken.
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(end = FAB_LANE_WIDTH),
+    ) {
         val weight = uiState.latestWeight
         QuietStatRow(
             label = stringResource(R.string.today_weight_header),
