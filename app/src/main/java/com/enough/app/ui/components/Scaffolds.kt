@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +39,11 @@ fun BackTitleScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
+        // This screen renders inside MainNavHost's Scaffold, which has already
+        // consumed the system-bar insets. Consuming them again double-counted
+        // the status bar and cost every screen ~54dp of dead space at the top
+        // (§7.10 B3).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
         // Transparent has no `contentColorFor` mapping, so M3 falls back to
         // black and every Text that doesn't set its own colour goes unreadable
@@ -49,6 +55,9 @@ fun BackTitleScaffold(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                 ),
+                // Same reason as contentWindowInsets above — the outer Scaffold
+                // already handled the status bar.
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(title) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text(backLabel) }

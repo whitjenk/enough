@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -198,6 +199,11 @@ fun TodayScreen(
     timeOfDay: TimeOfDay = remember { TimeOfDay.now() },
 ) {
     Scaffold(
+        // This screen renders inside MainNavHost's Scaffold, which has already
+        // consumed the system-bar insets. Consuming them again double-counted
+        // the status bar and cost every screen ~54dp of dead space at the top
+        // (§7.10 B3).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
         // Transparent has no `contentColorFor` mapping, so M3 falls back to
         // black and every Text that doesn't set its own colour goes unreadable

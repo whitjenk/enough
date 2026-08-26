@@ -114,7 +114,6 @@
     <string name="nav_settings">Settings</string>
 
     <!-- Settings -->
-    <string name="settings_title">Settings</string>
     <string name="settings_hc_sync_title">Sync with Health Connect</string>
     <string name="settings_hc_sync_desc">Read steps, sleep, and weight from Health Connect. Turn off to log everything by hand.</string>
     <string name="settings_calibration_title">Fiber estimate style</string>
@@ -155,7 +154,6 @@
     <string name="settings_delete_cancel">Cancel</string>
 
     <!-- Progress -->
-    <string name="progress_title">Progress</string>
     <string name="progress_consistency_header">Consistency</string>
     <string name="progress_consistency_value">Logged on %1$d of the last %2$d days</string>
     <!-- Day one: there is no window to count against yet, and "1 of the last 1 days"

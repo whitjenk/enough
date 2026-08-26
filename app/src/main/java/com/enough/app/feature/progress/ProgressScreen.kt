@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,9 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -59,6 +58,7 @@ import com.enough.app.domain.progress.DailyFiber
 import com.enough.app.domain.share.ShareCard
 import com.enough.app.feature.share.ShareCardLines
 import com.enough.app.feature.share.ShareCardRenderer
+import com.enough.app.ui.components.SectionLabel
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.max
 import java.time.format.TextStyle
@@ -113,26 +113,26 @@ fun ProgressRoute(
 @Composable
 fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
     Scaffold(
+        // This screen renders inside MainNavHost's Scaffold, which has already
+        // consumed the system-bar insets. Consuming them again double-counted
+        // the status bar and cost every screen ~54dp of dead space at the top
+        // (§7.10 B3).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
         // Transparent has no `contentColorFor` mapping, so M3 falls back to
         // black and every Text that doesn't set its own colour goes unreadable
         // in dark mode. Name the content colour explicitly (§7.10 B1).
         contentColor = MaterialTheme.colorScheme.onBackground,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.progress_title)) },
-                // Transparent so the root background wash reads through instead
-                // of being cut by an opaque band (§7.10 B1).
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
-            )
-        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+            // Extra top room now that the app bar is gone (§7.10 B3) — the first
+            // section should breathe rather than start against the status bar.
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                top = 28.dp,
+                bottom = 16.dp,
+            ),
         ) {
             // Sections separated by hairlines rather than boxed in cards, so the
             // screen reads as one trend view instead of five widgets
@@ -183,7 +183,7 @@ private fun ProgressDivider() {
 private fun ConsistencyCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.progress_consistency_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_consistency_header))
             Text(
                 text = countSentence(
                     count = uiState.daysLoggedLast7,
@@ -243,7 +243,7 @@ private fun ConsistencyDot(logged: Boolean, contentDescription: String) {
 private fun CheckInReflectionCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.progress_checkin_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_checkin_header))
             if (uiState.checkInFeltSeries.all { it == null }) {
                 Text(
                     text = stringResource(R.string.progress_checkin_empty),
@@ -291,7 +291,7 @@ private fun feltLabelRes(level: FeltLevel): Int = when (level) {
 private fun FiberTrendCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.progress_fiber_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_fiber_header))
             val hasData = uiState.fiberSeries.any { it.fiberG > 0.0 }
             if (!hasData) {
                 Text(
@@ -450,7 +450,7 @@ private val BAR_EMPTY_HEIGHT = 4.dp
 private fun WeightCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.progress_weight_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_weight_header))
             val current = uiState.currentWeightKg
             if (current == null) {
                 Text(
@@ -498,7 +498,7 @@ private fun weightTrendCopy(trend: WeightTrendDirection): Int = when (trend) {
 private fun MovementCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.progress_movement_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_movement_header))
             val goalMinutes = uiState.activityGoalMinutes
             val text = when {
                 goalMinutes != null -> stringResource(
@@ -536,7 +536,7 @@ private fun MovementCard(uiState: ProgressUiState) {
 private fun ShareWeekCard(onShareWeek: () -> Unit) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.progress_share_title), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_share_title))
             Text(
                 text = stringResource(R.string.progress_share_desc),
                 style = MaterialTheme.typography.bodyMedium,
