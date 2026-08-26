@@ -1,13 +1,19 @@
 package com.enough.app.feature.settings
 
+import android.Manifest
+import android.os.Build
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -36,8 +43,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
+import com.enough.app.feature.reminder.ReminderNotifier
+import com.enough.app.domain.reminder.ReminderTimeOption
+import com.enough.app.feature.reminder.ReminderScheduler
 import com.enough.app.data.model.EstimateCalibration
 import com.enough.app.data.model.Glp1Stance
 import com.enough.app.di.AppViewModelProvider
@@ -54,12 +65,57 @@ fun SettingsRoute(
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val privacyPolicyUrl = stringResource(R.string.privacy_policy_url)
+
+    // Re-read on every resume: the person may have changed Enough's notification
+    // access in system settings while the app was in the background.
+    var canPostNotifications by remember { mutableStateOf(ReminderNotifier.canPost(context)) }
+    LifecycleResumeEffect(Unit) {
+        canPostNotifications = ReminderNotifier.canPost(context)
+        onPauseOrDispose {}
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        canPostNotifications = granted
+        if (granted) {
+            viewModel.setReminderEnabled(true)
+            ReminderScheduler.schedule(context, uiState.reminderTime.minuteOfDay)
+        }
+    }
     SettingsScreen(
         uiState = uiState,
         onToggleSync = viewModel::setHealthConnectSyncEnabled,
         onSetCalibration = viewModel::setEstimateCalibration,
         onToggleHideNumbers = viewModel::setHideNumbersMode,
         onSetGlp1Stance = viewModel::setGlp1Stance,
+        notificationsBlocked = !canPostNotifications,
+        onToggleReminder = { enabled ->
+            when {
+                !enabled -> {
+                    viewModel.setReminderEnabled(false)
+                    ReminderScheduler.cancel(context)
+                }
+                // Turning reminders on from Settings has to ask for the OS
+                // permission too — someone who declined (or never saw) the
+                // onboarding offer would otherwise flip this switch, see it read
+                // "On", and never receive anything (no silent failures).
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !canPostNotifications ->
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                else -> {
+                    viewModel.setReminderEnabled(true)
+                    ReminderScheduler.schedule(context, uiState.reminderTime.minuteOfDay)
+                }
+            }
+        },
+        onSetReminderTime = { option ->
+            viewModel.setReminderTime(option)
+            // Re-arm at the new time straight away, so a change takes effect
+            // today rather than after the next launch.
+            if (uiState.reminderEnabled) {
+                ReminderScheduler.schedule(context, option.minuteOfDay)
+            }
+        },
         onPrepareFeedback = viewModel::prepareFeedback,
         onShareFeedback = { text ->
             // User-initiated only: they tap share and pick the destination in the
@@ -83,6 +139,9 @@ fun SettingsScreen(
     onSetCalibration: (EstimateCalibration) -> Unit,
     onToggleHideNumbers: (Boolean) -> Unit,
     onSetGlp1Stance: (Glp1Stance) -> Unit,
+    notificationsBlocked: Boolean,
+    onToggleReminder: (Boolean) -> Unit,
+    onSetReminderTime: (ReminderTimeOption) -> Unit,
     onPrepareFeedback: () -> Unit,
     onShareFeedback: (String) -> Unit,
     onDeleteData: () -> Unit,
@@ -98,20 +157,38 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            SyncCard(enabled = uiState.healthConnectSyncEnabled, onToggle = onToggleSync)
-            CalibrationCard(selected = uiState.estimateCalibration, onSelect = onSetCalibration)
+            // Ordered by how often someone actually comes here for it. The
+            // reminder is first because a person who skipped the onboarding
+            // offer arrives looking for exactly this, and it used to be fifth.
+            ReminderCard(
+                enabled = uiState.reminderEnabled,
+                notificationsBlocked = notificationsBlocked,
+                selectedTime = uiState.reminderTime,
+                onToggle = onToggleReminder,
+                onSelectTime = onSetReminderTime,
+            )
+            SettingsDivider()
             HideNumbersCard(enabled = uiState.hideNumbersMode, onToggle = onToggleHideNumbers)
+            SettingsDivider()
+            SyncCard(enabled = uiState.healthConnectSyncEnabled, onToggle = onToggleSync)
+            SettingsDivider()
+            CalibrationCard(selected = uiState.estimateCalibration, onSelect = onSetCalibration)
+            SettingsDivider()
             Glp1StanceCard(selected = uiState.glp1Stance, onSelect = onSetGlp1Stance)
+            SettingsDivider()
             FeedbackCard(
                 feedback = uiState.feedback,
                 onPrepare = onPrepareFeedback,
                 onShare = onShareFeedback,
             )
+            SettingsDivider()
             SupportCard()
+            SettingsDivider()
             PrivacyCard(onOpenPrivacyPolicy = onOpenPrivacyPolicy)
+            SettingsDivider()
             DeleteCard(onDeleteClick = { showDeleteDialog = true })
         }
     }
@@ -136,11 +213,25 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * A hairline between settings groups. Replaces the nine stacked cards this
+ * screen used to be (2026-08-24 warmth pass): identical rounded boxes made
+ * every setting look like a separate widget and pushed the useful controls
+ * below the fold behind ~280dp of pure card padding.
+ */
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outlineVariant,
+        modifier = Modifier.padding(vertical = 4.dp),
+    )
+}
+
 @Composable
 private fun SyncCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+    Box(Modifier.fillMaxWidth()) {
         Row(
-            Modifier.padding(20.dp),
+            Modifier.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
@@ -159,9 +250,9 @@ private fun SyncCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
 
 @Composable
 private fun HideNumbersCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+    Box(Modifier.fillMaxWidth()) {
         Row(
-            Modifier.padding(20.dp),
+            Modifier.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
@@ -178,6 +269,72 @@ private fun HideNumbersCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
     }
 }
 
+/**
+ * Daily-reminder control (SPEC §7.8). The time list only appears once reminders
+ * are on — there is nothing to schedule otherwise, and showing a disabled picker
+ * would read as a prompt to turn them on.
+ */
+@Composable
+private fun ReminderCard(
+    enabled: Boolean,
+    notificationsBlocked: Boolean,
+    selectedTime: ReminderTimeOption,
+    onToggle: (Boolean) -> Unit,
+    onSelectTime: (ReminderTimeOption) -> Unit,
+) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.settings_reminder_toggle),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = if (enabled) {
+                            stringResource(
+                                R.string.settings_reminder_on,
+                                stringResource(selectedTime.settingsLabelRes()),
+                            )
+                        } else {
+                            stringResource(R.string.settings_reminder_off)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
+                Switch(checked = enabled, onCheckedChange = onToggle)
+            }
+            if (notificationsBlocked) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_reminder_blocked),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (enabled) {
+                Spacer(Modifier.height(12.dp))
+                ChoiceList(
+                    options = ReminderTimeOption.entries.map { option ->
+                        ChoiceOption(option, stringResource(option.settingsLabelRes()))
+                    },
+                    selected = selectedTime,
+                    onSelect = onSelectTime,
+                )
+            }
+        }
+    }
+}
+
+private fun ReminderTimeOption.settingsLabelRes(): Int = when (this) {
+    ReminderTimeOption.MORNING -> R.string.reminder_time_morning
+    ReminderTimeOption.MIDDAY -> R.string.reminder_time_midday
+    ReminderTimeOption.AFTERNOON -> R.string.reminder_time_afternoon
+    ReminderTimeOption.EVENING -> R.string.reminder_time_evening
+}
+
 @Composable
 private fun Glp1StanceCard(
     selected: Glp1Stance,
@@ -189,8 +346,8 @@ private fun Glp1StanceCard(
         ChoiceOption(Glp1Stance.COMING_OFF, stringResource(R.string.settings_glp1_coming_off)),
         ChoiceOption(Glp1Stance.PREFER_NOT_TO_SAY, stringResource(R.string.settings_glp1_prefer_not)),
     )
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.settings_glp1_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.settings_glp1_desc),
@@ -212,8 +369,8 @@ private fun CalibrationCard(
         ChoiceOption(EstimateCalibration.BALANCED, stringResource(R.string.settings_calibration_balanced)),
         ChoiceOption(EstimateCalibration.HIGH, stringResource(R.string.settings_calibration_high)),
     )
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.settings_calibration_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.settings_calibration_desc),
@@ -231,8 +388,8 @@ private fun FeedbackCard(
     onPrepare: () -> Unit,
     onShare: (String) -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.settings_feedback_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.settings_feedback_desc),
@@ -271,8 +428,8 @@ private fun FeedbackCard(
 
 @Composable
 private fun SupportCard() {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.settings_support_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.settings_support_desc),
@@ -285,8 +442,8 @@ private fun SupportCard() {
 
 @Composable
 private fun PrivacyCard(onOpenPrivacyPolicy: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.settings_privacy_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.settings_privacy_desc),
@@ -302,8 +459,8 @@ private fun PrivacyCard(onOpenPrivacyPolicy: () -> Unit) {
 
 @Composable
 private fun DeleteCard(onDeleteClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.settings_delete_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = stringResource(R.string.settings_delete_desc),
@@ -331,6 +488,9 @@ private fun SettingsPreview() {
             onSetCalibration = {},
             onToggleHideNumbers = {},
             onSetGlp1Stance = {},
+            notificationsBlocked = false,
+            onToggleReminder = {},
+            onSetReminderTime = {},
             onPrepareFeedback = {},
             onShareFeedback = {},
             onDeleteData = {},

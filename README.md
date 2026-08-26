@@ -1,6 +1,6 @@
 # Enough
 
-A free, local-first Android companion for weight and metabolic health, built around fiber as the primary daily metric instead of calories — positioned as the calm, food-first, forgiving alternative in a market of shame-based trackers. See `SPEC.md` for the full positioning, evidence, and phased plan (including the §0.8 strategy update and the `IMPLEMENTATION_PLAN.md` §7.6 re-sequence that captures the "fibermaxing" moment by counter-positioning inside it).
+A free, local-first Android companion for weight and metabolic health, built around fiber as the primary daily metric instead of calories — positioned as the calm, food-first, forgiving alternative in a market of shame-based trackers. See `SPEC.md` for the full positioning, evidence, and phased plan — start with §0.8 (the counter-position) and §0.9 (what this project is actually for, and the deliberately small definition of success it is built against).
 
 ## Before a wide launch (human steps, not code)
 

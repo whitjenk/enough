@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
 
+    <!-- Daily reminder (SPEC 7.8). Local only: WorkManager posts it on-device,
+         there is no push service and nothing leaves the phone. Asked for once,
+         in onboarding, and never re-prompted if declined. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Let this app resolve the Health Connect app so availability checks work. -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
@@ -49,6 +54,11 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+
+        <!-- "Turn these off" straight from the reminder notification. -->
+        <receiver
+            android:name=".feature.reminder.ReminderTurnOffReceiver"
+            android:exported="false" />
 
         <!-- Serves the opt-in share-card PNG to the OS share sheet via a content URI. -->
         <provider

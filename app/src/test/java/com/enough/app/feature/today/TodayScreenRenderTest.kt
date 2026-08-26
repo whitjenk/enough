@@ -122,9 +122,11 @@ class TodayScreenRenderTest {
         // The zero-input daily value renders above the logging actions, with its
         // non-logging, exit-offering copy. (Below the fiber ring in the small test
         // viewport, so scroll it into view first.)
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("One idea for today"))
-        composeRule.onNodeWithText("One idea for today").assertIsDisplayed()
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("Chia seeds", substring = true))
         composeRule.onNodeWithText("Chia seeds", substring = true).assertIsDisplayed()
+        // The exit is the point of this copy — it must survive any re-layout.
+        composeRule.onNodeWithText("today can just be today", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -214,8 +216,9 @@ class TodayScreenRenderTest {
     @Test
     fun `meal logging is the primary action and weight and movement stay secondary`() {
         // §7.7 item 3: the #1 task sits in the thumb-reachable FAB rather than
-        // being one of three equal mid-screen buttons. The FAB is labelled, so it
-        // needs no separate contentDescription to be reachable.
+        // being one of three equal mid-screen buttons. The FAB is icon-only since
+        // §7.9, so its contentDescription is the ONLY thing a screen reader has —
+        // asserting on it here is the accessibility guarantee, not a lookup detail.
         var addedMeal = false
         composeRule.setContent {
             EnoughTheme(dynamicColor = false) {
@@ -228,7 +231,7 @@ class TodayScreenRenderTest {
         }
 
         // The FAB is pinned to the scaffold, so it's reachable without scrolling.
-        composeRule.onNodeWithText("Add a meal").assertIsDisplayed().performClick()
+        composeRule.onNodeWithContentDescription("Add a meal").assertIsDisplayed().performClick()
         assertTrue(addedMeal)
 
         // Weight and movement still exist as secondary entries, not equal thirds.
@@ -270,8 +273,7 @@ class TodayScreenRenderTest {
 
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Lentils", substring = true))
         composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
-        // The swap card is not merely below the fold — it isn't in the tree at all.
-        composeRule.onNodeWithText("One idea for today").assertDoesNotExist()
+        // The swap is not merely below the fold — it isn't in the tree at all.
         composeRule.onNodeWithText("Chia seeds", substring = true).assertDoesNotExist()
     }
 

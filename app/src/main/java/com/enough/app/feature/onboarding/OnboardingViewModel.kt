@@ -13,6 +13,7 @@ import com.enough.app.data.repository.RiskResultRepository
 import com.enough.app.data.repository.WeightRepository
 import com.enough.app.domain.UnitConversions
 import com.enough.app.domain.goals.GoalCalculator
+import com.enough.app.domain.reminder.ReminderTimeOption
 import com.enough.app.domain.risk.RiskScorer
 import com.enough.app.health.HealthConnectManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,6 +75,44 @@ class OnboardingViewModel(
     /** From goals into the optional extra questions. */
     fun goToExtras() = setStep(OnboardingStep.EXTRAS)
 
+    /** From the extras into the one-time daily-reminder offer (SPEC §7.8). */
+    fun goToReminder() = setStep(OnboardingStep.REMINDER)
+
+    fun onReminderTimeChange(option: ReminderTimeOption) =
+        _uiState.update { it.copy(reminderTime = option) }
+
+    /**
+     * The person accepted the reminder. [permissionGranted] is false when the OS
+     * prompt was declined — in which case nothing is enabled, because a reminder
+     * that can't be posted isn't one.
+     *
+     * Either way the offer is marked as shown, so it is never made again.
+     */
+    fun acceptReminder(permissionGranted: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setReminderOfferShown()
+            if (permissionGranted) {
+                userPreferencesRepository.setReminderMinuteOfDay(
+                    _uiState.value.reminderTime.minuteOfDay,
+                )
+                userPreferencesRepository.setReminderEnabled(true)
+            }
+            goToHealthConnect()
+        }
+    }
+
+    /**
+     * The person declined. This is a first-class answer: the offer is recorded as
+     * made, reminders stay off, and nothing asks again (CLAUDE.md — the app does
+     * not escalate toward someone who said no).
+     */
+    fun declineReminder() {
+        viewModelScope.launch {
+            userPreferencesRepository.setReminderOfferShown()
+            goToHealthConnect()
+        }
+    }
+
     fun goToHealthConnect() {
         refreshHealthConnect()
         setStep(OnboardingStep.HEALTH_CONNECT)
@@ -88,7 +127,8 @@ class OnboardingViewModel(
                 OnboardingStep.GOALS ->
                     if (state.riskTestPathChosen) OnboardingStep.RISK_RESULT else OnboardingStep.WELCOME
                 OnboardingStep.EXTRAS -> OnboardingStep.GOALS
-                OnboardingStep.HEALTH_CONNECT -> OnboardingStep.EXTRAS
+                OnboardingStep.REMINDER -> OnboardingStep.EXTRAS
+                OnboardingStep.HEALTH_CONNECT -> OnboardingStep.REMINDER
             }
             state.copy(step = previous)
         }
@@ -195,10 +235,16 @@ class OnboardingViewModel(
                     dietaryRestrictions = extras.dietaryRestrictions,
                     dietaryRestrictionOther = extras.dietaryOther.trim().takeIf { it.isNotEmpty() },
                     personalWhy = extras.personalWhy.trim().takeIf { it.isNotEmpty() },
-                    takesGLP1Medication = extras.takesGLP1 == true,
+                    takesGLP1Medication = false,
                     // Onboarding keeps the simple yes/no; the richer "coming off"
                     // stance is refined later in Settings (SPEC §7.6 Step 4).
-                    glp1Stance = if (extras.takesGLP1 == true) Glp1Stance.ON else Glp1Stance.NOT,
+                    // Onboarding no longer asks about medication (2026-08-24):
+                    // a stranger being asked about GLP-1 use in the first two
+                    // minutes is an adoption blocker, and the richer stance
+                    // already lives in Settings where it can be changed as
+                    // things change. Everyone starts at NOT; nothing about the
+                    // suggestion tone is lost for anyone who sets it.
+                    glp1Stance = Glp1Stance.NOT,
                 ),
             )
 
