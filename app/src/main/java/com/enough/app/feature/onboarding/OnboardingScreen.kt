@@ -56,7 +56,7 @@ import com.enough.app.ui.components.ChoiceList
 import com.enough.app.ui.components.ChoiceOption
 import com.enough.app.ui.components.LabeledSlider
 import com.enough.app.ui.components.MultiChoiceList
-import com.enough.app.ui.components.SectionCard
+import com.enough.app.ui.components.FormSection
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.roundToInt
 
@@ -340,7 +340,7 @@ private fun RiskTestStep(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        SectionCard(stringResource(R.string.risk_q_age)) {
+        FormSection(stringResource(R.string.risk_q_age)) {
             ChoiceList(
                 options = listOf(
                     ChoiceOption(AgeBand.UNDER_40, stringResource(R.string.age_under_40)),
@@ -353,7 +353,7 @@ private fun RiskTestStep(
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_sex)) {
+        FormSection(stringResource(R.string.risk_q_sex)) {
             Text(
                 text = stringResource(R.string.risk_q_sex_help),
                 style = MaterialTheme.typography.bodySmall,
@@ -370,7 +370,7 @@ private fun RiskTestStep(
         }
 
         if (form.sex == Sex.FEMALE) {
-            SectionCard(stringResource(R.string.risk_q_gestational)) {
+            FormSection(stringResource(R.string.risk_q_gestational)) {
                 YesNoChoice(
                     selected = form.hadGestationalDiabetes,
                     onSelect = { onFormChange(form.copy(hadGestationalDiabetes = it)) },
@@ -378,28 +378,28 @@ private fun RiskTestStep(
             }
         }
 
-        SectionCard(stringResource(R.string.risk_q_family)) {
+        FormSection(stringResource(R.string.risk_q_family)) {
             YesNoChoice(
                 selected = form.familyHistoryDiabetes,
                 onSelect = { onFormChange(form.copy(familyHistoryDiabetes = it)) },
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_bp)) {
+        FormSection(stringResource(R.string.risk_q_bp)) {
             YesNoChoice(
                 selected = form.highBloodPressure,
                 onSelect = { onFormChange(form.copy(highBloodPressure = it)) },
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_active)) {
+        FormSection(stringResource(R.string.risk_q_active)) {
             YesNoChoice(
                 selected = form.physicallyActive,
                 onSelect = { onFormChange(form.copy(physicallyActive = it)) },
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_height)) {
+        FormSection(stringResource(R.string.risk_q_height)) {
             val totalInches = form.heightFeet * 12 + form.heightInches
             LabeledSlider(
                 valueLabel = stringResource(
@@ -416,7 +416,7 @@ private fun RiskTestStep(
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_weight)) {
+        FormSection(stringResource(R.string.risk_q_weight)) {
             OutlinedTextField(
                 value = form.weightLbText,
                 onValueChange = { onFormChange(form.copy(weightLbText = it.filter { c -> c.isDigit() || c == '.' })) },
@@ -498,7 +498,7 @@ private fun GoalsStep(
         primaryEnabled = form.isComplete,
         onPrimary = onContinue,
     ) {
-        SectionCard(stringResource(R.string.goals_weight_header)) {
+        FormSection(stringResource(R.string.goals_weight_header), topDivider = false) {
             Text(
                 text = stringResource(R.string.goals_weight_choice_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -550,7 +550,7 @@ private fun GoalsStep(
             }
         }
 
-        SectionCard(stringResource(R.string.goals_activity_header)) {
+        FormSection(stringResource(R.string.goals_activity_header)) {
             Text(
                 text = stringResource(R.string.goals_activity_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -590,7 +590,7 @@ private fun GoalsStep(
             }
         }
 
-        SectionCard(stringResource(R.string.goals_fiber_header)) {
+        FormSection(stringResource(R.string.goals_fiber_header)) {
             OutlinedTextField(
                 value = form.caloriesText,
                 onValueChange = { onFormChange(form.copy(caloriesText = it.filter { c -> c.isDigit() })) },
@@ -634,7 +634,7 @@ private fun ExtrasStep(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        SectionCard(stringResource(R.string.extras_diet_header)) {
+        FormSection(stringResource(R.string.extras_diet_header)) {
             Text(
                 text = stringResource(R.string.extras_diet_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -661,7 +661,7 @@ private fun ExtrasStep(
             )
         }
 
-        SectionCard(stringResource(R.string.extras_why_header)) {
+        FormSection(stringResource(R.string.extras_why_header)) {
             Text(
                 text = stringResource(R.string.extras_why_desc),
                 style = MaterialTheme.typography.bodyMedium,
