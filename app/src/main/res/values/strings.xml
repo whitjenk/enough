@@ -153,12 +153,17 @@
     <string name="progress_title">Progress</string>
     <string name="progress_consistency_header">Consistency</string>
     <string name="progress_consistency_value">Logged on %1$d of the last %2$d days</string>
+    <!-- Day one: there is no window to count against yet, and "1 of the last 1 days"
+         would be both ungrammatical and faintly absurd. -->
+    <string name="progress_consistency_value_today">Logged today</string>
+    <string name="progress_consistency_value_today_empty">Nothing logged yet today</string>
     <string name="progress_consistency_subtitle">Every day you show up counts. Missing one doesn\'t erase the rest.</string>
     <string name="cd_day_logged">Logged</string>
     <string name="cd_day_not_logged">Not logged</string>
     <!-- Daily felt check-in reflection: gentle, non-scored, never a streak -->
     <string name="progress_checkin_header">How you\'ve felt</string>
     <string name="progress_checkin_value">You checked in on %1$d of the last %2$d days</string>
+    <string name="progress_checkin_value_today">You checked in today</string>
     <string name="progress_checkin_empty">Check in on Today and a quiet 7-day view shows up here.</string>
     <string name="cd_day_no_checkin">No check-in</string>
     <string name="progress_fiber_header">Fiber trend</string>
@@ -178,6 +183,8 @@
     <string name="progress_movement_minutes">%1$d of %2$d minutes</string>
     <string name="progress_movement_minutes_no_goal">%1$d minutes logged</string>
     <string name="progress_movement_days">Moved on %1$d of the last %2$d days</string>
+    <string name="progress_movement_days_today">Moved today</string>
+    <string name="progress_movement_days_today_empty">No movement logged yet today</string>
     <!-- Opt-in shareable card: user taps to share; nothing leaves the phone otherwise. No comparison. -->
     <string name="progress_share_title">Share your week</string>
     <string name="progress_share_desc">Make a little card of your week. Nothing leaves your phone unless you send it.</string>

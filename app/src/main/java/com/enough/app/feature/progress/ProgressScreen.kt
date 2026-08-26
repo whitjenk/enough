@@ -45,6 +45,7 @@ import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
+import com.enough.app.domain.progress.ProgressCalculations
 import com.enough.app.domain.share.ShareCard
 import com.enough.app.feature.share.ShareCardLines
 import com.enough.app.feature.share.ShareCardRenderer
@@ -125,6 +126,25 @@ fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
     }
 }
 
+/**
+ * "X of the last N days", or bespoke day-one copy when there is no window to
+ * count against yet. On a fresh install the window is one day long (see
+ * [ProgressCalculations.visibleWindowDays]), and "1 of the last 1 days" is both
+ * ungrammatical and slightly absurd.
+ */
+@Composable
+private fun countSentence(
+    count: Int,
+    windowDays: Int,
+    windowRes: Int,
+    dayOneRes: Int,
+    dayOneEmptyRes: Int,
+): String = when {
+    windowDays > 1 -> stringResource(windowRes, count, windowDays)
+    count > 0 -> stringResource(dayOneRes)
+    else -> stringResource(dayOneEmptyRes)
+}
+
 @Composable
 private fun ProgressDivider() {
     HorizontalDivider(
@@ -139,10 +159,12 @@ private fun ConsistencyCard(uiState: ProgressUiState) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.progress_consistency_header), style = MaterialTheme.typography.titleMedium)
             Text(
-                text = stringResource(
-                    R.string.progress_consistency_value,
-                    uiState.daysLoggedLast7,
-                    uiState.windowDays,
+                text = countSentence(
+                    count = uiState.daysLoggedLast7,
+                    windowDays = uiState.windowDays,
+                    windowRes = R.string.progress_consistency_value,
+                    dayOneRes = R.string.progress_consistency_value_today,
+                    dayOneEmptyRes = R.string.progress_consistency_value_today_empty,
                 ),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -204,11 +226,17 @@ private fun CheckInReflectionCard(uiState: ProgressUiState) {
                 )
             } else {
                 Text(
-                    text = stringResource(
-                        R.string.progress_checkin_value,
-                        uiState.checkInDaysLast7,
-                        uiState.windowDays,
-                    ),
+                    // The all-null case is handled by the empty state above, so
+                    // day one here always means "checked in today".
+                    text = if (uiState.windowDays <= 1) {
+                        stringResource(R.string.progress_checkin_value_today)
+                    } else {
+                        stringResource(
+                            R.string.progress_checkin_value,
+                            uiState.checkInDaysLast7,
+                            uiState.windowDays,
+                        )
+                    },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -378,10 +406,15 @@ private fun MovementCard(uiState: ProgressUiState) {
                     R.string.progress_movement_minutes_no_goal,
                     uiState.weeklyActivityMinutes,
                 )
-                else -> stringResource(
-                    R.string.progress_movement_days,
-                    uiState.daysLoggedLast7,
-                    uiState.windowDays,
+                // daysMovedLast7, not daysLoggedLast7 — this sentence is about
+                // movement, and counting any log at all made it claim a walk
+                // whenever a meal had been logged.
+                else -> countSentence(
+                    count = uiState.daysMovedLast7,
+                    windowDays = uiState.windowDays,
+                    windowRes = R.string.progress_movement_days,
+                    dayOneRes = R.string.progress_movement_days_today,
+                    dayOneEmptyRes = R.string.progress_movement_days_today_empty,
                 )
             }
             Text(text = text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)

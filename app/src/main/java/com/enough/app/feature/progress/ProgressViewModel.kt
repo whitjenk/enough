@@ -36,6 +36,7 @@ data class ProgressUiState(
     val daysLoggedLast7: Int = 0,
     val checkInFeltSeries: List<FeltLevel?> = emptyList(),
     val checkInDaysLast7: Int = 0,
+    val daysMovedLast7: Int = 0,
     val windowDays: Int = WINDOW_DAYS,
     val currentWeightKg: Double? = null,
     val startWeightKg: Double? = null,
@@ -117,14 +118,25 @@ class ProgressViewModel(
             val weeklyMinutes = activities
                 .filter { it.unit == ActivityUnit.MINUTES }
                 .sumOf { it.amount }
-            val loggedSeries = ProgressCalculations.loggedDaySeries(window, logInstants, now, zone)
+
+            // Days before the goal was created are absent from every series, not
+            // rendered as misses — see ProgressCalculations.visibleWindowDays.
+            val visibleWindow = ProgressCalculations.visibleWindowDays(
+                window,
+                goal?.createdAt?.atZone(zone)?.toLocalDate(),
+                now,
+                zone,
+            )
+
+            val loggedSeries =
+                ProgressCalculations.loggedDaySeries(visibleWindow, logInstants, now, zone)
 
             val feltByDay = checkIns.associate { it.date to it.felt }
-            val feltSeries = ProgressCalculations.feltSeries(window, feltByDay, now, zone)
+            val feltSeries = ProgressCalculations.feltSeries(visibleWindow, feltByDay, now, zone)
 
             ProgressUiState(
                 fiberSeries = ProgressCalculations.fiberSeries(
-                    window,
+                    visibleWindow,
                     meals,
                     now,
                     zone,
@@ -135,6 +147,16 @@ class ProgressViewModel(
                 daysLoggedLast7 = loggedSeries.count { it },
                 checkInFeltSeries = feltSeries,
                 checkInDaysLast7 = feltSeries.count { it != null },
+                // Movement counts days with an *activity* log. It previously
+                // reused daysLoggedLast7, which counts any log at all, so
+                // logging only a meal produced "Moved on 1 of the last 7 days".
+                daysMovedLast7 = ProgressCalculations.daysLoggedInLast(
+                    visibleWindow,
+                    activities.map { it.timestamp },
+                    now,
+                    zone,
+                ),
+                windowDays = visibleWindow,
                 currentWeightKg = weights.lastOrNull()?.weightKg,
                 startWeightKg = goal?.startWeightKg,
                 targetWeightKg = goal?.targetWeightKg,

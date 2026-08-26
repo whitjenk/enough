@@ -122,4 +122,69 @@ class ProgressCalculationsTest {
         assertEquals(true, series.all { it == null })
         assertEquals(0, ProgressCalculations.checkInDaysInLast(7, emptyMap(), now, zone))
     }
+
+    // --- visibleWindowDays: days before the install are absent, not misses ---
+
+    @Test
+    fun `window is one day long on the day the goal was created`() {
+        assertEquals(1, ProgressCalculations.visibleWindowDays(7, today, now, zone))
+    }
+
+    @Test
+    fun `window grows one day at a time until it reaches the full length`() {
+        assertEquals(2, ProgressCalculations.visibleWindowDays(7, today.minusDays(1), now, zone))
+        assertEquals(3, ProgressCalculations.visibleWindowDays(7, today.minusDays(2), now, zone))
+        assertEquals(6, ProgressCalculations.visibleWindowDays(7, today.minusDays(5), now, zone))
+    }
+
+    @Test
+    fun `window never exceeds the requested length once history is older`() {
+        assertEquals(7, ProgressCalculations.visibleWindowDays(7, today.minusDays(6), now, zone))
+        assertEquals(7, ProgressCalculations.visibleWindowDays(7, today.minusDays(90), now, zone))
+    }
+
+    @Test
+    fun `a start date in the future is treated as day one, never a negative window`() {
+        assertEquals(1, ProgressCalculations.visibleWindowDays(7, today.plusDays(3), now, zone))
+    }
+
+    @Test
+    fun `an unknown start date falls back to the full window`() {
+        assertEquals(7, ProgressCalculations.visibleWindowDays(7, null, now, zone))
+    }
+
+    @Test
+    fun `a fresh install reports no missed days at all`() {
+        // The bug this guards: a day-one install rendered six hollow dots and
+        // "1 of the last 7 days", blaming the person for days the app did not exist.
+        val window = ProgressCalculations.visibleWindowDays(7, today, now, zone)
+        val series = ProgressCalculations.loggedDaySeries(
+            window,
+            listOf(today.atTime(LocalTime.NOON).atZone(zone).toInstant()),
+            now,
+            zone,
+        )
+        assertEquals(listOf(true), series)
+        assertEquals(0, series.count { !it })
+    }
+
+    @Test
+    fun `a fresh install with nothing logged shows one empty day, not seven`() {
+        val window = ProgressCalculations.visibleWindowDays(7, today, now, zone)
+        val series = ProgressCalculations.loggedDaySeries(window, emptyList(), now, zone)
+        assertEquals(listOf(false), series)
+    }
+
+    @Test
+    fun `a clamped window still reports real history within it`() {
+        // Installed three days ago, logged on two of them.
+        val window = ProgressCalculations.visibleWindowDays(7, today.minusDays(2), now, zone)
+        val logs = listOf(
+            today.atTime(LocalTime.NOON).atZone(zone).toInstant(),
+            today.minusDays(2).atTime(LocalTime.NOON).atZone(zone).toInstant(),
+        )
+        assertEquals(3, window)
+        assertEquals(listOf(true, false, true), ProgressCalculations.loggedDaySeries(window, logs, now, zone))
+        assertEquals(2, ProgressCalculations.daysLoggedInLast(window, logs, now, zone))
+    }
 }
