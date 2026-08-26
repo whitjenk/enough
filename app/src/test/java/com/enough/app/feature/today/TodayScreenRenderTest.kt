@@ -1,6 +1,9 @@
 package com.enough.app.feature.today
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -235,8 +238,12 @@ class TodayScreenRenderTest {
         assertTrue(addedMeal)
 
         // Weight and movement still exist as secondary entries, not equal thirds.
+        // Scrolled to individually: the pair is a FlowRow (§7.10 A3), so in a
+        // narrow viewport it wraps onto two lines and the second can sit just
+        // off-screen when the first is scrolled into view.
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Log weight"))
         composeRule.onNodeWithText("Log weight").assertIsDisplayed()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Log movement"))
         composeRule.onNodeWithText("Log movement").assertIsDisplayed()
     }
 
@@ -312,5 +319,42 @@ class TodayScreenRenderTest {
         // Composing the card is what records "shown" (not the state computation),
         // so the once-per-rough-patch budget is only spent on a moment truly seen.
         assertTrue(shownRecorded)
+    }
+
+    /**
+     * Today has to survive the system font scale, which Android 14+ takes to
+     * 200% on Pixels. At 2.0x the check-in chips sat in a plain Row, overflowed
+     * it, and Compose resolved that by squeezing them: the first two collapsed
+     * to zero width and the third rendered as an 8px sliver, so the whole
+     * check-in became untappable. Driving LocalDensity directly keeps this
+     * deterministic rather than depending on the test device configuration.
+     */
+    @Test
+    fun `check-in chips stay usable at a 2x font scale`() {
+        composeRule.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(density = base.density, fontScale = 2f),
+            ) {
+                EnoughTheme(dynamicColor = false) {
+                    TodayScreen(
+                        TodayUiState(isLoading = false),
+                        onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                        onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("How did today feel?"))
+
+        // Every option must still be a real, non-degenerate target — the bug was
+        // that they existed in the tree but had been squeezed to nothing.
+        listOf("A rough one", "Steady", "Good").forEach { label ->
+            val width = composeRule.onNodeWithText(label)
+                .fetchSemanticsNode().size.width
+            assertTrue("\"$label\" collapsed to ${width}px at 2x font scale", width > 0)
+        }
     }
 }

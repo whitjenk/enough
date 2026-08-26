@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -45,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -68,6 +71,9 @@ import com.enough.app.ui.components.FiberRing
 import com.enough.app.ui.components.Mascot
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.roundToInt
+
+/** The FAB's 56dp footprint plus its 16dp end margin — content keeps clear of it. */
+private val FAB_LANE_WIDTH = 72.dp
 
 @Composable
 fun TodayRoute(
@@ -384,6 +390,7 @@ private fun ResetMomentCard(onLogSomething: () -> Unit, onShown: () -> Unit) {
  * option is "wrong", nothing marks a day you didn't answer, and the copy stays a
  * note-to-self, never a nudge to log.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CheckInCard(
     selected: FeltLevel?,
@@ -397,7 +404,14 @@ private fun CheckInCard(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(stringResource(R.string.today_checkin_header), style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // FlowRow, not Row: three chips in a fixed Row overflow at large font
+        // scales, and Compose resolves that by squeezing them — at 2.0x the
+        // first two collapsed to zero width and the third rendered as an 8px
+        // sliver, making the whole check-in unusable. They wrap now.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             FeltLevel.entries.forEach { level ->
                 FilterChip(
                     selected = selected == level,
@@ -513,12 +527,28 @@ private fun FiberCard(uiState: TodayUiState) {
  * primary action and lives in the FAB, so these two step down to outlined
  * buttons rather than competing as equal filled-tonal thirds.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SecondaryLoggingActions(
     onLogWeight: () -> Unit,
     onLogActivity: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    // FlowRow rather than Row so the pair splits onto two lines when the labels
+    // stop fitting side by side. In a plain Row they were squeezed narrower than
+    // their own text and "Log movement" broke mid-word ("Log / movem / ent") at
+    // 2.0x. Each button still weights to fill whatever line it lands on, so the
+    // common case is unchanged: two equal halves.
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        // Keep the row out of the FAB's lane. The FAB is pinned to a fixed
+        // screen position, so whatever scrolls under it gets covered — fine for
+        // static text, not for a control. At 1.5x "Log movement" grew tall
+        // enough to reach that band and the FAB sat on its right half. Reserving
+        // the FAB's footprint here means no control can land under it at any
+        // font scale or scroll offset.
+        modifier = Modifier.fillMaxWidth().padding(end = FAB_LANE_WIDTH),
+    ) {
         OutlinedButton(onClick = onLogWeight, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.today_log_weight))
         }
@@ -573,16 +603,22 @@ private fun QuietStatsSection(uiState: TodayUiState) {
 private fun QuietStatRow(label: String, value: String, muted: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The label takes the weight so it wraps and the value keeps its
+        // intrinsic width. With SpaceBetween and two unweighted Texts these
+        // overlapped each other outright at 2.0x ("Latest weight" printed on
+        // top of "Not logged yet") rather than wrapping.
         Text(
             text = label,
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
+            textAlign = TextAlign.End,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (muted) FontWeight.Normal else FontWeight.Medium,
             color = if (muted) {
