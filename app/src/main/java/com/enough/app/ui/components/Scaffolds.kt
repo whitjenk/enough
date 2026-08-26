@@ -8,13 +8,16 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
@@ -35,9 +38,17 @@ fun BackTitleScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
         modifier = modifier,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text(title) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text(backLabel) }

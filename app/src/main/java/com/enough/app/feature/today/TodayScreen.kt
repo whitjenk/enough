@@ -33,6 +33,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,6 +44,7 @@ import androidx.compose.runtime.remember
 import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -164,7 +166,21 @@ fun TodayScreen(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.today_title)) }) },
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.today_title)) },
+                // Transparent so the root background wash reads through instead
+                // of being cut by an opaque band (§7.10 B1).
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // The #1 task (and the named churn driver) gets the thumb-reachable
         // primary slot instead of being one of three equal mid-screen buttons

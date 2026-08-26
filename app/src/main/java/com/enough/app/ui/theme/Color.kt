@@ -108,3 +108,49 @@ internal val DarkSuccessColors = SuccessColors(
     successContainer = Color(0xFF234B27),
     onSuccessContainer = Color(0xFFB6F3BA),
 )
+
+/**
+ * The two stops of the background wash, top to bottom (§7.10 B1).
+ *
+ * Every surface in the app was a single flat colour, which is most of why a
+ * genuinely warm palette was barely visible: the green only ever appeared on
+ * small components. A soft vertical wash puts colour on the page as a *field*
+ * rather than an accent.
+ *
+ * The [top] stop is tinted by time of day and the [bottom] stop stays the base
+ * background, so the gradient is always a gentle settling rather than a band.
+ */
+data class BackgroundWash(val top: Color, val bottom: Color)
+
+/**
+ * Light-mode wash per time of day. Warm through the morning, palest and most
+ * neutral in the middle of the day, deepening to apricot in the evening and a
+ * dimmer, still-warm tone at night.
+ *
+ * These are deliberately close to [LightColors] `background` (#FCFDF7) — the
+ * effect should read as "this page has light on it", not as a coloured header.
+ */
+internal val LightWash: Map<TimeOfDayKey, BackgroundWash> = mapOf(
+    TimeOfDayKey.MORNING to BackgroundWash(Color(0xFFFDF6E7), Color(0xFFFCFDF7)),
+    TimeOfDayKey.DAY to BackgroundWash(Color(0xFFF7FBF1), Color(0xFFFCFDF7)),
+    TimeOfDayKey.EVENING to BackgroundWash(Color(0xFFFBEFE4), Color(0xFFFCFDF7)),
+    TimeOfDayKey.NIGHT to BackgroundWash(Color(0xFFF2F1E9), Color(0xFFFCFDF7)),
+)
+
+/**
+ * Dark-mode wash. Much subtler — a lifted warm tone at the top settling into the
+ * near-black background. Dark mode already read warmer than light did before the
+ * wash existed, so this only needs to keep it from going flat.
+ */
+internal val DarkWash: Map<TimeOfDayKey, BackgroundWash> = mapOf(
+    TimeOfDayKey.MORNING to BackgroundWash(Color(0xFF1A1A12), Color(0xFF101510)),
+    TimeOfDayKey.DAY to BackgroundWash(Color(0xFF141A13), Color(0xFF101510)),
+    TimeOfDayKey.EVENING to BackgroundWash(Color(0xFF1D1712), Color(0xFF101510)),
+    TimeOfDayKey.NIGHT to BackgroundWash(Color(0xFF14140F), Color(0xFF101510)),
+)
+
+/**
+ * Key for the wash maps above. Mirrors `domain.theme.TimeOfDay` without the
+ * theme layer depending on the domain enum's ordering.
+ */
+enum class TimeOfDayKey { MORNING, DAY, EVENING, NIGHT }

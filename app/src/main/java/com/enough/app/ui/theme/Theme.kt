@@ -8,7 +8,10 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
+import com.enough.app.domain.theme.TimeOfDay
 import androidx.compose.ui.platform.LocalContext
 
 /**
@@ -16,6 +19,9 @@ import androidx.compose.ui.platform.LocalContext
  * Access via [EnoughTheme.successColors].
  */
 private val LocalSuccessColors = staticCompositionLocalOf { LightSuccessColors }
+
+/** The time-of-day background wash, provided down the tree. */
+private val LocalBackgroundWash = staticCompositionLocalOf { LightWash.getValue(TimeOfDayKey.DAY) }
 
 /**
  * App theme. Defaults to the warm green seed scheme from DESIGN.md.
@@ -38,6 +44,7 @@ private val LocalSuccessColors = staticCompositionLocalOf { LightSuccessColors }
 fun EnoughTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    timeOfDay: TimeOfDay = remember { TimeOfDay.now() },
     content: @Composable () -> Unit,
 ) {
     val useDynamic = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -49,8 +56,12 @@ fun EnoughTheme(
         else -> LightColors
     }
     val successColors = if (darkTheme) DarkSuccessColors else LightSuccessColors
+    val wash = (if (darkTheme) DarkWash else LightWash).getValue(timeOfDay.toKey())
 
-    CompositionLocalProvider(LocalSuccessColors provides successColors) {
+    CompositionLocalProvider(
+        LocalSuccessColors provides successColors,
+        LocalBackgroundWash provides wash,
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             shapes = EnoughShapes,
@@ -66,4 +77,23 @@ object EnoughTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalSuccessColors.current
+
+    /**
+     * The page background: a soft vertical wash tinted by time of day (§7.10 B1).
+     *
+     * Apply it once at the root and leave the Scaffolds transparent, rather than
+     * painting it per screen — it is one continuous field behind the whole app,
+     * not a decoration on each page.
+     */
+    val backgroundBrush: Brush
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalBackgroundWash.current.let { Brush.verticalGradient(listOf(it.top, it.bottom)) }
+}
+
+private fun TimeOfDay.toKey(): TimeOfDayKey = when (this) {
+    TimeOfDay.MORNING -> TimeOfDayKey.MORNING
+    TimeOfDay.DAY -> TimeOfDayKey.DAY
+    TimeOfDay.EVENING -> TimeOfDayKey.EVENING
+    TimeOfDay.NIGHT -> TimeOfDayKey.NIGHT
 }

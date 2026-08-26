@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -31,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -196,8 +198,16 @@ private fun OnboardingScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text(title) },
                 navigationIcon = {
                     if (onBack != null) {
@@ -243,7 +253,21 @@ private fun OnboardingScaffold(
 @Composable
 private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.onboarding_welcome_title)) }) },
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.onboarding_welcome_title)) },
+                // Transparent so the root background wash reads through instead
+                // of being cut by an opaque band (§7.10 B1).
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
+            )
+        },
         bottomBar = {
             Surface {
                 Column(
@@ -672,8 +696,16 @@ private fun ReminderStep(
     onBack: () -> Unit,
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text(stringResource(R.string.onboarding_reminder_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }

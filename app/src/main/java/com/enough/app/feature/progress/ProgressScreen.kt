@@ -24,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -112,7 +113,21 @@ fun ProgressRoute(
 @Composable
 fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.progress_title)) }) },
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.progress_title)) },
+                // Transparent so the root background wash reads through instead
+                // of being cut by an opaque band (§7.10 B1).
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
+            )
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),

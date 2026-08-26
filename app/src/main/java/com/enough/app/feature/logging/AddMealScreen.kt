@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -30,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -88,8 +90,16 @@ fun AddMealScreen(
     onBack: () -> Unit,
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text(stringResource(R.string.add_meal_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
