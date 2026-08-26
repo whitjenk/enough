@@ -1,21 +1,16 @@
 package com.enough.app.feature.main
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -43,12 +38,12 @@ object Routes {
 /** Saved-state key carrying a just-logged meal id back to Today for undo. */
 private const val UNDO_MEAL_ID_KEY = "undo_meal_id"
 
-private data class TopLevelDestination(val route: String, val labelRes: Int)
+private data class TopLevelDestination(val route: String, val labelRes: Int, val iconRes: Int)
 
 private val topLevelDestinations = listOf(
-    TopLevelDestination(Routes.TODAY, R.string.nav_today),
-    TopLevelDestination(Routes.PROGRESS, R.string.nav_progress),
-    TopLevelDestination(Routes.SETTINGS, R.string.nav_settings),
+    TopLevelDestination(Routes.TODAY, R.string.nav_today, R.drawable.ic_today),
+    TopLevelDestination(Routes.PROGRESS, R.string.nav_progress, R.drawable.ic_progress),
+    TopLevelDestination(Routes.SETTINGS, R.string.nav_settings, R.drawable.ic_settings),
 )
 
 /**
@@ -131,36 +126,38 @@ private fun NavHostController.navigateToTab(route: String) {
 }
 
 /**
- * A simple text-label bottom bar. Selection is conveyed by weight and color
- * together, not color alone (DESIGN.md / accessibility).
+ * The app's bottom navigation, using M3's own [NavigationBar].
+ *
+ * This replaced a hand-rolled `Row` of `TextButton`s (§7.10 A2). That version
+ * was the loudest "unfinished" signal in the app: no icons, no selection
+ * indicator, ~40dp touch targets against the 80dp a navigation bar is supposed
+ * to give, and — because a bare `Surface` carries no window insets of its own —
+ * labels that sat directly on the gesture pill. `NavigationBar` handles its own
+ * insets, so the explicit `navigationBarsPadding()` A1 added is no longer
+ * needed here.
+ *
+ * Selection is still conveyed by more than color: the selected item gets M3's
+ * pill indicator behind its icon, which is a shape difference (DESIGN.md /
+ * accessibility). The icons carry no `contentDescription` because each item's
+ * visible label is its accessible name — describing both would make a screen
+ * reader announce every tab twice.
  */
 @Composable
 private fun EnoughBottomBar(currentRoute: String?, onSelect: (String) -> Unit) {
-    Surface(tonalElevation = 2.dp) {
-        Row(
-            // The activity is edge-to-edge, and a bare Surface — unlike M3's own
-            // NavigationBar — applies no window insets of its own. Without this the
-            // labels land inside the gesture-bar inset with zero clearance.
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            topLevelDestinations.forEach { destination ->
-                val selected = currentRoute == destination.route
-                TextButton(onClick = { onSelect(destination.route) }) {
-                    Text(
-                        text = stringResource(destination.labelRes),
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+    NavigationBar {
+        topLevelDestinations.forEach { destination ->
+            val selected = currentRoute == destination.route
+            NavigationBarItem(
+                selected = selected,
+                onClick = { onSelect(destination.route) },
+                icon = {
+                    Icon(
+                        painter = painterResource(destination.iconRes),
+                        contentDescription = null,
                     )
-                }
-            }
+                },
+                label = { Text(stringResource(destination.labelRes)) },
+            )
         }
     }
 }
