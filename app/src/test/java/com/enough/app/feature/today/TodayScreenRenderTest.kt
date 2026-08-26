@@ -22,7 +22,9 @@ import com.enough.app.data.local.entity.WeightEntry
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.MealSource
+import com.enough.app.domain.theme.TimeOfDay
 import com.enough.app.ui.theme.EnoughTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -152,6 +154,10 @@ class TodayScreenRenderTest {
         composeRule.onNodeWithText("How did today feel?").assertIsDisplayed()
         composeRule.onNodeWithText("Steady").assertIsDisplayed()
         // Framed as a note to yourself, never a nudge to log.
+        // Scrolled to directly: the check-in is one tight group now (§7.10 B2), and
+        // in the short test viewport its hint sits below the header it belongs to.
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("skip it any day", substring = true))
         composeRule.onNodeWithText("skip it any day", substring = true).assertIsDisplayed()
     }
 
@@ -356,5 +362,56 @@ class TodayScreenRenderTest {
                 .fetchSemanticsNode().size.width
             assertTrue("\"$label\" collapsed to ${width}px at 2x font scale", width > 0)
         }
+    }
+
+    @Test
+    fun `the greeting renders the line for the time of day it was given`() {
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(isLoading = false),
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    timeOfDay = TimeOfDay.NIGHT,
+                )
+            }
+        }
+
+        // The late-night line offers the exit outright rather than nudging.
+        composeRule.onNodeWithText("It's late. Tomorrow is fine too.").assertIsDisplayed()
+        composeRule.onNodeWithText("One small thing today is enough.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the nudge does not repeat the number the ring already shows`() {
+        // The ring says "3 of 28g" directly above; the nudge opening with
+        // "You're at 3g of fiber today" made the buddy sound like a readout
+        // rather than a friend (§7.10 B2).
+        val state = TodayUiState(
+            fiberSoFarG = 3.0,
+            nudge = com.enough.app.domain.rules.Nudge.FiberGap(
+                fiberSoFarG = 3,
+                gapG = 25,
+                suggestionFood = "Lentils",
+                suggestionServingLabel = "1/2 cup cooked",
+                suggestionFiberG = 8,
+            ),
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    timeOfDay = TimeOfDay.DAY,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("You're at", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("of fiber today", substring = true).assertDoesNotExist()
     }
 }
