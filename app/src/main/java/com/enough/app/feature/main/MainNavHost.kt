@@ -3,6 +3,7 @@ package com.enough.app.feature.main
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -137,7 +138,13 @@ private fun NavHostController.navigateToTab(route: String) {
 private fun EnoughBottomBar(currentRoute: String?, onSelect: (String) -> Unit) {
     Surface(tonalElevation = 2.dp) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            // The activity is edge-to-edge, and a bare Surface — unlike M3's own
+            // NavigationBar — applies no window insets of its own. Without this the
+            // labels land inside the gesture-bar inset with zero clearance.
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             topLevelDestinations.forEach { destination ->

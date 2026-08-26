@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,7 +47,14 @@ fun BackTitleScaffold(
         bottomBar = {
             if (primaryLabel != null && onPrimary != null) {
                 Surface {
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    // Edge-to-edge: a bare Surface applies no window insets of its
+                    // own, so without this the button lands in the gesture inset.
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                    ) {
                         Button(
                             onClick = onPrimary,
                             enabled = primaryEnabled,

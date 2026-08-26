@@ -208,7 +208,14 @@ private fun OnboardingScaffold(
         },
         bottomBar = {
             Surface {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                // Edge-to-edge: a bare Surface applies no window insets of its own,
+                // so without this the button lands in the gesture inset.
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
                     Button(
                         onClick = onPrimary,
                         enabled = primaryEnabled,
@@ -240,7 +247,10 @@ private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit)
         bottomBar = {
             Surface {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Default path is the emphasized primary; the risk test is an
