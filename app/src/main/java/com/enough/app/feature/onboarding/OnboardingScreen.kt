@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -55,6 +56,7 @@ import com.enough.app.health.HealthConnectAvailability
 import com.enough.app.ui.components.ChoiceList
 import com.enough.app.ui.components.ChoiceOption
 import com.enough.app.ui.components.LabeledSlider
+import com.enough.app.ui.components.Mascot
 import com.enough.app.ui.components.MultiChoiceList
 import com.enough.app.ui.components.FormSection
 import com.enough.app.ui.theme.EnoughTheme
@@ -252,39 +254,41 @@ private fun OnboardingScaffold(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit) {
+    // Rebuilt in §7.10 B5. The old version put both buttons in the bottom bar
+    // and their descriptions at the top of the content, leaving ~900px of dead
+    // space between them: the person read "Go straight to setting your goals.
+    // No quiz." roughly 1200px above the button it described and had to hold
+    // the mapping in their head. Each choice now carries its description
+    // directly beneath it, in the bottom bar with the button it belongs to.
+    //
+    // No TopAppBar: a generic app-bar title is a poor use of the one screen
+    // that introduces the app. The name is the headline instead, with the
+    // mascot above it — this screen had no brand presence at all before.
+    //
+    // Note this step renders outside MainNavHost, so unlike the main tabs its
+    // Scaffold does need to handle its own window insets (§7.10 B3).
     Scaffold(
         containerColor = Color.Transparent,
-        // Transparent has no `contentColorFor` mapping, so M3 falls back to
-        // black and every Text that doesn't set its own colour goes unreadable
-        // in dark mode. Name the content colour explicitly (§7.10 B1).
         contentColor = MaterialTheme.colorScheme.onBackground,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.onboarding_welcome_title)) },
-                // Transparent so the root background wash reads through instead
-                // of being cut by an opaque band (§7.10 B1).
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
-            )
-        },
         bottomBar = {
-            Surface {
+            Surface(color = Color.Transparent) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Default path is the emphasized primary; the risk test is an
                     // equally-visible-but-secondary option, never the default.
                     Button(onClick = onStartDefault, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.onboarding_entry_default))
                     }
+                    EntryDescription(stringResource(R.string.onboarding_entry_default_desc))
+                    Spacer(Modifier.height(20.dp))
                     OutlinedButton(onClick = onStartRiskTest, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.onboarding_entry_risk))
                     }
+                    EntryDescription(stringResource(R.string.onboarding_entry_risk_desc))
                 }
             }
         },
@@ -293,31 +297,45 @@ private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit)
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 24.dp, bottom = 12.dp),
         ) {
+            Mascot(
+                color = EnoughTheme.successColors.success,
+                contentDescription = stringResource(R.string.cd_mascot),
+                diameter = 72.dp,
+            )
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.onboarding_welcome_title),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Spacer(Modifier.height(12.dp))
             Text(
                 text = stringResource(R.string.onboarding_welcome_body),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            Text(
-                text = stringResource(R.string.onboarding_entry_default_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(R.string.onboarding_entry_risk_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            HorizontalDivider()
+            Spacer(Modifier.height(28.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.onboarding_welcome_disclaimer),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
+}
+
+/** The line under an entry button explaining what that choice actually does. */
+@Composable
+private fun EntryDescription(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+    )
 }
 
 @Composable

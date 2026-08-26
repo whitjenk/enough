@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -28,6 +29,9 @@ fun Mascot(
     contentDescription: String,
     modifier: Modifier = Modifier,
     pulsing: Boolean = false,
+    // Named `diameter`, not `size`, so it doesn't shadow DrawScope.size inside
+    // the Canvas block below. Matches FiberRing's parameter name.
+    diameter: Dp = 40.dp,
 ) {
     val scale = if (pulsing) {
         val transition = rememberInfiniteTransition(label = "mascot-pulse")
@@ -46,7 +50,7 @@ fun Mascot(
 
     Canvas(
         modifier = modifier
-            .size(40.dp)
+            .size(diameter)
             .semantics { this.contentDescription = contentDescription },
     ) {
         scale(scale) {
