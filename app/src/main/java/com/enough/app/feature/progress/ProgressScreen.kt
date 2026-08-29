@@ -5,11 +5,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,9 +26,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
@@ -32,11 +37,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.Intent
@@ -45,11 +53,16 @@ import com.enough.app.data.model.FeltLevel
 import com.enough.app.data.model.WeightTrendDirection
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.domain.UnitConversions
+import com.enough.app.domain.progress.ProgressCalculations
+import com.enough.app.domain.progress.DailyFiber
 import com.enough.app.domain.share.ShareCard
 import com.enough.app.feature.share.ShareCardLines
 import com.enough.app.feature.share.ShareCardRenderer
+import com.enough.app.ui.components.SectionLabel
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.max
+import java.time.format.TextStyle
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
@@ -100,12 +113,26 @@ fun ProgressRoute(
 @Composable
 fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.progress_title)) }) },
+        // This screen renders inside MainNavHost's Scaffold, which has already
+        // consumed the system-bar insets. Consuming them again double-counted
+        // the status bar and cost every screen ~54dp of dead space at the top
+        // (§7.10 B3).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+            // Extra top room now that the app bar is gone (§7.10 B3) — the first
+            // section should breathe rather than start against the status bar.
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                top = 28.dp,
+                bottom = 16.dp,
+            ),
         ) {
             // Sections separated by hairlines rather than boxed in cards, so the
             // screen reads as one trend view instead of five widgets
@@ -125,6 +152,25 @@ fun ProgressScreen(uiState: ProgressUiState, onShareWeek: () -> Unit = {}) {
     }
 }
 
+/**
+ * "X of the last N days", or bespoke day-one copy when there is no window to
+ * count against yet. On a fresh install the window is one day long (see
+ * [ProgressCalculations.visibleWindowDays]), and "1 of the last 1 days" is both
+ * ungrammatical and slightly absurd.
+ */
+@Composable
+private fun countSentence(
+    count: Int,
+    windowDays: Int,
+    windowRes: Int,
+    dayOneRes: Int,
+    dayOneEmptyRes: Int,
+): String = when {
+    windowDays > 1 -> stringResource(windowRes, count, windowDays)
+    count > 0 -> stringResource(dayOneRes)
+    else -> stringResource(dayOneEmptyRes)
+}
+
 @Composable
 private fun ProgressDivider() {
     HorizontalDivider(
@@ -137,12 +183,14 @@ private fun ProgressDivider() {
 private fun ConsistencyCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.progress_consistency_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_consistency_header))
             Text(
-                text = stringResource(
-                    R.string.progress_consistency_value,
-                    uiState.daysLoggedLast7,
-                    uiState.windowDays,
+                text = countSentence(
+                    count = uiState.daysLoggedLast7,
+                    windowDays = uiState.windowDays,
+                    windowRes = R.string.progress_consistency_value,
+                    dayOneRes = R.string.progress_consistency_value_today,
+                    dayOneEmptyRes = R.string.progress_consistency_value_today_empty,
                 ),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -195,7 +243,7 @@ private fun ConsistencyDot(logged: Boolean, contentDescription: String) {
 private fun CheckInReflectionCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.progress_checkin_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_checkin_header))
             if (uiState.checkInFeltSeries.all { it == null }) {
                 Text(
                     text = stringResource(R.string.progress_checkin_empty),
@@ -204,11 +252,17 @@ private fun CheckInReflectionCard(uiState: ProgressUiState) {
                 )
             } else {
                 Text(
-                    text = stringResource(
-                        R.string.progress_checkin_value,
-                        uiState.checkInDaysLast7,
-                        uiState.windowDays,
-                    ),
+                    // The all-null case is handled by the empty state above, so
+                    // day one here always means "checked in today".
+                    text = if (uiState.windowDays <= 1) {
+                        stringResource(R.string.progress_checkin_value_today)
+                    } else {
+                        stringResource(
+                            R.string.progress_checkin_value,
+                            uiState.checkInDaysLast7,
+                            uiState.windowDays,
+                        )
+                    },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -237,7 +291,7 @@ private fun feltLabelRes(level: FeltLevel): Int = when (level) {
 private fun FiberTrendCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.progress_fiber_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_fiber_header))
             val hasData = uiState.fiberSeries.any { it.fiberG > 0.0 }
             if (!hasData) {
                 Text(
@@ -256,13 +310,9 @@ private fun FiberTrendCard(uiState: ProgressUiState) {
                     )
                 }
                 FiberBarChart(
-                    values = uiState.fiberSeries.map { it.fiberG },
+                    days = uiState.fiberSeries,
                     targetG = uiState.fiberTargetG,
-                    barColor = MaterialTheme.colorScheme.primary,
-                    targetLineColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     chartDescription = stringResource(R.string.cd_fiber_chart, uiState.windowDays),
                 )
                 if (uiState.fiberTargetG > 0 && !uiState.hideNumbers) {
@@ -277,48 +327,130 @@ private fun FiberTrendCard(uiState: ProgressUiState) {
     }
 }
 
+/**
+ * The week's fiber as bars, with the daily target as a reference line.
+ *
+ * Rebuilt in §7.10 A6. The previous version had three problems, all of which
+ * made it read as broken rather than quiet:
+ *
+ *  - The vertical scale topped out at exactly `max(target, highest day)`, so
+ *    whenever no day beat the target — the common case — the target line was
+ *    drawn at y=0, a solid full-width rule across the very top. Next to this
+ *    screen's own solid hairline dividers it parsed as an underline for the
+ *    value above it, not as a reference line. There is headroom above the
+ *    ceiling now, and the line is dashed so it cannot be confused with a
+ *    divider.
+ *  - Days with no fiber drew nothing at all, so a week with one logged day was
+ *    a single bar floating in empty space. Every day now draws at least a
+ *    baseline nub in the neutral track color: the day is present, it just has
+ *    nothing on it. Never red, never a "missed" marker (DESIGN.md).
+ *  - There were no day labels, so no bar could be matched to a day.
+ *
+ * Bars use the `success` role, matching the consistency dots above and the
+ * fiber ring on Today. They were `primary`, which put two different greens for
+ * the same week on the same screen, and `DESIGN.md` reserves primary for
+ * identity rather than for logged progress.
+ *
+ * The whole chart is one semantics node with a single spoken description; the
+ * day letters are decorative here and would otherwise be read out as "M T W T
+ * F S S" before anything meaningful.
+ */
 @Composable
 private fun FiberBarChart(
-    values: List<Double>,
+    days: List<DailyFiber>,
     targetG: Int,
-    barColor: Color,
-    targetLineColor: Color,
     chartDescription: String,
     modifier: Modifier = Modifier,
+    barHeight: Dp = 120.dp,
 ) {
-    val maxValue = max(targetG.toDouble(), values.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
-    Canvas(modifier.semantics { contentDescription = chartDescription }) {
-        val slot = size.width / values.size
-        val barWidth = slot * 0.55f
-        values.forEachIndexed { index, value ->
-            val barHeight = (value / maxValue).toFloat() * size.height
-            val left = index * slot + (slot - barWidth) / 2f
-            val top = size.height - barHeight
-            drawRoundRect(
-                color = barColor,
-                topLeft = Offset(left, top),
-                size = Size(barWidth, barHeight),
-                cornerRadius = CornerRadius(barWidth / 3f, barWidth / 3f),
-            )
+    if (days.isEmpty()) return
+
+    val highest = days.maxOf { it.fiberG }
+    // Headroom above whichever is taller, so a target line never lands on the
+    // top edge and a target-beating day never touches it either.
+    val ceiling = (max(targetG.toDouble(), highest) * 1.18).coerceAtLeast(1.0)
+
+    val barColor = EnoughTheme.successColors.success
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
+    val targetLineColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = chartDescription
+        },
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(barHeight)
+                .drawBehind {
+                    if (targetG <= 0) return@drawBehind
+                    val y = size.height - (targetG / ceiling).toFloat() * size.height
+                    drawLine(
+                        color = targetLineColor,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 2f,
+                        cap = StrokeCap.Round,
+                        // Dashed, so it reads as a reference line rather than as
+                        // another of this screen's solid hairline dividers.
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f)),
+                    )
+                },
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                days.forEach { day ->
+                    val fraction = (day.fiberG / ceiling).toFloat().coerceIn(0f, 1f)
+                    val logged = day.fiberG > 0.0
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            // A day with nothing logged still occupies its slot:
+                            // a neutral nub at the baseline, not a blank gap.
+                            .then(
+                                if (logged) {
+                                    Modifier.fillMaxHeight(fraction)
+                                } else {
+                                    Modifier.height(BAR_EMPTY_HEIGHT)
+                                },
+                            )
+                            .heightIn(min = BAR_EMPTY_HEIGHT)
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .background(if (logged) barColor else trackColor),
+                    )
+                }
+            }
         }
-        if (targetG > 0) {
-            val y = size.height - (targetG / maxValue).toFloat() * size.height
-            drawLine(
-                color = targetLineColor,
-                start = Offset(0f, y),
-                end = Offset(size.width, y),
-                strokeWidth = 2f,
-                cap = StrokeCap.Round,
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            days.forEach { day ->
+                Text(
+                    text = day.date.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
+
+/** Baseline nub for a day with nothing logged — present, but carrying nothing. */
+private val BAR_EMPTY_HEIGHT = 4.dp
 
 @Composable
 private fun WeightCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.progress_weight_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_weight_header))
             val current = uiState.currentWeightKg
             if (current == null) {
                 Text(
@@ -366,7 +498,7 @@ private fun weightTrendCopy(trend: WeightTrendDirection): Int = when (trend) {
 private fun MovementCard(uiState: ProgressUiState) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.progress_movement_header), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_movement_header))
             val goalMinutes = uiState.activityGoalMinutes
             val text = when {
                 goalMinutes != null -> stringResource(
@@ -378,10 +510,15 @@ private fun MovementCard(uiState: ProgressUiState) {
                     R.string.progress_movement_minutes_no_goal,
                     uiState.weeklyActivityMinutes,
                 )
-                else -> stringResource(
-                    R.string.progress_movement_days,
-                    uiState.daysLoggedLast7,
-                    uiState.windowDays,
+                // daysMovedLast7, not daysLoggedLast7 — this sentence is about
+                // movement, and counting any log at all made it claim a walk
+                // whenever a meal had been logged.
+                else -> countSentence(
+                    count = uiState.daysMovedLast7,
+                    windowDays = uiState.windowDays,
+                    windowRes = R.string.progress_movement_days,
+                    dayOneRes = R.string.progress_movement_days_today,
+                    dayOneEmptyRes = R.string.progress_movement_days_today_empty,
                 )
             }
             Text(text = text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -399,7 +536,7 @@ private fun MovementCard(uiState: ProgressUiState) {
 private fun ShareWeekCard(onShareWeek: () -> Unit) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.progress_share_title), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.progress_share_title))
             Text(
                 text = stringResource(R.string.progress_share_desc),
                 style = MaterialTheme.typography.bodyMedium,

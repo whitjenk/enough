@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -21,6 +22,11 @@ import androidx.compose.ui.unit.dp
  * color (DESIGN.md). No face, no character. Two states — still (default) and a
  * gentle scale-pulse when [pulsing] is true (a new nudge worth noticing). It's
  * decorative "a bit of life", so it carries a simple contentDescription.
+ *
+ * Drawn at 64dp by default (§7.10 C1). It spent two attempts at 40dp, where it
+ * read as a plain dot in both themes no matter how the outline was pushed —
+ * a small abstract shape simply cannot carry personality. It is bigger now and
+ * used in fewer places, so each appearance has some presence.
  */
 @Composable
 fun Mascot(
@@ -28,6 +34,9 @@ fun Mascot(
     contentDescription: String,
     modifier: Modifier = Modifier,
     pulsing: Boolean = false,
+    // Named `diameter`, not `size`, so it doesn't shadow DrawScope.size inside
+    // the Canvas block below. Matches FiberRing's parameter name.
+    diameter: Dp = 64.dp,
 ) {
     val scale = if (pulsing) {
         val transition = rememberInfiniteTransition(label = "mascot-pulse")
@@ -46,7 +55,7 @@ fun Mascot(
 
     Canvas(
         modifier = modifier
-            .size(40.dp)
+            .size(diameter)
             .semantics { this.contentDescription = contentDescription },
     ) {
         scale(scale) {
@@ -60,16 +69,25 @@ fun Mascot(
             // looks right zoomed in, because the small size averages them away:
             // a wide, low-shouldered left, a heavier drop bottom-right, and a
             // deliberately off-centre top so nothing reads as a diameter.
+            // Built from MascotOutline, which is pure and unit-tested — the
+            // shape has twice been "fixed" by hand and twice still rendered as a
+            // dot, so the departure from a circle is now something a test can
+            // hold onto rather than something an eye has to judge while zoomed in.
+            // Points are smoothed into a closed curve with Catmull-Rom cubics.
+            val pts = MascotOutline.points()
+            val n = pts.size
+            fun px(i: Int) = pts[((i % n) + n) % n].first * w
+            fun py(i: Int) = pts[((i % n) + n) % n].second * h
             val path = Path().apply {
-                moveTo(w * 0.42f, h * 0.02f)
-                // over the top and down the right — pushed out and low
-                cubicTo(w * 0.82f, h * -0.04f, w * 1.06f, h * 0.30f, w * 0.94f, h * 0.58f)
-                // the heavy bottom-right drop
-                cubicTo(w * 0.86f, h * 0.80f, w * 0.66f, h * 1.04f, w * 0.42f, h * 0.97f)
-                // a flatter, wider sweep back along the bottom-left
-                cubicTo(w * 0.18f, h * 0.90f, w * -0.06f, h * 0.72f, w * 0.03f, h * 0.44f)
-                // up the shallow left shoulder and back to the off-centre top
-                cubicTo(w * 0.10f, h * 0.22f, w * 0.24f, h * 0.06f, w * 0.42f, h * 0.02f)
+                moveTo(px(0), py(0))
+                for (i in 0 until n) {
+                    // Catmull-Rom through p1..p2 expressed as a cubic Bézier.
+                    val c1x = px(i) + (px(i + 1) - px(i - 1)) / 6f
+                    val c1y = py(i) + (py(i + 1) - py(i - 1)) / 6f
+                    val c2x = px(i + 1) - (px(i + 2) - px(i)) / 6f
+                    val c2y = py(i + 1) - (py(i + 2) - py(i)) / 6f
+                    cubicTo(c1x, c1y, c2x, c2y, px(i + 1), py(i + 1))
+                }
                 close()
             }
             drawPath(path, color)

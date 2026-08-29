@@ -7,6 +7,7 @@ import com.enough.app.domain.nutrition.MealNutrition
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /** Fiber logged on one calendar day. */
 data class DailyFiber(val date: LocalDate, val fiberG: Double)
@@ -18,6 +19,36 @@ data class DailyFiber(val date: LocalDate, val fiberG: Double)
  * (CLAUDE.md / DESIGN.md).
  */
 object ProgressCalculations {
+
+    /**
+     * How many days of history there are actually anything to say about: the
+     * requested [nDays], shortened on a young install to the days that have
+     * elapsed since [startedOn] (inclusive of both ends).
+     *
+     * This exists because a full-length window on day one is not neutral. A
+     * fresh install rendered six hollow dots and "Logged on 1 of the last 7
+     * days" — reporting six misses for days the app did not exist on the phone,
+     * which is exactly the shame pattern the app forbids, aimed at days the
+     * person could not possibly have logged. Days before [startedOn] are absent,
+     * not empty: the window grows to its full length as real history accrues.
+     *
+     * A null [startedOn] (no goal recorded yet) falls back to the full window —
+     * there is nothing to clamp against, and under-reporting real history would
+     * be its own kind of wrong.
+     */
+    fun visibleWindowDays(
+        nDays: Int,
+        startedOn: LocalDate?,
+        now: Instant,
+        zone: ZoneId,
+    ): Int {
+        if (startedOn == null) return nDays
+        val today = now.atZone(zone).toLocalDate()
+        // A clock skew or a restored backup can put the start date in the
+        // future; treat that as day one rather than a negative window.
+        val elapsed = ChronoUnit.DAYS.between(startedOn, today) + 1
+        return elapsed.coerceIn(1L, nDays.toLong()).toInt()
+    }
 
     /** Total fiber grams grouped by the calendar day each meal was logged. */
     fun fiberByDay(

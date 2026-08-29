@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   "Today" — a plain ring, echoing the fiber ring that is the Today screen's
+   hero. Hand-drawn rather than pulled from material-icons-extended: the app
+   uses four glyphs total, which is not worth an icon dependency.
+
+   Stroked with round caps to match ic_add and DESIGN.md's no-sharp-corners
+   rule. The literal color here is irrelevant — Compose's `Icon` tints the
+   painter with LocalContentColor — but it matches ic_add for consistency.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M12,12 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
+</vector>

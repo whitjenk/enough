@@ -3,7 +3,12 @@
     <string name="app_name">Enough</string>
 
     <!-- Home / placeholder -->
-    <string name="home_greeting">One small thing today is enough.</string>
+    <!-- The Today greeting, chosen by time of day (7.10 B2). Never a demand,
+         and the late-night one offers the exit outright rather than nudging. -->
+    <string name="home_greeting_morning">Morning. One small thing is enough.</string>
+    <string name="home_greeting_day">One small thing today is enough.</string>
+    <string name="home_greeting_evening">Evening. One small thing still counts.</string>
+    <string name="home_greeting_night">It\'s late. Tomorrow is fine too.</string>
 
     <!-- Shared -->
     <string name="action_back">Back</string>
@@ -109,7 +114,6 @@
     <string name="nav_settings">Settings</string>
 
     <!-- Settings -->
-    <string name="settings_title">Settings</string>
     <string name="settings_hc_sync_title">Sync with Health Connect</string>
     <string name="settings_hc_sync_desc">Read steps, sleep, and weight from Health Connect. Turn off to log everything by hand.</string>
     <string name="settings_calibration_title">Fiber estimate style</string>
@@ -150,15 +154,19 @@
     <string name="settings_delete_cancel">Cancel</string>
 
     <!-- Progress -->
-    <string name="progress_title">Progress</string>
     <string name="progress_consistency_header">Consistency</string>
     <string name="progress_consistency_value">Logged on %1$d of the last %2$d days</string>
+    <!-- Day one: there is no window to count against yet, and "1 of the last 1 days"
+         would be both ungrammatical and faintly absurd. -->
+    <string name="progress_consistency_value_today">Logged today</string>
+    <string name="progress_consistency_value_today_empty">Nothing logged yet today</string>
     <string name="progress_consistency_subtitle">Every day you show up counts. Missing one doesn\'t erase the rest.</string>
     <string name="cd_day_logged">Logged</string>
     <string name="cd_day_not_logged">Not logged</string>
     <!-- Daily felt check-in reflection: gentle, non-scored, never a streak -->
     <string name="progress_checkin_header">How you\'ve felt</string>
     <string name="progress_checkin_value">You checked in on %1$d of the last %2$d days</string>
+    <string name="progress_checkin_value_today">You checked in today</string>
     <string name="progress_checkin_empty">Check in on Today and a quiet 7-day view shows up here.</string>
     <string name="cd_day_no_checkin">No check-in</string>
     <string name="progress_fiber_header">Fiber trend</string>
@@ -178,6 +186,8 @@
     <string name="progress_movement_minutes">%1$d of %2$d minutes</string>
     <string name="progress_movement_minutes_no_goal">%1$d minutes logged</string>
     <string name="progress_movement_days">Moved on %1$d of the last %2$d days</string>
+    <string name="progress_movement_days_today">Moved today</string>
+    <string name="progress_movement_days_today_empty">No movement logged yet today</string>
     <!-- Opt-in shareable card: user taps to share; nothing leaves the phone otherwise. No comparison. -->
     <string name="progress_share_title">Share your week</string>
     <string name="progress_share_desc">Make a little card of your week. Nothing leaves your phone unless you send it.</string>
@@ -196,13 +206,13 @@
     <string name="share_daily_felt_generic">Today, gently.</string>
 
     <!-- Today -->
-    <string name="today_title">Today</string>
 
     <!-- Daily fiber nudge (supportive tone; never shame or streaks) -->
-    <string name="nudge_fiber_gap">You\'re at %1$dg of fiber today. A serving of %2$s (%3$s) adds about %4$dg — small and doable.</string>
+    <!-- No leading "you\'re at Xg": the ring directly above already says it (7.10 B2). -->
+    <string name="nudge_fiber_gap">A serving of %1$s (%2$s) adds about %3$dg — small and doable.</string>
     <!-- Softer variant for people on a GLP-1: no target framing, appetite-aware -->
-    <string name="nudge_fiber_gap_gentle">You\'re at %1$dg of fiber today. No pressure at all — if it feels right, a little %2$s (%3$s) adds about %4$dg.</string>
-    <string name="nudge_on_track">You\'re at %1$dg of fiber today, right around your %2$dg goal. That\'s enough.</string>
+    <string name="nudge_fiber_gap_gentle">No pressure at all — if it feels right, a little %1$s (%2$s) adds about %3$dg.</string>
+    <string name="nudge_on_track">Right around your %1$dg goal today. That\'s enough.</string>
     <!-- Today's one swap: a zero-input daily idea, never a nudge to log; always leaves an out -->
     <string name="today_swap_body">%1$s (%2$s) is an easy ~%3$dg of fiber — or not, today can just be today.</string>
     <!-- Softer variant for people on a GLP-1: no number to hit, appetite-aware -->
@@ -297,7 +307,10 @@
 
     <!-- Log weight -->
     <string name="log_weight_title">Log weight</string>
-    <string name="log_weight_hint">Weight in pounds</string>
+    <string name="log_weight_hint">Weight</string>
+    <string name="unit_pounds">lb</string>
+    <string name="unit_minutes">min</string>
+    <string name="unit_steps">steps</string>
 
     <!-- Log activity -->
     <string name="log_activity_title">Log movement</string>

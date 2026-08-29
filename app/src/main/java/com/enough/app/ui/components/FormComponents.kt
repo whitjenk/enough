@@ -1,6 +1,7 @@
 package com.enough.app.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -9,7 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -21,6 +22,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Row
 import kotlin.math.roundToInt
@@ -133,21 +146,109 @@ fun LabeledSlider(
     }
 }
 
-/** A titled container card. Uses the large expressive corner radius by default. */
+/**
+ * One titled section of a form, sitting directly on the background (§7.10 B4).
+ *
+ * This replaced `SectionCard`, which boxed every section in a grey `Card`.
+ * Onboarding was the last place that pattern survived — the 2026-08-24 warmth
+ * pass removed it from Today, Progress and Settings but did not reach here, so
+ * the first screens anyone sees were still a stack of grey widgets fighting the
+ * warm background. Sections are separated by a hairline and by type instead.
+ *
+ * The title is `titleMedium`, not the `titleLarge` the card used: these are
+ * questions a person answers, and eight stacked headline-sized questions shout.
+ * They stay full-weight rather than becoming a [SectionLabel] for the same
+ * reason Settings' item titles did — a label names a section, but this names
+ * something the person has to read and act on.
+ *
+ * @param topDivider draws the hairline above this section. False for the first
+ *   section on a step, where there is nothing above it to separate from.
+ */
 @Composable
-fun SectionCard(
+fun FormSection(
     title: String,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    topDivider: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-        Column(Modifier.padding(20.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
+    Column(modifier.fillMaxWidth()) {
+        if (topDivider) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(bottom = 20.dp),
             )
-            Spacer(Modifier.height(12.dp))
-            content()
+        }
+        Text(text = title, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        content()
+    }
+}
+
+/**
+ * The single number a logging screen exists to capture (§7.11).
+ *
+ * `Log weight` and `Log activity` are one input each, and rendering that input
+ * as an ordinary full-width text field parked at the top of an empty page made
+ * them read as unfinished forms rather than as a quick thing you came to do.
+ * The field is large, centred, and narrow enough to look like a value rather
+ * than a form control, with its unit alongside so the number needs no
+ * explanation.
+ *
+ * Focused on arrival by default: someone who tapped "Log weight" came to type a
+ * number, and should not have to find the field first.
+ */
+@Composable
+fun HeroNumberField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    unitLabel: String,
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Number,
+    autoFocus: Boolean = true,
+) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(autoFocus) {
+        if (autoFocus) {
+            // Guarded: requesting focus on a node that isn't attached yet throws.
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        SectionLabel(label)
+        Spacer(Modifier.height(12.dp))
+        // The unit sits beside the field rather than inside it as a `suffix`.
+        // With a centred value, a suffix is pinned to the far right of the box
+        // and "182" and "lb" read as two unrelated things with a gap between
+        // them; next to each other they read as one value.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineSmall.copy(textAlign = TextAlign.Center),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier
+                    .width(170.dp)
+                    .focusRequester(focusRequester)
+                    // The visible label is the accessible name; without this the
+                    // field announces only its value.
+                    .semantics { contentDescription = label },
+            )
+            if (unitLabel.isNotBlank()) {
+                Text(
+                    text = unitLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

@@ -7,15 +7,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,10 +48,12 @@ import androidx.compose.runtime.remember
 import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -62,12 +71,40 @@ import com.enough.app.domain.nutrition.MealNutrition
 import com.enough.app.domain.rules.DailySwap
 import com.enough.app.domain.rules.Nudge
 import com.enough.app.domain.rules.TodayMessage
+import com.enough.app.domain.theme.TimeOfDay
 import com.enough.app.feature.share.ShareCardLines
 import com.enough.app.feature.share.ShareCardRenderer
 import com.enough.app.ui.components.FiberRing
 import com.enough.app.ui.components.Mascot
+import com.enough.app.ui.components.SectionLabel
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.roundToInt
+
+/** The FAB's 56dp footprint plus its 16dp end margin — content keeps clear of it. */
+private val FAB_LANE_WIDTH = 72.dp
+
+/** Gap between rows inside one group. */
+private val LIST_GAP = 12.dp
+
+/** Gap between groups — the break that makes them read as separate things. */
+private val GROUP_GAP = 36.dp
+
+/** The hero ring, sized so it genuinely dominates rather than merely leading. */
+private val HERO_RING_DIAMETER = 208.dp
+private val HERO_RING_STROKE = 20.dp
+
+/**
+ * The greeting for this part of the day (§7.10 B2). Internal rather than
+ * private so the mapping itself is unit-testable — a band silently falling back
+ * to another band's line would make the feature decorative without failing
+ * anything.
+ */
+internal fun greetingRes(timeOfDay: TimeOfDay): Int = when (timeOfDay) {
+    TimeOfDay.MORNING -> R.string.home_greeting_morning
+    TimeOfDay.DAY -> R.string.home_greeting_day
+    TimeOfDay.EVENING -> R.string.home_greeting_evening
+    TimeOfDay.NIGHT -> R.string.home_greeting_night
+}
 
 @Composable
 fun TodayRoute(
@@ -156,9 +193,22 @@ fun TodayScreen(
     onCheckIn: (FeltLevel) -> Unit,
     onShareToday: () -> Unit = {},
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    // Resolved once per composition rather than observed: the greeting settling
+    // into a new band while someone is reading would be motion on data they
+    // didn't touch (DESIGN.md). Injectable so previews and tests can pin it.
+    timeOfDay: TimeOfDay = remember { TimeOfDay.now() },
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.today_title)) }) },
+        // This screen renders inside MainNavHost's Scaffold, which has already
+        // consumed the system-bar insets. Consuming them again double-counted
+        // the status bar and cost every screen ~54dp of dead space at the top
+        // (§7.10 B3).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // The #1 task (and the named churn driver) gets the thumb-reachable
         // primary slot instead of being one of three equal mid-screen buttons
@@ -178,23 +228,31 @@ fun TodayScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            // The tight, within-a-group gap. Groups are separated by GROUP_GAP
+            // spacers instead, so the page has a rhythm — everything sharing one
+            // 16dp gap is why the check-in header, its chips, its hint and its
+            // share link read as four unrelated items rather than one thing.
+            verticalArrangement = Arrangement.spacedBy(LIST_GAP),
             // Bottom inset so the FAB never sits on top of the last row.
             contentPadding = PaddingValues(bottom = 80.dp),
         ) {
+            // --- The moment ---------------------------------------------
+            // Greeting, ring, and the one thing the buddy says: sized to carry
+            // the screen on its own. This is what someone opens the app for, and
+            // the app's proposition is "do one thing and leave", so the top of
+            // Today is a moment rather than the first rows of a dashboard
+            // (§7.10 B2).
             item {
                 Text(
-                    text = stringResource(R.string.home_greeting),
+                    text = stringResource(greetingRes(timeOfDay)),
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
                 )
             }
-            // Tier 1 — the hero. The ring is the only extraLarge card on the
-            // screen; everything below it is deliberately quieter.
-            item { FiberCard(uiState) }
-            // Tier 2 — exactly ONE thing the app says today (reset > nudge >
-            // swap), chosen by the pure arbiter so the three can't stack into a
-            // wall of advice or contradict each other on a rough day.
+            item { FiberHero(uiState) }
+            // Exactly ONE thing the app says today (reset > nudge > swap), chosen
+            // by the pure arbiter so the three can't stack into a wall of advice
+            // or contradict each other on a rough day.
             if (uiState.todayMessage != TodayMessage.None) {
                 item {
                     TodayMessageSlot(
@@ -204,17 +262,11 @@ fun TodayScreen(
                     )
                 }
             }
-            // Sits above the check-in rather than below it so it clears the FAB's
-            // resting position — an extended FAB is wide, and on device it covered
-            // the "Log movement" button when this row sat lower.
-            item {
-                SecondaryLoggingActions(
-                    onLogWeight = onLogWeight,
-                    onLogActivity = onLogActivity,
-                )
-            }
-            // Tier 3 — the person's own input, not the app talking. Keeps its own
-            // quiet slot rather than competing with the messages above (§7.6 S1/S2).
+
+            // --- The rest of today --------------------------------------
+            // Everything below is deliberately subordinate, and separated from
+            // the moment by real space rather than by another 16dp gap.
+            item { Spacer(Modifier.height(GROUP_GAP)) }
             item {
                 CheckInCard(
                     selected = uiState.todayFelt,
@@ -222,9 +274,18 @@ fun TodayScreen(
                     onShareToday = onShareToday,
                 )
             }
-            // Tier 4 — today's numbers as quiet grouped rows, not equal-weight
-            // cards competing with the ring.
+            // Below the buddy's message now, not wedged between the ring and it:
+            // two pieces of chrome mid-sentence broke the one voice the moment is
+            // supposed to have. A3 reserved the FAB's lane, so these are safe
+            // anywhere in the list.
+            item {
+                SecondaryLoggingActions(
+                    onLogWeight = onLogWeight,
+                    onLogActivity = onLogActivity,
+                )
+            }
             item { QuietStatsSection(uiState) }
+            item { Spacer(Modifier.height(GROUP_GAP - LIST_GAP)) }
             item { MealsHeader() }
             if (uiState.meals.isEmpty()) {
                 item { FirstMealPrompt(onAddMeal = onAddMeal) }
@@ -237,6 +298,7 @@ fun TodayScreen(
                     )
                 }
             }
+            item { Spacer(Modifier.height(GROUP_GAP - LIST_GAP)) }
             item { ActivityHeader() }
             if (uiState.activities.isEmpty()) {
                 item { EmptyHint(stringResource(R.string.today_activity_none)) }
@@ -289,14 +351,15 @@ private fun TodayMessageSlot(
 @Composable
 private fun NudgeCard(nudge: Nudge) {
     val message = when (nudge) {
+        // No grams-so-far argument: the ring immediately above already states it,
+        // and repeating it made the buddy sound like a readout (§7.10 B2).
         is Nudge.FiberGap -> stringResource(
             if (nudge.gentle) R.string.nudge_fiber_gap_gentle else R.string.nudge_fiber_gap,
-            nudge.fiberSoFarG,
             nudge.suggestionFood,
             nudge.suggestionServingLabel,
             nudge.suggestionFiberG,
         )
-        is Nudge.OnTrack -> stringResource(R.string.nudge_on_track, nudge.fiberSoFarG, nudge.targetG)
+        is Nudge.OnTrack -> stringResource(R.string.nudge_on_track, nudge.targetG)
         Nudge.None -> null
     } ?: return
 
@@ -371,7 +434,21 @@ private fun ResetMomentCard(onLogSomething: () -> Unit, onShown: () -> Unit) {
                     )
                 }
             }
-            FilledTonalButton(onClick = onLogSomething) {
+            // Not a FilledTonalButton: its container role *is* secondaryContainer,
+            // the same colour as this card, so the button was invisible against
+            // its own background (spotted on device during §7.10 B1). An outlined
+            // button borrows the card's content colour and stays gentle, which a
+            // filled primary button would not.
+            OutlinedButton(
+                onClick = onLogSomething,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.4f),
+                ),
+            ) {
                 Text(stringResource(R.string.reset_moment_log_action))
             }
         }
@@ -384,6 +461,7 @@ private fun ResetMomentCard(onLogSomething: () -> Unit, onShown: () -> Unit) {
  * option is "wrong", nothing marks a day you didn't answer, and the copy stays a
  * note-to-self, never a nudge to log.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CheckInCard(
     selected: FeltLevel?,
@@ -397,7 +475,14 @@ private fun CheckInCard(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(stringResource(R.string.today_checkin_header), style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // FlowRow, not Row: three chips in a fixed Row overflow at large font
+        // scales, and Compose resolves that by squeezing them — at 2.0x the
+        // first two collapsed to zero width and the third rendered as an 8px
+        // sliver, making the whole check-in unusable. They wrap now.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             FeltLevel.entries.forEach { level ->
                 FilterChip(
                     selected = selected == level,
@@ -464,21 +549,23 @@ private fun DailySwapCard(swap: DailySwap.Swap) {
 }
 
 /**
- * The fiber hero. Deliberately **not** in a card: the ring is already a strong
- * shape, and boxing it made the screen read as a stack of widgets rather than a
- * page (2026-08-24 warmth pass). It sits directly on the app's warm background
- * and carries the screen by size alone.
+ * The fiber hero — the top of the moment (§7.10 B2).
+ *
+ * Deliberately **not** in a card: the ring is already a strong shape, and
+ * boxing it made the screen read as a stack of widgets rather than a page. It
+ * sits directly on the background wash and carries the screen by size alone,
+ * which only works if it is genuinely much larger than everything under it —
+ * it used to be about 1.5x its neighbours, which is not a hierarchy.
  */
 @Composable
-private fun FiberCard(uiState: TodayUiState) {
+private fun FiberHero(uiState: TodayUiState) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
+        SectionLabel(
             stringResource(R.string.today_fiber_headline),
-            style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.align(Alignment.Start),
         )
         if (uiState.hideNumbers) {
@@ -491,11 +578,11 @@ private fun FiberCard(uiState: TodayUiState) {
                 modifier = Modifier.align(Alignment.Start),
             )
         } else {
-            // The hero: an animated ring (handles the no-target and over-target
-            // states itself). A zero target renders a neutral, unfilled track.
             FiberRing(
                 fiberSoFarG = uiState.fiberSoFarG.roundToInt(),
                 fiberTargetG = uiState.fiberTargetG,
+                diameter = HERO_RING_DIAMETER,
+                strokeWidth = HERO_RING_STROKE,
             )
             if (uiState.fiberTargetG <= 0) {
                 Text(
@@ -513,12 +600,28 @@ private fun FiberCard(uiState: TodayUiState) {
  * primary action and lives in the FAB, so these two step down to outlined
  * buttons rather than competing as equal filled-tonal thirds.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SecondaryLoggingActions(
     onLogWeight: () -> Unit,
     onLogActivity: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    // FlowRow rather than Row so the pair splits onto two lines when the labels
+    // stop fitting side by side. In a plain Row they were squeezed narrower than
+    // their own text and "Log movement" broke mid-word ("Log / movem / ent") at
+    // 2.0x. Each button still weights to fill whatever line it lands on, so the
+    // common case is unchanged: two equal halves.
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        // Keep the row out of the FAB's lane. The FAB is pinned to a fixed
+        // screen position, so whatever scrolls under it gets covered — fine for
+        // static text, not for a control. At 1.5x "Log movement" grew tall
+        // enough to reach that band and the FAB sat on its right half. Reserving
+        // the FAB's footprint here means no control can land under it at any
+        // font scale or scroll offset.
+        modifier = Modifier.fillMaxWidth().padding(end = FAB_LANE_WIDTH),
+    ) {
         OutlinedButton(onClick = onLogWeight, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.today_log_weight))
         }
@@ -537,7 +640,17 @@ private fun SecondaryLoggingActions(
 @Composable
 private fun QuietStatsSection(uiState: TodayUiState) {
     val data = uiState.healthConnect
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+    Column(
+        // Same FAB lane the secondary actions reserve (§7.10 A3). These rows are
+        // static text rather than controls, so the FAB sitting on them is not a
+        // reachability problem — but the values are right-aligned, so on a short
+        // day "Not logged yet" rendered as "Not logge" with the FAB over the
+        // rest, which just reads as broken.
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(end = FAB_LANE_WIDTH),
+    ) {
         val weight = uiState.latestWeight
         QuietStatRow(
             label = stringResource(R.string.today_weight_header),
@@ -573,16 +686,22 @@ private fun QuietStatsSection(uiState: TodayUiState) {
 private fun QuietStatRow(label: String, value: String, muted: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The label takes the weight so it wraps and the value keeps its
+        // intrinsic width. With SpaceBetween and two unweighted Texts these
+        // overlapped each other outright at 2.0x ("Latest weight" printed on
+        // top of "Not logged yet") rather than wrapping.
         Text(
             text = label,
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
+            textAlign = TextAlign.End,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (muted) FontWeight.Normal else FontWeight.Medium,
             color = if (muted) {
@@ -596,12 +715,12 @@ private fun QuietStatRow(label: String, value: String, muted: Boolean = false) {
 
 @Composable
 private fun MealsHeader() {
-    Text(stringResource(R.string.today_meals_header), style = MaterialTheme.typography.titleLarge)
+    SectionLabel(stringResource(R.string.today_meals_header))
 }
 
 @Composable
 private fun ActivityHeader() {
-    Text(stringResource(R.string.today_activity_header), style = MaterialTheme.typography.titleLarge)
+    SectionLabel(stringResource(R.string.today_activity_header))
 }
 
 @Composable

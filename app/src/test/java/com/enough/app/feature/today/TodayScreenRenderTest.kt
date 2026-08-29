@@ -1,6 +1,9 @@
 package com.enough.app.feature.today
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -19,7 +22,9 @@ import com.enough.app.data.local.entity.WeightEntry
 import com.enough.app.data.model.ActivityGoalType
 import com.enough.app.data.model.ActivityUnit
 import com.enough.app.data.model.MealSource
+import com.enough.app.domain.theme.TimeOfDay
 import com.enough.app.ui.theme.EnoughTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -149,6 +154,10 @@ class TodayScreenRenderTest {
         composeRule.onNodeWithText("How did today feel?").assertIsDisplayed()
         composeRule.onNodeWithText("Steady").assertIsDisplayed()
         // Framed as a note to yourself, never a nudge to log.
+        // Scrolled to directly: the check-in is one tight group now (§7.10 B2), and
+        // in the short test viewport its hint sits below the header it belongs to.
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("skip it any day", substring = true))
         composeRule.onNodeWithText("skip it any day", substring = true).assertIsDisplayed()
     }
 
@@ -235,8 +244,12 @@ class TodayScreenRenderTest {
         assertTrue(addedMeal)
 
         // Weight and movement still exist as secondary entries, not equal thirds.
+        // Scrolled to individually: the pair is a FlowRow (§7.10 A3), so in a
+        // narrow viewport it wraps onto two lines and the second can sit just
+        // off-screen when the first is scrolled into view.
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Log weight"))
         composeRule.onNodeWithText("Log weight").assertIsDisplayed()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Log movement"))
         composeRule.onNodeWithText("Log movement").assertIsDisplayed()
     }
 
@@ -312,5 +325,93 @@ class TodayScreenRenderTest {
         // Composing the card is what records "shown" (not the state computation),
         // so the once-per-rough-patch budget is only spent on a moment truly seen.
         assertTrue(shownRecorded)
+    }
+
+    /**
+     * Today has to survive the system font scale, which Android 14+ takes to
+     * 200% on Pixels. At 2.0x the check-in chips sat in a plain Row, overflowed
+     * it, and Compose resolved that by squeezing them: the first two collapsed
+     * to zero width and the third rendered as an 8px sliver, so the whole
+     * check-in became untappable. Driving LocalDensity directly keeps this
+     * deterministic rather than depending on the test device configuration.
+     */
+    @Test
+    fun `check-in chips stay usable at a 2x font scale`() {
+        composeRule.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(density = base.density, fontScale = 2f),
+            ) {
+                EnoughTheme(dynamicColor = false) {
+                    TodayScreen(
+                        TodayUiState(isLoading = false),
+                        onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                        onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("How did today feel?"))
+
+        // Every option must still be a real, non-degenerate target — the bug was
+        // that they existed in the tree but had been squeezed to nothing.
+        listOf("A rough one", "Steady", "Good").forEach { label ->
+            val width = composeRule.onNodeWithText(label)
+                .fetchSemanticsNode().size.width
+            assertTrue("\"$label\" collapsed to ${width}px at 2x font scale", width > 0)
+        }
+    }
+
+    @Test
+    fun `the greeting renders the line for the time of day it was given`() {
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    TodayUiState(isLoading = false),
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    timeOfDay = TimeOfDay.NIGHT,
+                )
+            }
+        }
+
+        // The late-night line offers the exit outright rather than nudging.
+        composeRule.onNodeWithText("It's late. Tomorrow is fine too.").assertIsDisplayed()
+        composeRule.onNodeWithText("One small thing today is enough.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the nudge does not repeat the number the ring already shows`() {
+        // The ring says "3 of 28g" directly above; the nudge opening with
+        // "You're at 3g of fiber today" made the buddy sound like a readout
+        // rather than a friend (§7.10 B2).
+        val state = TodayUiState(
+            fiberSoFarG = 3.0,
+            nudge = com.enough.app.domain.rules.Nudge.FiberGap(
+                fiberSoFarG = 3,
+                gapG = 25,
+                suggestionFood = "Lentils",
+                suggestionServingLabel = "1/2 cup cooked",
+                suggestionFiberG = 8,
+            ),
+            isLoading = false,
+        )
+
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                TodayScreen(
+                    state,
+                    onAddMeal = {}, onLogWeight = {}, onLogActivity = {},
+                    onDeleteMeal = {}, onResetMomentShown = {}, onCheckIn = {},
+                    timeOfDay = TimeOfDay.DAY,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Lentils", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("You're at", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("of fiber today", substring = true).assertDoesNotExist()
     }
 }

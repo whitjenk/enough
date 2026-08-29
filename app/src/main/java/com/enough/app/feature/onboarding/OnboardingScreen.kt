@@ -5,12 +5,15 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -31,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,8 +58,9 @@ import com.enough.app.health.HealthConnectAvailability
 import com.enough.app.ui.components.ChoiceList
 import com.enough.app.ui.components.ChoiceOption
 import com.enough.app.ui.components.LabeledSlider
+import com.enough.app.ui.components.Mascot
 import com.enough.app.ui.components.MultiChoiceList
-import com.enough.app.ui.components.SectionCard
+import com.enough.app.ui.components.FormSection
 import com.enough.app.ui.theme.EnoughTheme
 import kotlin.math.roundToInt
 
@@ -196,8 +202,16 @@ private fun OnboardingScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text(title) },
                 navigationIcon = {
                     if (onBack != null) {
@@ -208,7 +222,14 @@ private fun OnboardingScaffold(
         },
         bottomBar = {
             Surface {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                // Edge-to-edge: a bare Surface applies no window insets of its own,
+                // so without this the button lands in the gesture inset.
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
                     Button(
                         onClick = onPrimary,
                         enabled = primaryEnabled,
@@ -235,55 +256,99 @@ private fun OnboardingScaffold(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit) {
+    // Rebuilt in §7.10 B5. The old version put both buttons in the bottom bar
+    // and their descriptions at the top of the content, leaving ~900px of dead
+    // space between them: the person read "Go straight to setting your goals.
+    // No quiz." roughly 1200px above the button it described and had to hold
+    // the mapping in their head. Each choice now carries its description
+    // directly beneath it, in the bottom bar with the button it belongs to.
+    //
+    // No TopAppBar: a generic app-bar title is a poor use of the one screen
+    // that introduces the app. The name is the headline instead, with the
+    // mascot above it — this screen had no brand presence at all before.
+    //
+    // Note this step renders outside MainNavHost, so unlike the main tabs its
+    // Scaffold does need to handle its own window insets (§7.10 B3).
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.onboarding_welcome_title)) }) },
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         bottomBar = {
-            Surface {
+            Surface(color = Color.Transparent) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                 ) {
                     // Default path is the emphasized primary; the risk test is an
                     // equally-visible-but-secondary option, never the default.
                     Button(onClick = onStartDefault, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.onboarding_entry_default))
                     }
+                    EntryDescription(stringResource(R.string.onboarding_entry_default_desc))
+                    Spacer(Modifier.height(20.dp))
                     OutlinedButton(onClick = onStartRiskTest, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.onboarding_entry_risk))
                     }
+                    EntryDescription(stringResource(R.string.onboarding_entry_risk_desc))
                 }
             }
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        // Centred between the bars (§7.11). B5 left ~700px stranded under the
+        // brand block on the argument that it read as a composed top-and-bottom
+        // layout; it is still the first screen anyone sees, and centring costs
+        // nothing. heightIn(min = viewport) is what makes centring possible
+        // inside a scroll — a scrolling Column has unbounded height, so
+        // Arrangement alone is a no-op — while still letting the content grow
+        // and scroll at large font scales.
+        BoxWithConstraints(Modifier.padding(padding).fillMaxSize()) {
+            val viewport = maxHeight
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = viewport)
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 24.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+            Mascot(
+                color = EnoughTheme.successColors.success,
+                contentDescription = stringResource(R.string.cd_mascot),
+                diameter = 72.dp,
+            )
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.onboarding_welcome_title),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Spacer(Modifier.height(12.dp))
             Text(
                 text = stringResource(R.string.onboarding_welcome_body),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            Text(
-                text = stringResource(R.string.onboarding_entry_default_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(R.string.onboarding_entry_risk_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            HorizontalDivider()
+            Spacer(Modifier.height(28.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.onboarding_welcome_disclaimer),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            }
         }
     }
+}
+
+/** The line under an entry button explaining what that choice actually does. */
+@Composable
+private fun EntryDescription(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+    )
 }
 
 @Composable
@@ -306,7 +371,7 @@ private fun RiskTestStep(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        SectionCard(stringResource(R.string.risk_q_age)) {
+        FormSection(stringResource(R.string.risk_q_age)) {
             ChoiceList(
                 options = listOf(
                     ChoiceOption(AgeBand.UNDER_40, stringResource(R.string.age_under_40)),
@@ -319,7 +384,7 @@ private fun RiskTestStep(
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_sex)) {
+        FormSection(stringResource(R.string.risk_q_sex)) {
             Text(
                 text = stringResource(R.string.risk_q_sex_help),
                 style = MaterialTheme.typography.bodySmall,
@@ -336,7 +401,7 @@ private fun RiskTestStep(
         }
 
         if (form.sex == Sex.FEMALE) {
-            SectionCard(stringResource(R.string.risk_q_gestational)) {
+            FormSection(stringResource(R.string.risk_q_gestational)) {
                 YesNoChoice(
                     selected = form.hadGestationalDiabetes,
                     onSelect = { onFormChange(form.copy(hadGestationalDiabetes = it)) },
@@ -344,28 +409,28 @@ private fun RiskTestStep(
             }
         }
 
-        SectionCard(stringResource(R.string.risk_q_family)) {
+        FormSection(stringResource(R.string.risk_q_family)) {
             YesNoChoice(
                 selected = form.familyHistoryDiabetes,
                 onSelect = { onFormChange(form.copy(familyHistoryDiabetes = it)) },
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_bp)) {
+        FormSection(stringResource(R.string.risk_q_bp)) {
             YesNoChoice(
                 selected = form.highBloodPressure,
                 onSelect = { onFormChange(form.copy(highBloodPressure = it)) },
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_active)) {
+        FormSection(stringResource(R.string.risk_q_active)) {
             YesNoChoice(
                 selected = form.physicallyActive,
                 onSelect = { onFormChange(form.copy(physicallyActive = it)) },
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_height)) {
+        FormSection(stringResource(R.string.risk_q_height)) {
             val totalInches = form.heightFeet * 12 + form.heightInches
             LabeledSlider(
                 valueLabel = stringResource(
@@ -382,7 +447,7 @@ private fun RiskTestStep(
             )
         }
 
-        SectionCard(stringResource(R.string.risk_q_weight)) {
+        FormSection(stringResource(R.string.risk_q_weight)) {
             OutlinedTextField(
                 value = form.weightLbText,
                 onValueChange = { onFormChange(form.copy(weightLbText = it.filter { c -> c.isDigit() || c == '.' })) },
@@ -464,7 +529,7 @@ private fun GoalsStep(
         primaryEnabled = form.isComplete,
         onPrimary = onContinue,
     ) {
-        SectionCard(stringResource(R.string.goals_weight_header)) {
+        FormSection(stringResource(R.string.goals_weight_header), topDivider = false) {
             Text(
                 text = stringResource(R.string.goals_weight_choice_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -516,7 +581,7 @@ private fun GoalsStep(
             }
         }
 
-        SectionCard(stringResource(R.string.goals_activity_header)) {
+        FormSection(stringResource(R.string.goals_activity_header)) {
             Text(
                 text = stringResource(R.string.goals_activity_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -556,7 +621,7 @@ private fun GoalsStep(
             }
         }
 
-        SectionCard(stringResource(R.string.goals_fiber_header)) {
+        FormSection(stringResource(R.string.goals_fiber_header)) {
             OutlinedTextField(
                 value = form.caloriesText,
                 onValueChange = { onFormChange(form.copy(caloriesText = it.filter { c -> c.isDigit() })) },
@@ -600,7 +665,7 @@ private fun ExtrasStep(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        SectionCard(stringResource(R.string.extras_diet_header)) {
+        FormSection(stringResource(R.string.extras_diet_header)) {
             Text(
                 text = stringResource(R.string.extras_diet_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -627,7 +692,7 @@ private fun ExtrasStep(
             )
         }
 
-        SectionCard(stringResource(R.string.extras_why_header)) {
+        FormSection(stringResource(R.string.extras_why_header)) {
             Text(
                 text = stringResource(R.string.extras_why_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -662,8 +727,16 @@ private fun ReminderStep(
     onBack: () -> Unit,
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
+        // Transparent has no `contentColorFor` mapping, so M3 falls back to
+        // black and every Text that doesn't set its own colour goes unreadable
+        // in dark mode. Name the content colour explicitly (§7.10 B1).
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text(stringResource(R.string.onboarding_reminder_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
