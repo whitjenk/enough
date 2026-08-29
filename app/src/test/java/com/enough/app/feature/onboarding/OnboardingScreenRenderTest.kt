@@ -1,9 +1,16 @@
 package com.enough.app.feature.onboarding
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.enough.app.domain.risk.AgeBand
+import com.enough.app.domain.risk.Sex
 import com.enough.app.ui.theme.EnoughTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -59,6 +66,65 @@ class OnboardingScreenRenderTest {
 
         composeRule.onNodeWithText("Just here to build better habits").performClick()
         assertTrue("onStartDefault should have been invoked", defaultChosen)
+    }
+
+    /** Every question answered. Male, so the gestational question isn't asked. */
+    private val fullyAnsweredForm = RiskTestForm(
+        ageBand = AgeBand.AGE_50_59,
+        sex = Sex.MALE,
+        familyHistoryDiabetes = true,
+        highBloodPressure = false,
+        physicallyActive = true,
+        weightLbText = "190",
+    )
+
+    /** Composes the risk-test step with [form] and no-op callbacks. */
+    private fun setRiskTestContent(form: RiskTestForm) {
+        composeRule.setContent {
+            EnoughTheme(dynamicColor = false) {
+                OnboardingScreen(
+                    uiState = OnboardingUiState(step = OnboardingStep.RISK_TEST, riskForm = form),
+                    onStartDefault = {},
+                    onStartRiskTest = {},
+                    onRiskFormChange = {},
+                    onSubmitRiskTest = {},
+                    onRiskResultContinue = {},
+                    onGoalsFormChange = {},
+                    onGoalsContinue = {},
+                    onExtrasFormChange = {},
+                    onExtrasContinue = {},
+                    onReminderTimeChange = {},
+                    onAcceptReminder = {},
+                    onDeclineReminder = {},
+                    onConnectHealth = {},
+                    onFinish = {},
+                    onBack = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `risk test starts with nothing pre-answered and the result locked`() {
+        setRiskTestContent(RiskTestForm())
+
+        // Every default used to be the lower-risk answer, which quietly biased
+        // the score of anyone who tapped straight through. Nothing is selected
+        // until the person selects it.
+        composeRule.onAllNodes(isSelectable() and isSelected()).assertCountEquals(0)
+        composeRule.onNodeWithText("See my result").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `one unanswered question still locks see my result`() {
+        setRiskTestContent(fullyAnsweredForm.copy(physicallyActive = null))
+        composeRule.onNodeWithText("See my result").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `see my result unlocks once every question is answered`() {
+        setRiskTestContent(fullyAnsweredForm)
+        composeRule.onNodeWithText("See my result").assertIsEnabled()
     }
 
     @Test

@@ -26,24 +26,77 @@ class RiskScorerTest {
             heightCm = UnitConversions.feetInchesToCm(feet, inches),
         )
 
+    /**
+     * Every row of the published chart, as printed: height in inches to the
+     * lowest pound scoring 1, 2, and 3 points. Six of these rows disagree with
+     * `floor(bmi x inches^2 / 703)` by a pound, which is why the whole table is
+     * pinned here rather than two sample rows.
+     */
+    private val publishedChart = listOf(
+        Triple(58, Triple(119, 143, 191), "4'10\""),
+        Triple(59, Triple(124, 148, 198), "4'11\""),
+        Triple(60, Triple(128, 153, 204), "5'0\""),
+        Triple(61, Triple(132, 158, 211), "5'1\""),
+        Triple(62, Triple(136, 164, 218), "5'2\""),
+        Triple(63, Triple(141, 169, 225), "5'3\""),
+        Triple(64, Triple(145, 174, 232), "5'4\""),
+        Triple(65, Triple(150, 180, 240), "5'5\""),
+        Triple(66, Triple(155, 186, 247), "5'6\""),
+        Triple(67, Triple(159, 191, 255), "5'7\""),
+        Triple(68, Triple(164, 197, 262), "5'8\""),
+        Triple(69, Triple(169, 203, 270), "5'9\""),
+        Triple(70, Triple(174, 209, 278), "5'10\""),
+        Triple(71, Triple(179, 215, 286), "5'11\""),
+        Triple(72, Triple(184, 221, 294), "6'0\""),
+        Triple(73, Triple(189, 227, 302), "6'1\""),
+        Triple(74, Triple(194, 233, 311), "6'2\""),
+        Triple(75, Triple(200, 240, 319), "6'3\""),
+        Triple(76, Triple(205, 246, 328), "6'4\""),
+    )
+
     @Test
-    fun `official chart row 4 foot 10 matches documented pound thresholds`() {
-        // CDC chart: 4'10" -> 119-142 (1pt), 143-190 (2pt), 191+ (3pt).
-        assertEquals(0, weightPointsAt(4, 10, 118.0))
-        assertEquals(1, weightPointsAt(4, 10, 119.0))
-        assertEquals(1, weightPointsAt(4, 10, 142.0))
-        assertEquals(2, weightPointsAt(4, 10, 143.0))
-        assertEquals(2, weightPointsAt(4, 10, 190.0))
-        assertEquals(3, weightPointsAt(4, 10, 191.0))
+    fun `every published chart row matches at both sides of each boundary`() {
+        publishedChart.forEach { (inches, bounds, label) ->
+            val (onePoint, twoPoints, threePoints) = bounds
+            val feet = inches / 12
+            val rem = inches % 12
+            fun points(lb: Int) = weightPointsAt(feet, rem, lb.toDouble())
+
+            assertEquals("$label at ${onePoint - 1} lb", 0, points(onePoint - 1))
+            assertEquals("$label at $onePoint lb", 1, points(onePoint))
+            assertEquals("$label at ${twoPoints - 1} lb", 1, points(twoPoints - 1))
+            assertEquals("$label at $twoPoints lb", 2, points(twoPoints))
+            assertEquals("$label at ${threePoints - 1} lb", 2, points(threePoints - 1))
+            assertEquals("$label at $threePoints lb", 3, points(threePoints))
+        }
     }
 
     @Test
-    fun `official chart row 5 foot 0 matches documented pound thresholds`() {
-        // CDC chart: 5'0" -> 128-152 (1pt), 153-203 (2pt), 204+ (3pt).
-        assertEquals(0, weightPointsAt(5, 0, 127.0))
-        assertEquals(1, weightPointsAt(5, 0, 128.0))
-        assertEquals(2, weightPointsAt(5, 0, 153.0))
-        assertEquals(3, weightPointsAt(5, 0, 204.0))
+    fun `the six rows the BMI formula gets wrong come from the chart`() {
+        // Regression guard: these are exactly the boundaries where
+        // floor(bmi x inches^2 / 703) lands a pound off the printed chart.
+        assertEquals(0, weightPointsAt(4, 11, 123.0)) // formula said 1
+        assertEquals(3, weightPointsAt(5, 4, 232.0)) // formula said 2
+        assertEquals(0, weightPointsAt(5, 6, 154.0)) // formula said 1
+        assertEquals(1, weightPointsAt(5, 6, 185.0)) // formula said 2
+        assertEquals(3, weightPointsAt(5, 8, 262.0)) // formula said 2
+        assertEquals(3, weightPointsAt(6, 1, 302.0)) // formula said 2
+        assertEquals(3, weightPointsAt(6, 3, 319.0)) // formula said 2
+    }
+
+    @Test
+    fun `heights outside the chart fall back to the BMI thresholds`() {
+        // The chart stops at 4'10" and 6'4", but the height slider doesn't. These
+        // are our own extrapolation, not the published instrument.
+        assertEquals(0, weightPointsAt(4, 6, 102.0)) // 54 in: BMI 25 lands at 103 lb
+        assertEquals(1, weightPointsAt(4, 6, 103.0))
+        assertEquals(2, weightPointsAt(4, 6, 124.0))
+        assertEquals(3, weightPointsAt(4, 6, 165.0))
+
+        assertEquals(0, weightPointsAt(6, 8, 226.0)) // 80 in: BMI 25 lands at 227 lb
+        assertEquals(1, weightPointsAt(6, 8, 227.0))
+        assertEquals(2, weightPointsAt(6, 8, 273.0))
+        assertEquals(3, weightPointsAt(6, 8, 364.0))
     }
 
     @Test

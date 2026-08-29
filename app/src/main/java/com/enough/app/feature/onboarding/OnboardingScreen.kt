@@ -402,7 +402,7 @@ private fun RiskTestStep(
 }
 
 @Composable
-private fun YesNoChoice(selected: Boolean, onSelect: (Boolean) -> Unit) {
+private fun YesNoChoice(selected: Boolean?, onSelect: (Boolean) -> Unit) {
     ChoiceList(
         options = listOf(
             ChoiceOption(true, stringResource(R.string.option_yes)),
