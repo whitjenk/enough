@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -293,13 +295,23 @@ private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit)
             }
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(top = 24.dp, bottom = 12.dp),
-        ) {
+        // Centred between the bars (§7.11). B5 left ~700px stranded under the
+        // brand block on the argument that it read as a composed top-and-bottom
+        // layout; it is still the first screen anyone sees, and centring costs
+        // nothing. heightIn(min = viewport) is what makes centring possible
+        // inside a scroll — a scrolling Column has unbounded height, so
+        // Arrangement alone is a no-op — while still letting the content grow
+        // and scroll at large font scales.
+        BoxWithConstraints(Modifier.padding(padding).fillMaxSize()) {
+            val viewport = maxHeight
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = viewport)
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 24.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
             Mascot(
                 color = EnoughTheme.successColors.success,
                 contentDescription = stringResource(R.string.cd_mascot),
@@ -323,6 +335,7 @@ private fun WelcomeStep(onStartDefault: () -> Unit, onStartRiskTest: () -> Unit)
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            }
         }
     }
 }

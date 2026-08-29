@@ -307,7 +307,10 @@
 
     <!-- Log weight -->
     <string name="log_weight_title">Log weight</string>
-    <string name="log_weight_hint">Weight in pounds</string>
+    <string name="log_weight_hint">Weight</string>
+    <string name="unit_pounds">lb</string>
+    <string name="unit_minutes">min</string>
+    <string name="unit_steps">steps</string>
 
     <!-- Log activity -->
     <string name="log_activity_title">Log movement</string>

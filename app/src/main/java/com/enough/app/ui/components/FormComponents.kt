@@ -22,6 +22,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Row
 import kotlin.math.roundToInt
@@ -169,5 +181,74 @@ fun FormSection(
         Text(text = title, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         content()
+    }
+}
+
+/**
+ * The single number a logging screen exists to capture (§7.11).
+ *
+ * `Log weight` and `Log activity` are one input each, and rendering that input
+ * as an ordinary full-width text field parked at the top of an empty page made
+ * them read as unfinished forms rather than as a quick thing you came to do.
+ * The field is large, centred, and narrow enough to look like a value rather
+ * than a form control, with its unit alongside so the number needs no
+ * explanation.
+ *
+ * Focused on arrival by default: someone who tapped "Log weight" came to type a
+ * number, and should not have to find the field first.
+ */
+@Composable
+fun HeroNumberField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    unitLabel: String,
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Number,
+    autoFocus: Boolean = true,
+) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(autoFocus) {
+        if (autoFocus) {
+            // Guarded: requesting focus on a node that isn't attached yet throws.
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        SectionLabel(label)
+        Spacer(Modifier.height(12.dp))
+        // The unit sits beside the field rather than inside it as a `suffix`.
+        // With a centred value, a suffix is pinned to the far right of the box
+        // and "182" and "lb" read as two unrelated things with a gap between
+        // them; next to each other they read as one value.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineSmall.copy(textAlign = TextAlign.Center),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier
+                    .width(170.dp)
+                    .focusRequester(focusRequester)
+                    // The visible label is the accessible name; without this the
+                    // field announces only its value.
+                    .semantics { contentDescription = label },
+            )
+            if (unitLabel.isNotBlank()) {
+                Text(
+                    text = unitLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }

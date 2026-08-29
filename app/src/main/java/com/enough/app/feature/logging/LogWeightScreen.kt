@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enough.app.R
 import com.enough.app.di.AppViewModelProvider
 import com.enough.app.ui.components.BackTitleScaffold
+import com.enough.app.ui.components.HeroNumberField
 
 @Composable
 fun LogWeightRoute(
@@ -47,14 +48,16 @@ fun LogWeightScreen(
         primaryLabel = stringResource(R.string.action_save),
         primaryEnabled = uiState.canSave,
         onPrimary = onSave,
+        // One input on an otherwise empty page — centred rather than parked at
+        // the top of ~1400px of nothing (§7.11).
+        centerContent = true,
     ) {
-        OutlinedTextField(
+        HeroNumberField(
             value = uiState.weightLbText,
             onValueChange = { onWeightChange(it.filter { c -> c.isDigit() || c == '.' }) },
-            label = { Text(stringResource(R.string.log_weight_hint)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.log_weight_hint),
+            unitLabel = stringResource(R.string.unit_pounds),
+            keyboardType = KeyboardType.Decimal,
         )
     }
 }
