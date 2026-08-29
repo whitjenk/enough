@@ -15,23 +15,62 @@ class OnboardingFormsTest {
 
     // --- RiskTestForm ---
 
+    /** All seven questions answered, so individual fields can be cleared in tests. */
+    private val answeredForm = RiskTestForm(
+        ageBand = AgeBand.AGE_40_49,
+        sex = Sex.FEMALE,
+        hadGestationalDiabetes = false,
+        familyHistoryDiabetes = false,
+        highBloodPressure = false,
+        physicallyActive = true,
+        weightLbText = "165",
+    )
+
     @Test
     fun `risk form is incomplete until age, sex, and a positive weight are set`() {
         val empty = RiskTestForm()
         assertFalse(empty.isComplete)
         assertNull(empty.toAnswers())
 
-        val partial = empty.copy(ageBand = AgeBand.AGE_40_49, sex = Sex.FEMALE)
+        val partial = answeredForm.copy(weightLbText = "")
         assertFalse(partial.isComplete) // no weight yet
 
-        val complete = partial.copy(weightLbText = "165")
-        assertTrue(complete.isComplete)
-        assertNotNull(complete.toAnswers())
+        assertTrue(answeredForm.isComplete)
+        assertNotNull(answeredForm.toAnswers())
+    }
+
+    @Test
+    fun `no yes-no question is pre-answered, and each one gates completion`() {
+        val fresh = RiskTestForm()
+        assertNull(fresh.hadGestationalDiabetes)
+        assertNull(fresh.familyHistoryDiabetes)
+        assertNull(fresh.highBloodPressure)
+        assertNull(fresh.physicallyActive)
+
+        assertFalse(answeredForm.copy(hadGestationalDiabetes = null).isComplete)
+        assertFalse(answeredForm.copy(familyHistoryDiabetes = null).isComplete)
+        assertFalse(answeredForm.copy(highBloodPressure = null).isComplete)
+        assertFalse(answeredForm.copy(physicallyActive = null).isComplete)
+
+        assertNull(answeredForm.copy(familyHistoryDiabetes = null).toAnswers())
+    }
+
+    @Test
+    fun `gestational diabetes only gates completion for women`() {
+        val woman = answeredForm.copy(sex = Sex.FEMALE, hadGestationalDiabetes = null)
+        assertFalse(woman.isComplete)
+        assertNull(woman.toAnswers())
+
+        // The question isn't shown to men, so leaving it unanswered is fine and
+        // it scores as false.
+        val man = woman.copy(sex = Sex.MALE)
+        assertTrue(man.isComplete)
+        assertFalse(man.toAnswers()!!.hadGestationalDiabetes)
     }
 
     @Test
     fun `blank or non-positive weight text does not count as complete`() {
-        val base = RiskTestForm(ageBand = AgeBand.UNDER_40, sex = Sex.MALE)
+        val base = answeredForm.copy(sex = Sex.MALE, hadGestationalDiabetes = null)
         assertNull(base.copy(weightLbText = "").weightLb)
         assertNull(base.copy(weightLbText = "abc").weightLb)
         assertNull(base.copy(weightLbText = "0").weightLb)
@@ -41,7 +80,7 @@ class OnboardingFormsTest {
 
     @Test
     fun `toAnswers converts height and weight to metric`() {
-        val form = RiskTestForm(
+        val form = answeredForm.copy(
             ageBand = AgeBand.AGE_50_59,
             sex = Sex.MALE,
             heightFeet = 5,

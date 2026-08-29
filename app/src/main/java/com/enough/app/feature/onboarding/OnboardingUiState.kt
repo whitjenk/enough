@@ -35,31 +35,50 @@ enum class OnboardingStep {
 data class RiskTestForm(
     val ageBand: AgeBand? = null,
     val sex: Sex? = null,
-    val hadGestationalDiabetes: Boolean = false,
-    val familyHistoryDiabetes: Boolean = false,
-    val highBloodPressure: Boolean = false,
-    val physicallyActive: Boolean = true,
+    /** Only asked (and only scored) when [sex] is [Sex.FEMALE]. */
+    val hadGestationalDiabetes: Boolean? = null,
+    val familyHistoryDiabetes: Boolean? = null,
+    val highBloodPressure: Boolean? = null,
+    val physicallyActive: Boolean? = null,
     val heightFeet: Int = 5,
     val heightInches: Int = 6,
     val weightLbText: String = "",
 ) {
     val weightLb: Double? = weightLbText.trim().toDoubleOrNull()?.takeIf { it > 0 }
 
+    /**
+     * Whether the gestational-diabetes question still needs an answer. It is only
+     * shown to women, so it only gates completion once [sex] is [Sex.FEMALE].
+     */
+    private val gestationalAnswered: Boolean
+        get() = sex != Sex.FEMALE || hadGestationalDiabetes != null
+
     val isComplete: Boolean
-        get() = ageBand != null && sex != null && weightLb != null
+        get() = ageBand != null &&
+            sex != null &&
+            gestationalAnswered &&
+            familyHistoryDiabetes != null &&
+            highBloodPressure != null &&
+            physicallyActive != null &&
+            weightLb != null
 
     /** Convert to scorer input, or null if the form isn't complete yet. */
     fun toAnswers(): RiskTestAnswers? {
         val age = ageBand ?: return null
         val s = sex ?: return null
+        val family = familyHistoryDiabetes ?: return null
+        val bp = highBloodPressure ?: return null
+        val active = physicallyActive ?: return null
         val lb = weightLb ?: return null
+        // Not asked of men, and not scored for them either.
+        val gestational = if (s == Sex.FEMALE) hadGestationalDiabetes ?: return null else false
         return RiskTestAnswers(
             ageBand = age,
             sex = s,
-            hadGestationalDiabetes = hadGestationalDiabetes,
-            familyHistoryDiabetes = familyHistoryDiabetes,
-            highBloodPressure = highBloodPressure,
-            physicallyActive = physicallyActive,
+            hadGestationalDiabetes = gestational,
+            familyHistoryDiabetes = family,
+            highBloodPressure = bp,
+            physicallyActive = active,
             heightCm = UnitConversions.feetInchesToCm(heightFeet, heightInches),
             weightKg = UnitConversions.lbToKg(lb),
         )
